@@ -81,7 +81,7 @@ Critério de pronto da Etapa 0: `docker compose up` sobe API e Postgres;
 
 ## Stack decidida
 
-Python 3.12 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 · Alembic ·
+Python 3.14 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 · Alembic ·
 PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · pytest + httpx ·
 Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query ·
 Playwright.
@@ -121,6 +121,6 @@ head`, `pytest`).
 
 ## Git
 
-Repositório público em `github.com/PatriciaCorreiaSI/reservare-sdlc`, via SSH
+Repositório público em `github.com/PatriciaCorreiaSI/sistema-reservare`, via SSH
 com chave pessoal. Os commits usam o e-mail privado do GitHub
 (`...@users.noreply.github.com`) — não altere `user.email` local.

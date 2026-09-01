@@ -41,7 +41,7 @@ Nada é listado como pronto antes de estar funcionando.
 
 ## Stack
 
-**Back-end** — Python 3.12 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16
+**Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16
 **Front-end** — Vite · React · TypeScript · TanStack Query
 **Qualidade** — pytest · Playwright · ruff · GitHub Actions
 **Infra** — Docker Compose
