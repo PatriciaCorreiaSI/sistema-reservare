@@ -1,0 +1,32 @@
+# Segredos de configuração local - nunca versionar
+.env
+.env.*
+!.env.example
+
+# Bytecode do Python
+__pycache__/
+*.py[cod]
+
+# Ambiente virtual
+.venv/
+
+# Caches de ferramentas
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Cobertura de testes
+.coverage
+htmlcov/
+
+# Editor
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Front-end
+node_modules/
+dist/
