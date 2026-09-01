@@ -69,8 +69,34 @@ Antes de escrever implementação, verifique em que fase ela está:
 
 ## Estado atual
 
-- **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 4 ADRs escritos.
+- **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 5 ADRs escritos.
 - **Etapa 0 (fundação): em andamento** — é aqui que estamos.
+
+### Já feito
+
+- `.gitignore` na raiz, `.env` protegido antes de existir segredo, `.env.example` versionado.
+- Python 3.14 fixado (ADR 0005 substitui a escolha de 3.12 do ROADMAP).
+- `uv` com `pyproject.toml` + `uv.lock`; ambiente reprodutível via `uv sync`.
+- Layout monorepo: `backend/` (Python) e `frontend/` (Etapa 7); documentação na raiz.
+- Camadas em `backend/app/`: `routers`, `services`, `repositories`, `models`,
+  `schemas` — irmãs, cada uma com `__init__.py`.
+- `GET /health` respondendo `200` fora do container.
+
+### Próximo passo
+
+`ruff` e `mypy` como dependências de desenvolvimento:
+
+1. `cd backend && uv add --dev ruff mypy`
+2. Configurar `[tool.ruff]`, `[tool.ruff.lint]` e `[tool.mypy]` no `pyproject.toml`
+   (`line-length` e `select` são decisão dela; mypy **sem** modo estrito)
+3. Deixar limpos: `uv run ruff check .`, `uv run ruff format --diff .`, `uv run mypy app`
+4. **Só depois** o `pre-commit` — não automatizar verificação que ainda não passa à mão.
+   Atenção ao descompasso do monorepo: o hook vive em `.git/hooks/` na raiz, mas as
+   ferramentas estão configuradas em `backend/`.
+
+Depois disso, fecha a Etapa 0: `Dockerfile` + `docker-compose.yml` (API + Postgres 16)
+com `/health` respondendo `200` **pelo container**. A tag da imagem é o terceiro lugar
+onde a versão 3.14 precisa bater, conforme o ADR 0005.
 
 Critério de pronto da Etapa 0: `docker compose up` sobe API e Postgres;
 `GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no
@@ -115,9 +141,14 @@ motivo novo. Em particular: **não** SQLModel (funde modelo e schema), **não**
 
 ## Comandos
 
-Ainda não existem — o ambiente é o entregável da Etapa 0. Preencha esta seção
-conforme forem criados (`docker compose up`, `uv run ...`, `alembic upgrade
-head`, `pytest`).
+Rodar de dentro de `backend/`, onde está o `pyproject.toml`:
+
+- `uv sync` — recria o `.venv/` a partir do `uv.lock`
+- `uv run uvicorn app.main:app --reload` — sobe a API local (`/health` e `/docs`)
+- `uv add <pacote>` / `uv add --dev <pacote>` — produção / desenvolvimento
+
+A preencher conforme forem criados: `ruff`, `mypy`, `docker compose up`,
+`alembic upgrade head`, `pytest`.
 
 ## Git
 
