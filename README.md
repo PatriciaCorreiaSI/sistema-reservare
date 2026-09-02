@@ -55,7 +55,7 @@ As justificativas de cada escolha estão no [roadmap](docs/ROADMAP.md#4-stack-e-
 Requisito: [uv](https://docs.astral.sh/uv/). Ele lê o `backend/.python-version` e instala o Python 3.14 sozinho — não é preciso ter a versão na máquina.
 
 ```bash
-git clone git@github.com:PatriciaCorreiaSI/sistema-reservare.git
+git clone https://github.com/PatriciaCorreiaSI/sistema-reservare.git
 cd sistema-reservare/backend
 uv sync
 uv run uvicorn app.main:app --reload
