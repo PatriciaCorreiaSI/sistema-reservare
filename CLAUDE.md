@@ -91,19 +91,46 @@ Antes de escrever implementação, verifique em que fase ela está:
   `entry: uv run --directory backend mypy app`. O `--directory` é o que resolve o
   descompasso do monorepo — sem ele o mypy roda da raiz e cai em
   `Config File: Default`, aprovando com a configuração errada, em silêncio.
+- ADR 0006: `Dockerfile` em `backend/`, ao lado do serviço, com `context` em
+  `backend/`. A alternativa (raiz do repo) foi descartada porque back e front
+  partem de bases diferentes (`python:3.14-slim` × `node`) e o padrão é um
+  `Dockerfile` por serviço.
+- `backend/Dockerfile` escrito e funcionando: `python:3.14-slim` (glibc, ao
+  contrário da `alpine`/musl, que faria os wheels compilarem do zero); `uv`
+  fixado em `0.12.8` via `COPY --from=ghcr.io/astral-sh/uv:0.12.8`, batendo com
+  o `uv --version` local; `WORKDIR /app`; manifestos copiados **antes** do
+  código, com `uv sync --locked` entre os dois — é o que preserva o cache de
+  camadas quando só o código muda; `CMD` em forma exec (o processo recebe o
+  sinal de encerramento, em vez de o `sh` engolir) com `--host 0.0.0.0`, sem o
+  qual o uvicorn escuta só o loopback do container e o mapeamento de porta não
+  alcança ninguém. Sem `--reload`: na imagem o código é cópia congelada.
+- `backend/.dockerignore` (mora na raiz do `context`): barra `.venv` — que aqui
+  seria um venv de Windows, inútil em Linux —, `.git/`, caches, `*.pyc` e os
+  próprios arquivos do Docker.
+- `docker build -t reservare-api .` e `docker run --rm -p 8000:8000` verificados:
+  `/health` responde `200` **pelo container**, ainda sem compose.
 
 ### Próximo passo
 
-Fechar a Etapa 0: `Dockerfile` + `docker-compose.yml` (API + Postgres 16) com
-`/health` respondendo `200` **pelo container**.
+Fechar a Etapa 0: falta o `docker-compose.yml` (API + Postgres 16), com
+`/health` respondendo `200` via `docker compose up`.
 
-A versão 3.14 já aparece em `backend/.python-version`, `requires-python`,
-`[tool.mypy] python_version`, `README.md` e neste arquivo — a tag da imagem no
-`Dockerfile` é o próximo lugar onde ela precisa bater (ADR 0005).
+Três tópicos abertos, nesta ordem (ela pediu um por vez, para não se perder):
 
-Ponto de atenção do monorepo, o mesmo tipo que o `pre-commit` teve: onde vive o
-`Dockerfile`, e como `context` e `dockerfile` do compose apontam para ele. É
-decisão dela — pergunte antes de assumir.
+1. **Serviços do compose** — quais são, qual depende de qual, e como a API
+   espera o Postgres estar *pronto para aceitar conexão*, não só "de pé".
+2. **Chaves do `.env.example`** — duas perguntas já feitas e ainda não
+   respondidas: no `DATABASE_URL`, qual **host** a API usa para alcançar o
+   Postgres de dentro do container; e se a senha fica duplicada em
+   `POSTGRES_PASSWORD` e na URL, ou se a URL é montada a partir das partes.
+3. **O comando que diz "pronto"** — o comando exato e a resposta exata esperada.
+
+Decisão anotada e pendente: montar a pasta viva como volume no compose, para o
+`--reload` do uvicorn voltar a fazer sentido em desenvolvimento. É decisão do
+compose, não do `Dockerfile` — pergunte antes de assumir.
+
+`.env.example` está modificado e **não commitado** de propósito: ele entra junto
+com o compose, depois que o `DATABASE_URL` for decidido.
 
 Critério de pronto da Etapa 0: `docker compose up` sobe API e Postgres;
 `GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no

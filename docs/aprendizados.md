@@ -1,6 +1,8 @@
 # 👩‍🎓Uma linha por conceito novo aprendido
 
-| **Conceito** | **Novo aprendizado** |
+### 🧱 Etapa 0 — Fundação
+
+| **Conceitos** | **Novo aprendizado** |
 |--------------|----------------------|
 |🪝**Ancoragem do .gitignore:** | 1. Barra (/) no início ou no meio ancora na raiz; sem barra casa em qualquer profundidade do repo. O .gitignore não protege arquivos pré-existentes já rastreados. 2. Ele decide o que o Git começa a rastrear a partir da criação do .gitignore.|
 |💼 **Alterar nome do diretório local:** | 1. A ligação com o GIthub é a URL do remote. Alterar o nome da pasta local não interfere em nada. 2. É uma alteração meramente cosmética. Custa apenas fechar o VS Code e reabrir a pasta renomeada e nada mais. |
