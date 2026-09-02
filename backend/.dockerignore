@@ -1,0 +1,11 @@
+.venv
+.git/
+
+.mypy_cache/
+__pycache__/
+.ruff_cache/
+
+Dockerfile
+.dockerignore
+
+*.pyc
