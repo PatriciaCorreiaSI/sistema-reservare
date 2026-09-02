@@ -50,6 +50,37 @@ As justificativas de cada escolha estão no [roadmap](docs/ROADMAP.md#4-stack-e-
 
 ---
 
+## Desenvolvimento
+
+Requisito: [uv](https://docs.astral.sh/uv/). Ele lê o `backend/.python-version` e instala o Python 3.14 sozinho — não é preciso ter a versão na máquina.
+
+```bash
+git clone git@github.com:PatriciaCorreiaSI/sistema-reservare.git
+cd sistema-reservare/backend
+uv sync
+uv run uvicorn app.main:app --reload
+```
+
+A API sobe em `http://127.0.0.1:8000` — `/health` responde `200`, e `/docs` traz a documentação interativa.
+
+### Verificação antes do commit
+
+O repositório usa `pre-commit` para rodar `ruff` e `mypy` a cada `git commit`. **Depois de clonar, o hook precisa ser instalado uma vez:**
+
+```bash
+cd backend && uv run pre-commit install
+```
+
+Esse passo não é automático, e a razão importa: o hook do Git vive em `.git/hooks/`, que **não é versionado** e portanto não vem junto no clone. Sem o comando acima, os commits passam sem verificação nenhuma — e nada na tela avisa que a proteção não está ali.
+
+Para rodar as verificações à mão, sem commitar:
+
+```bash
+cd backend && uv run pre-commit run --all-files
+```
+
+---
+
 ## Documentação
 
 | Documento | O que contém |

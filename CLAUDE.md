@@ -85,26 +85,25 @@ Antes de escrever implementação, verifique em que fase ela está:
   `[tool.ruff]` (`line-length = 88`), `[tool.ruff.lint]` (`select = ["E","F","I"]`)
   e `[tool.mypy]` (`python_version = "3.14"`, sem modo estrito). Os três passam
   limpos: `ruff check`, `ruff format --diff`, `mypy app`.
+- `pre-commit` instalado e verificado. `.pre-commit-config.yaml` na **raiz**:
+  hooks oficiais `ruff-check` (com `--fix`) e `ruff-format`, em `rev: v0.16.5`
+  batendo com o `uv.lock`; e um hook `local` de `mypy` com `language: system` e
+  `entry: uv run --directory backend mypy app`. O `--directory` é o que resolve o
+  descompasso do monorepo — sem ele o mypy roda da raiz e cai em
+  `Config File: Default`, aprovando com a configuração errada, em silêncio.
 
 ### Próximo passo
 
-`pre-commit`, agora que as verificações já passam à mão.
-
-O descompasso do monorepo é o ponto de atenção: o hook do Git vive em
-`.git/hooks/` na **raiz**, mas `ruff` e `mypy` estão configurados em
-`backend/pyproject.toml` e instalados no `backend/.venv/`. O
-`.pre-commit-config.yaml` precisa ficar na raiz e apontar as ferramentas para o
-lugar certo.
-
-O critério é provar que funciona: um commit com código fora do padrão precisa
-ser **recusado**.
-
-Depois disso, fecha a Etapa 0: `Dockerfile` + `docker-compose.yml` (API +
-Postgres 16) com `/health` respondendo `200` **pelo container**.
+Fechar a Etapa 0: `Dockerfile` + `docker-compose.yml` (API + Postgres 16) com
+`/health` respondendo `200` **pelo container**.
 
 A versão 3.14 já aparece em `backend/.python-version`, `requires-python`,
-`[tool.mypy] python_version`, `README.md` e neste arquivo — o `Dockerfile` é o
-próximo lugar onde ela precisa bater (ADR 0005).
+`[tool.mypy] python_version`, `README.md` e neste arquivo — a tag da imagem no
+`Dockerfile` é o próximo lugar onde ela precisa bater (ADR 0005).
+
+Ponto de atenção do monorepo, o mesmo tipo que o `pre-commit` teve: onde vive o
+`Dockerfile`, e como `context` e `dockerfile` do compose apontam para ele. É
+decisão dela — pergunte antes de assumir.
 
 Critério de pronto da Etapa 0: `docker compose up` sobe API e Postgres;
 `GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no
@@ -154,8 +153,17 @@ Rodar de dentro de `backend/`, onde está o `pyproject.toml`:
 - `uv sync` — recria o `.venv/` a partir do `uv.lock`
 - `uv run uvicorn app.main:app --reload` — sobe a API local (`/health` e `/docs`)
 - `uv add <pacote>` / `uv add --dev <pacote>` — produção / desenvolvimento
+- `uv run ruff check .` — lint; `uv run ruff format .` — formatação
+- `uv run mypy app` — verificação de tipos
 
-A preencher conforme forem criados: `ruff`, `mypy`, `docker compose up`,
+Da **raiz** do repositório, porque o `pre-commit` não está no `PATH` (ele vive
+em `backend/.venv/`):
+
+- `backend/.venv/Scripts/pre-commit run --all-files` — roda os hooks à mão
+- `backend/.venv/Scripts/pre-commit install` — escreve o hook em `.git/hooks/`;
+  **necessário após clonar**, porque `.git/` não é versionado
+
+A preencher conforme forem criados: `docker compose up`,
 `alembic upgrade head`, `pytest`.
 
 ## Git

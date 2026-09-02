@@ -8,4 +8,8 @@
 |🩺 **/health e Falha em cascata** | O desatre maior que um /health mal projetado causa se chama **Falha em cascata** ou, vulgarmente, *Espiral da Morte*. Acontece quando o /health que existe para verificar a saúde e bom funcionamento do sistema acaba por quebrá-lo, matando todas as instâncias que estavam saudáveis.  |
 |✍️ Ferramenta **ruff** | **Pergunta que responde:** "isto está escrito no padrão?" | 
 |🆎 Ferramenta **mypy** | **Pergunta que responde:** "estes tipos batem?" | 
-|🚪 Ferramenta **pre-commit** | **Pergunta que responde:** "isto pode entrar no repositório?" | 
+|🚪 Ferramenta **pre-commit** | **Pergunta que responde:** "isto pode entrar no repositório?" |
+|🤖 **git status --short** | Colunas "AD": "A" entrou no índice; "D" foi removido do disco; Para corrigir esta situação, rodar ```"git restore --staged <caminho do arquivo>"``` | 
+|🔕 **Silêncio = sucesso** | Terminal só acusa informação quando dá erro. Esse é o padrão |
+|🔍 **Ruff check** |  Encontra problemas (imports não usados, variável morta, ordem de import). A flag```[--fix]``` aqui pede para *também* consertar. |
+|🛠️ **Ruff format** |  Reescreve o arquivo formatado. Por isso flag ```[--fix]``` não é necessária, porque o ```ruff format``` já modifica o arquivo. As flags ```[--diff]``` e ```[--check]``` aqui pedem para só relatar. |
