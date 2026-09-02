@@ -42,9 +42,9 @@ Antes de escrever implementação, verifique em que fase ela está:
    rotas, e o teste que deveria passar.
 3. **Tentar sozinha** — a primeira tentativa é dela, mesmo feia, mesmo errada.
    **Não pule esta fase por ela.**
-4. **Revisar e ensinar** — aqui você entra de verdade: *o que está frágil
-   aqui?*, *que caso não foi considerado?*, *por que isso falha sob
-   concorrência?*, *como seria a versão profissional, e por quê?*
+4. **Revisar e ensinar** — aqui você entra de verdade: _o que está frágil
+   aqui?_, _que caso não foi considerado?_, _por que isso falha sob
+   concorrência?_, _como seria a versão profissional, e por quê?_
 
 ### Como se comportar na prática
 
@@ -54,7 +54,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 - Quando ela pedir "escreve pra mim", ofereça primeiro: o desenho, as
   assinaturas, ou o teste que deveria passar. Se ela reafirmar o pedido, é
   decisão dela — escreva, e explique cada trecho.
-- Escrever *para ela ler e reescrever* é diferente de escrever no lugar dela.
+- Escrever _para ela ler e reescrever_ é diferente de escrever no lugar dela.
   Deixe claro qual dos dois está acontecendo.
 
 ### As sete regras do projeto
@@ -81,22 +81,30 @@ Antes de escrever implementação, verifique em que fase ela está:
 - Camadas em `backend/app/`: `routers`, `services`, `repositories`, `models`,
   `schemas` — irmãs, cada uma com `__init__.py`.
 - `GET /health` respondendo `200` fora do container.
+- `ruff` e `mypy` como dependências de desenvolvimento, configurados em
+  `[tool.ruff]` (`line-length = 88`), `[tool.ruff.lint]` (`select = ["E","F","I"]`)
+  e `[tool.mypy]` (`python_version = "3.14"`, sem modo estrito). Os três passam
+  limpos: `ruff check`, `ruff format --diff`, `mypy app`.
 
 ### Próximo passo
 
-`ruff` e `mypy` como dependências de desenvolvimento:
+`pre-commit`, agora que as verificações já passam à mão.
 
-1. `cd backend && uv add --dev ruff mypy`
-2. Configurar `[tool.ruff]`, `[tool.ruff.lint]` e `[tool.mypy]` no `pyproject.toml`
-   (`line-length` e `select` são decisão dela; mypy **sem** modo estrito)
-3. Deixar limpos: `uv run ruff check .`, `uv run ruff format --diff .`, `uv run mypy app`
-4. **Só depois** o `pre-commit` — não automatizar verificação que ainda não passa à mão.
-   Atenção ao descompasso do monorepo: o hook vive em `.git/hooks/` na raiz, mas as
-   ferramentas estão configuradas em `backend/`.
+O descompasso do monorepo é o ponto de atenção: o hook do Git vive em
+`.git/hooks/` na **raiz**, mas `ruff` e `mypy` estão configurados em
+`backend/pyproject.toml` e instalados no `backend/.venv/`. O
+`.pre-commit-config.yaml` precisa ficar na raiz e apontar as ferramentas para o
+lugar certo.
 
-Depois disso, fecha a Etapa 0: `Dockerfile` + `docker-compose.yml` (API + Postgres 16)
-com `/health` respondendo `200` **pelo container**. A tag da imagem é o terceiro lugar
-onde a versão 3.14 precisa bater, conforme o ADR 0005.
+O critério é provar que funciona: um commit com código fora do padrão precisa
+ser **recusado**.
+
+Depois disso, fecha a Etapa 0: `Dockerfile` + `docker-compose.yml` (API +
+Postgres 16) com `/health` respondendo `200` **pelo container**.
+
+A versão 3.14 já aparece em `backend/.python-version`, `requires-python`,
+`[tool.mypy] python_version`, `README.md` e neste arquivo — o `Dockerfile` é o
+próximo lugar onde ela precisa bater (ADR 0005).
 
 Critério de pronto da Etapa 0: `docker compose up` sobe API e Postgres;
 `GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no
@@ -136,7 +144,7 @@ motivo novo. Em particular: **não** SQLModel (funde modelo e schema), **não**
   conflita com a que começa às 10h. "Não sobrepõe" ≠ "não encosta".
 - **Segredos nunca no repositório.** `.env` no `.gitignore` antes do primeiro
   commit que o criaria. Em repo público, segredo commitado é segredo
-  *rotacionado*, não apagado.
+  _rotacionado_, não apagado.
 - Ao fim de cada sessão de trabalho, registrar **qual é o próximo passo**.
 
 ## Comandos

@@ -5,7 +5,7 @@
 
 ## Contexto
 
-O Roadmap inicialmente sugeriu o uso da versão ython 3.12. Porém já temos a versão 3.14 disponível e estável. 
+A arquitetura inicial do projeto sugeriu o uso da versão python 3.12. Porém já temos a versão 3.14 disponível e estável.
 
 ## Decisão
 
@@ -18,8 +18,8 @@ Eu, como autora do projeto, optei por escolher usar a versão Python 3.14 por se
 
 ## Consequências
 
-O risco é algum pacote com extensão em C ainda não publicar *wheel* para a versão Python 3.14. Isso pode fazer com que o Windows tente compilar do zero e eu precise de um compilador C. Porém é um risco baixo, embora não ausente. O ganho é ter no projeto uma versão mais atual que já tem quase 1 ano de uso no mercado e já se mostrar estável.
+O risco é algum pacote com extensão em C ainda não publicar _wheel_ para a versão Python 3.14. Isso pode fazer com que o Windows tente compilar do zero e eu precise de um compilador C. Porém é um risco baixo, embora não ausente. O ganho é ter no projeto uma versão mais atual que já tem quase 1 ano de uso no mercado e já se mostrar estável.
 
 ## Como eu saberia que errei
 
-Se o Roadmap e o Dockerfile divergirem da versão utilizada ou se um pacote da stack não tiver *wheel* para 3.14 e exigir compilação. Então terei que voltar ao custo de *uv python pin 3.12* e trocar uma linha do *Dockerfile*.
+Se o Roadmap e o Dockerfile divergirem da versão utilizada ou se um pacote da stack não tiver _wheel_ para 3.14 e exigir compilação. Então terei que voltar ao custo de _uv python pin 3.12_ e trocar uma linha do _Dockerfile_.
