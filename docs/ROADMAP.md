@@ -206,7 +206,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | Semana | Etapa               | Entrega                                                                   |
 | ------ | ------------------- | ------------------------------------------------------------------------- |
 | —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
-| 1      | Etapa 0             | `docker compose up` sobe API e Postgres; `/health` responde 200           |
+| 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | `alembic upgrade head` cria tudo; o banco recusa sobreposição em SQL puro |
 | 3–4    | Etapa 2             | CRUD de recursos em camadas, com testes                                   |
 | 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
@@ -235,6 +235,8 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 ## 8. As etapas
 
 ### 🧱 Etapa 0 — Fundação
+
+> **Concluída:**✅ `docker compose up` sobe API e Postgres; `/health` responde `200` pelo compose.
 
 **Objetivo:** o projeto nasce com o ambiente que uma equipe profissional usaria, antes de existir regra de negócio.
 
