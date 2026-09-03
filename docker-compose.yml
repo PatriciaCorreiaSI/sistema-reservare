@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # -h força a conexão via TCP, -p especifica a porta, -U especifica o usuário e -d especifica o banco de dados
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+       DATABASE_URL: postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  db_data:
+    name: sistema-reservare_db_data
