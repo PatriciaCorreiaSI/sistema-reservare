@@ -35,7 +35,7 @@ separação em camadas · schemas separados dos modelos · JWT com refresh token
 
 1. Condição de corrida e transações (Etapa 4)
 2. Idempotência (bônus)
-3. Estratégia de testes: decidir *o que* testar e em qual nível (Etapa 6)
+3. Estratégia de testes: decidir _o que_ testar e em qual nível (Etapa 6)
 4. Fusos horários — parece bobagem e derruba profissionais experientes
 
 ---
@@ -46,7 +46,7 @@ separação em camadas · schemas separados dos modelos · JWT com refresh token
 
 ### Por que este tema
 
-**Tem um invariante difícil.** Um *invariante* é uma regra que o sistema não pode violar em hipótese alguma, nem quando duas requisições chegam no mesmo milissegundo:
+**Tem um invariante difícil.** Um _invariante_ é uma regra que o sistema não pode violar em hipótese alguma, nem quando duas requisições chegam no mesmo milissegundo:
 
 > **Duas reservas ativas nunca podem se sobrepor no mesmo recurso.**
 
@@ -78,22 +78,22 @@ Pagamento · reserva recorrente · multi-tenant · notificação por e-mail · f
 
 ## 4. Stack e por quê
 
-| Camada | Escolha | Por que esta |
-|---|---|---|
-| API | FastAPI | Assíncrono, tipado, OpenAPI automático |
-| ORM | SQLAlchemy 2.0 tipado | **Não SQLModel:** ele funde modelo de tabela com schema de API, e essa fusão é o caminho mais curto para vazar hash de senha numa resposta |
-| Validação | Pydantic v2 | Schemas de entrada e saída **separados** dos modelos |
-| Banco | PostgreSQL 16 | Único com `EXCLUDE` + `tstzrange`, que é o coração do projeto. **Não comece com SQLite** |
-| Migrations | Alembic | `create_all()` é marca de projeto de estudante |
-| Senhas | `pwdlib` com Argon2 | **Passlib está sem manutenção desde 2020** |
-| Pacotes | `uv` | Substitui pip + venv; padrão de fato |
-| Lint | `ruff` | Substitui black + flake8 + isort |
-| Testes | `pytest` + `httpx` | Contra o Postgres do próprio compose |
-| Container | Docker Compose | Ambiente reprodutível |
-| CI | GitHub Actions | Testes verdes a cada push |
-| Front | Vite + React + **TypeScript** | TS é o esperado, e reforça o estudo paralelo |
-| Estado | TanStack Query | `useEffect` + `fetch` na mão é o antipadrão mais comum |
-| E2E | Playwright | Um teste do fluxo principal |
+| Camada     | Escolha                       | Por que esta                                                                                                                               |
+| ---------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| API        | FastAPI                       | Assíncrono, tipado, OpenAPI automático                                                                                                     |
+| ORM        | SQLAlchemy 2.0 tipado         | **Não SQLModel:** ele funde modelo de tabela com schema de API, e essa fusão é o caminho mais curto para vazar hash de senha numa resposta |
+| Validação  | Pydantic v2                   | Schemas de entrada e saída **separados** dos modelos                                                                                       |
+| Banco      | PostgreSQL 16                 | Único com `EXCLUDE` + `tstzrange`, que é o coração do projeto. **Não comece com SQLite**                                                   |
+| Migrations | Alembic                       | `create_all()` é marca de projeto de estudante                                                                                             |
+| Senhas     | `pwdlib` com Argon2           | **Passlib está sem manutenção desde 2020**                                                                                                 |
+| Pacotes    | `uv`                          | Substitui pip + venv; padrão de fato                                                                                                       |
+| Lint       | `ruff`                        | Substitui black + flake8 + isort                                                                                                           |
+| Testes     | `pytest` + `httpx`            | Contra o Postgres do próprio compose                                                                                                       |
+| Container  | Docker Compose                | Ambiente reprodutível                                                                                                                      |
+| CI         | GitHub Actions                | Testes verdes a cada push                                                                                                                  |
+| Front      | Vite + React + **TypeScript** | TS é o esperado, e reforça o estudo paralelo                                                                                               |
+| Estado     | TanStack Query                | `useEffect` + `fetch` na mão é o antipadrão mais comum                                                                                     |
+| E2E        | Playwright                    | Um teste do fluxo principal                                                                                                                |
 
 ---
 
@@ -113,7 +113,7 @@ Escrever código com ajuda de IA não é o problema. O problema é quando a IA p
 
 **Fase 3 — Primeira tentativa sozinha.** Mesmo feia, mesmo errada. Esta fase existe para **descobrir o que você não sabe** — a descoberta mais valiosa que existe.
 
-**Fase 4 — Revisão e ensino.** Agora use a IA, com perguntas de revisora: *"o que está frágil aqui?"*, *"que caso eu não considerei?"*, *"por que isso falha sob concorrência?"*, *"me mostre a versão profissional e explique cada diferença"*.
+**Fase 4 — Revisão e ensino.** Agora use a IA, com perguntas de revisora: _"o que está frágil aqui?"_, _"que caso eu não considerei?"_, _"por que isso falha sob concorrência?"_, _"me mostre a versão profissional e explique cada diferença"_.
 
 Reescrever depois de tentar é aprendizado. Receber pronto antes de tentar é dependência.
 
@@ -137,11 +137,11 @@ Reescrever depois de tentar é aprendizado. Receber pronto antes de tentar é de
 
 **1. Qual é a regra que não pode quebrar nunca?** Comece pelo invariante, não pela tecnologia.
 
-**2. Quem precisa conhecer essa regra?** Regra que só existe no Python some quando alguém insere por outro caminho. Regra que só existe no banco produz erro incompreensível. Normalmente: *o banco garante, o serviço traduz, o cliente antecipa*.
+**2. Quem precisa conhecer essa regra?** Regra que só existe no Python some quando alguém insere por outro caminho. Regra que só existe no banco produz erro incompreensível. Normalmente: _o banco garante, o serviço traduz, o cliente antecipa_.
 
 **3. Quais são as duas ou três opções reais?** Decisão sem alternativa considerada não é decisão, é reflexo.
 
-**4. Quais critérios?** Nesta ordem: correção sob concorrência → simplicidade → facilidade de testar → desempenho → flexibilidade futura. *A última é última de propósito:* projetar para requisito imaginário é a forma mais comum de complicar sem necessidade.
+**4. Quais critérios?** Nesta ordem: correção sob concorrência → simplicidade → facilidade de testar → desempenho → flexibilidade futura. _A última é última de propósito:_ projetar para requisito imaginário é a forma mais comum de complicar sem necessidade.
 
 **5. O que essa escolha me custa?** Toda decisão fecha portas. Escreva o custo.
 
@@ -153,7 +153,7 @@ Reescrever depois de tentar é aprendizado. Receber pronto antes de tentar é de
 
 `routers/` conhece HTTP e chama `services/` · `services/` tem a regra e chama `repositories/` · `repositories/` conhece o banco.
 
-O teste: *se eu trocasse FastAPI por outro framework, quantos arquivos mexeria?* Se for "quase todos", as camadas existem só no nome das pastas.
+O teste: _se eu trocasse FastAPI por outro framework, quantos arquivos mexeria?_ Se for "quase todos", as camadas existem só no nome das pastas.
 
 ### Quando travar
 
@@ -174,23 +174,23 @@ Quatro dos seis degraus não têm código. É por isso que funcionam.
 
 ### O ritmo da semana: 4 dias construindo, 1 consolidando
 
-| Dia | O que acontece |
-|---|---|
-| **Segunda** | **Decidir.** Escrever o ADR da semana, desenhar o que será feito, definir as quatro tarefas dos próximos dias. Sem código |
-| **Terça a quinta** | **Construir.** Uma tarefa fechável por dia, escolhida na véspera |
-| **Sexta** | **Consolidar.** Fechar pontas, rodar os testes, atualizar `aprendizados.md` e o README, fazer o teste do papel em branco, planejar a semana seguinte. Sem código novo |
+| Dia                | O que acontece                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Segunda**        | **Decidir.** Escrever o ADR da semana, desenhar o que será feito, definir as quatro tarefas dos próximos dias. Sem código                                             |
+| **Terça a quinta** | **Construir.** Uma tarefa fechável por dia, escolhida na véspera                                                                                                      |
+| **Sexta**          | **Consolidar.** Fechar pontas, rodar os testes, atualizar `aprendizados.md` e o README, fazer o teste do papel em branco, planejar a semana seguinte. Sem código novo |
 
 Sexta sem código parece desperdício de 20% do tempo. Não é: é o que impede a documentação de ser eternamente adiada — e a documentação, neste projeto, **é** metade do valor de portfólio. É também o único dia em que você olha o conjunto em vez do detalhe.
 
 ### A anatomia do bloco de 2 horas
 
-| Minutos | Para quê |
-|---|---|
-| **0–10** | **Reentrada.** Ler a última anotação e o último commit. Não lute contra isso — todo bloco curto tem custo de religar o contexto; aceitá-lo torna ele mais barato |
-| **10–105** | **A tarefa única do dia.** Uma só, definida ontem |
-| **105–120** | **Fechamento.** Commit (mesmo incompleto) e escrever **qual é o próximo passo** |
+| Minutos     | Para quê                                                                                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0–10**    | **Reentrada.** Ler a última anotação e o último commit. Não lute contra isso — todo bloco curto tem custo de religar o contexto; aceitá-lo torna ele mais barato |
+| **10–105**  | **A tarefa única do dia.** Uma só, definida ontem                                                                                                                |
+| **105–120** | **Fechamento.** Commit (mesmo incompleto) e escrever **qual é o próximo passo**                                                                                  |
 
-Os últimos 15 minutos são os mais importantes do dia. Uma frase escrita hoje — *"parei no meio do teste de concorrência; falta fazer as duas requisições dispararem juntas"* — transforma a reentrada de amanhã de 25 minutos em 5.
+Os últimos 15 minutos são os mais importantes do dia. Uma frase escrita hoje — _"parei no meio do teste de concorrência; falta fazer as duas requisições dispararem juntas"_ — transforma a reentrada de amanhã de 25 minutos em 5.
 
 ### Quatro regras
 
@@ -203,18 +203,18 @@ Os últimos 15 minutos são os mais importantes do dia. Uma frase escrita hoje �
 
 Sem datas de propósito — as semanas avançam quando o critério de pronto é atendido.
 
-| Semana | Etapa | Entrega |
-|---|---|---|
-| — | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md` |
-| 1 | Etapa 0 | `docker compose up` sobe API e Postgres; `/health` responde 200 |
-| 2 | Etapa 1 (migration) | `alembic upgrade head` cria tudo; o banco recusa sobreposição em SQL puro |
-| 3–4 | Etapa 2 | CRUD de recursos em camadas, com testes |
-| 5–6 | Etapa 3 | Cadastro, login, logout que invalida de verdade, autorização por papel |
-| 7–8 | **Etapa 4** | O invariante sob concorrência + o teste que prova |
-| 9 | Etapa 6 | Suíte de testes e CI verde |
-| 10–12 | Etapa 7 | Front-end consumindo a API real |
-| 13 | Etapa 8 | **URL pública funcionando — projeto completo** |
-| 14 | Etapa 9 | README, ADRs consolidados, diagrama, post |
+| Semana | Etapa               | Entrega                                                                   |
+| ------ | ------------------- | ------------------------------------------------------------------------- |
+| —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
+| 1      | Etapa 0             | `docker compose up` sobe API e Postgres; `/health` responde 200           |
+| 2      | Etapa 1 (migration) | `alembic upgrade head` cria tudo; o banco recusa sobreposição em SQL puro |
+| 3–4    | Etapa 2             | CRUD de recursos em camadas, com testes                                   |
+| 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
+| 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
+| 9      | Etapa 6             | Suíte de testes e CI verde                                                |
+| 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
+| 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
+| 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
 **Total: 14 semanas de trabalho.** Com uma semana de folga a cada quatro — e vai precisar —, dá **cerca de 4 meses**.
 
@@ -252,12 +252,12 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 **Critério de pronto**
 `docker compose up` sobe API e Postgres; `GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no `.gitignore`.
 
-**Armadilhas**
+**Armadilhas**0
 
 - Commitar `.env` — o `.gitignore` precisa existir **antes** do primeiro commit. Em repositório público, segredo commitado é segredo **rotacionado**, não apagado
 - Criar as pastas de camadas e escrever tudo dentro do router assim mesmo
 
-**Perguntas de entrevista** — *"Por que Docker se o projeto roda na sua máquina?"* · *"Onde ficam os segredos?"*
+**Perguntas de entrevista** — _"Por que Docker se o projeto roda na sua máquina?"_ · _"Onde ficam os segredos?"_
 
 ---
 
@@ -278,18 +278,12 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 - **Todo timestamp em UTC.** Fuso é assunto de apresentação, não de armazenamento
 - Intervalo semiaberto `[início, fim)`: reserva que termina às 10h não conflita com a que começa às 10h
 
-**Pendências do modelo**
-
-- Separar a regra 2 em duas ("caber no horário" e "recurso ativo")
-- Classificar cada regra de negócio: **banco garante** ou **serviço garante**? Dois fatos resolvem quase tudo — um `CHECK` só enxerga a própria linha da própria tabela, e um `CHECK` não pode usar a hora atual
-- Escrever os três ADRs: período como range · cancelamento em colunas em vez de tabela · três estados em vez de seis
-
 **Critério de pronto**
 `alembic upgrade head` cria tudo do zero; `downgrade base` desfaz. Você prova, **inserindo SQL na mão**, que o banco recusa duas reservas sobrepostas — sem nenhuma linha de Python.
 
 **Armadilhas** — editar migration já aplicada em vez de gerar nova · `timestamp` sem fuso
 
-**Perguntas de entrevista** — *"Onde garantir uma regra: aplicação ou banco?"* · *"O que é migration e por que não `create_all`?"*
+**Perguntas de entrevista** — _"Onde garantir uma regra: aplicação ou banco?"_ · _"O que é migration e por que não `create_all`?"_
 
 ---
 
@@ -312,19 +306,19 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 **Armadilhas** — devolver o modelo de tabela na resposta (é assim que campo interno vaza) · testes que compartilham estado
 
-**Perguntas de entrevista** — *"Por que separar schema de API do modelo de banco?"* · *"Quando 404 e quando 409?"*
+**Perguntas de entrevista** — _"Por que separar schema de API do modelo de banco?"_ · _"Quando 404 e quando 409?"_
 
 ---
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-**Objetivo:** entender a diferença entre *quem você é* e *o que você pode fazer* — e por que logout com JWT é um problema.
+**Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
 **Conceitos novos**
 
-- Hash com Argon2 (`pwdlib`): por que hash não é criptografia, e o que é *salt*
+- Hash com Argon2 (`pwdlib`): por que hash não é criptografia, e o que é _salt_
 - JWT: cabeçalho, payload, assinatura — e por que **o payload é legível por qualquer pessoa**
-- O problema: JWT é *stateless*, logo **não dá para invalidá-lo**
+- O problema: JWT é _stateless_, logo **não dá para invalidá-lo**
 - A solução: **access token curto (~15 min) + refresh token guardado no banco e revogável**. Logout apaga o refresh token — aí a invalidação é verdadeira
 - Cookie `httpOnly` + `Secure` + `SameSite` vs. `localStorage`, e por que `localStorage` é vulnerável a XSS
 - CSRF: o risco que aparece quando você adota cookie
@@ -336,7 +330,7 @@ Existe teste provando que **após o logout o refresh token não funciona mais**,
 
 **Armadilhas** — dado sensível no payload do JWT · mensagem de erro que revela se o e-mail existe
 
-**Perguntas de entrevista** — *"Como você faz logout com JWT?"* — a pergunta que elimina a maioria dos candidatos.
+**Perguntas de entrevista** — _"Como você faz logout com JWT?"_ — a pergunta que elimina a maioria dos candidatos.
 
 ---
 
@@ -365,7 +359,7 @@ Existe teste que dispara **duas requisições concorrentes para o mesmo recurso 
 
 **Armadilhas** — validar disponibilidade no Python e achar que resolveu · testar concorrência em série (dois `requests` seguidos não é concorrência) · confundir "não sobrepõe" com "não encosta": `[9h,10h)` e `[10h,11h)` **não** conflitam
 
-**Perguntas de entrevista** — *"Como você garante que dois usuários não reservem a mesma sala ao mesmo tempo?"* · *"Bloqueio otimista ou pessimista?"*
+**Perguntas de entrevista** — _"Como você garante que dois usuários não reservem a mesma sala ao mesmo tempo?"_ · _"Bloqueio otimista ou pessimista?"_
 
 ---
 
@@ -377,7 +371,7 @@ Existe teste que dispara **duas requisições concorrentes para o mesmo recurso 
 
 - **Pirâmide de testes:** muitos unitários, alguns de integração, poucos de ponta a ponta — e por que a proporção inversa deixa a suíte lenta e instável
 - Unitário: isola a regra, sem banco. Integração: API + Postgres real do compose
-- Dublês: *stub*, *mock*, *fake*, *spy* — e por que mockar demais faz o teste testar o mock
+- Dublês: _stub_, _mock_, _fake_, _spy_ — e por que mockar demais faz o teste testar o mock
 - Fixtures e factories
 - Cobertura: útil como alarme, enganosa como meta. 100% com zero asserção útil é possível
 - Escrever o teste **antes** da correção do bug
@@ -388,7 +382,7 @@ Existe teste que dispara **duas requisições concorrentes para o mesmo recurso 
 
 **Armadilhas** — testar implementação em vez de comportamento · testes que dependem da ordem ou do relógio real · perseguir percentual de cobertura
 
-**Perguntas de entrevista** — *"Como você decide o que testar?"* · *"Qual sua meta de cobertura?"* — a resposta certa **não** é um número.
+**Perguntas de entrevista** — _"Como você decide o que testar?"_ · _"Qual sua meta de cobertura?"_ — a resposta certa **não** é um número.
 
 ---
 
@@ -435,7 +429,7 @@ URL pública funcionando, com dados de demonstração e credenciais de teste no 
 
 **Armadilhas** — deploy manual e não documentado · migration destrutiva antes do código novo · `DEBUG=True` em produção
 
-**Perguntas de entrevista** — *"Como você investiga um erro que só acontece em produção?"*
+**Perguntas de entrevista** — _"Como você investiga um erro que só acontece em produção?"_
 
 ---
 
@@ -468,19 +462,19 @@ Depois dele: recursos com N unidades · histórico completo de eventos · testes
 
 ## 10. Glossário
 
-| Termo | Em uma frase |
-|---|---|
-| **Invariante** | Regra que o sistema nunca pode violar |
-| **ACID** | Garantias de transação: atômica, consistente, isolada, durável |
-| **Condição de corrida** | Duas operações simultâneas erram por causa do tempo entre verificar e agir |
-| **Bloqueio pessimista** | Travar a linha antes de mexer |
-| **Bloqueio otimista** | Deixar acontecer e detectar conflito na gravação, via versão |
-| **Idempotência** | Repetir a operação produz o mesmo resultado, sem efeito extra |
-| **Migration** | Alteração versionada do esquema, aplicável e reversível |
-| **ADR** | Registro curto de uma decisão de arquitetura e do seu porquê |
-| **IDOR** | Falha em que o usuário acessa objeto de outro trocando o ID |
-| **Esqueleto que anda** | Fatia fina funcionando de ponta a ponta desde cedo |
-| **Instante / período / duração** | Um ponto no tempo · de X até Y · quanto tempo dura. Três tipos diferentes |
+| Termo                            | Em uma frase                                                               |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| **Invariante**                   | Regra que o sistema nunca pode violar                                      |
+| **ACID**                         | Garantias de transação: atômica, consistente, isolada, durável             |
+| **Condição de corrida**          | Duas operações simultâneas erram por causa do tempo entre verificar e agir |
+| **Bloqueio pessimista**          | Travar a linha antes de mexer                                              |
+| **Bloqueio otimista**            | Deixar acontecer e detectar conflito na gravação, via versão               |
+| **Idempotência**                 | Repetir a operação produz o mesmo resultado, sem efeito extra              |
+| **Migration**                    | Alteração versionada do esquema, aplicável e reversível                    |
+| **ADR**                          | Registro curto de uma decisão de arquitetura e do seu porquê               |
+| **IDOR**                         | Falha em que o usuário acessa objeto de outro trocando o ID                |
+| **Esqueleto que anda**           | Fatia fina funcionando de ponta a ponta desde cedo                         |
+| **Instante / período / duração** | Um ponto no tempo · de X até Y · quanto tempo dura. Três tipos diferentes  |
 
 ---
 
@@ -496,4 +490,4 @@ Depois dele: recursos com N unidades · histórico completo de eventos · testes
 
 ---
 
-*Documento vivo. Atualize-o conforme o entendimento evoluir — inclusive corrigindo o que aqui está.*
+_Documento vivo. Atualize-o conforme o entendimento evoluir — inclusive corrigindo o que aqui está._
