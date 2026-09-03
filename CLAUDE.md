@@ -70,7 +70,9 @@ Antes de escrever implementação, verifique em que fase ela está:
 ## Estado atual
 
 - **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 5 ADRs escritos.
-- **Etapa 0 (fundação): em andamento** — é aqui que estamos.
+- **Etapa 0 (fundação): concluída** — `docker compose up` sobe `db` e `api`; `/health` responde
+  `200` pelo compose.
+- **Etapa 1 (migration): em andamento** — é aqui que estamos.
 
 ### Já feito
 
@@ -109,32 +111,41 @@ Antes de escrever implementação, verifique em que fase ela está:
   próprios arquivos do Docker.
 - `docker build -t reservare-api .` e `docker run --rm -p 8000:8000` verificados:
   `/health` responde `200` **pelo container**, ainda sem compose.
+- `docker-compose.yml` na **raiz** (não em `backend/`): o arquivo orquestra `db` e `api`, então
+  precisa enxergar os dois — mesmo raciocínio do ADR 0006, aplicado a quem orquestra em vez de a
+  quem constrói. `db` vem de `image: postgres:16` (a versão da stack, pinada — nunca `latest`);
+  `api` vem de `build: { context: ./backend, dockerfile: Dockerfile }`, porque essa imagem não
+  existe pronta em lugar nenhum. `depends_on` da `api` na condição `service_healthy`, e o
+  `healthcheck` do `db` roda `pg_isready -h localhost -U ... -d ...`: forçar TCP é o que evita o
+  teste passar contra o servidor temporário que o próprio Postgres sobe durante o `initdb`, antes
+  do banco aceitar conexão de verdade. Volume nomeado `db_data` persiste os dados entre reinícios
+  (não bind mount: permissão Unix da pasta de dados do Postgres é frágil vindo de um path do
+  Windows). Nenhuma porta do Postgres exposta ao host — inspeção via
+  `docker compose exec db psql`; porta da API publicada só em `127.0.0.1:8000`.
+  `DATABASE_URL` é montada dentro do compose a partir de `POSTGRES_USER`/`PASSWORD`/`DB` (host
+  `db`, o nome do serviço) — por isso não existe mais como chave solta em `.env`/`.env.example`.
+  Live-reload via bind mount do código para dentro do container **foi adiado de propósito** para a
+  Etapa 2: montar `backend/` sobre `/app` cobriria o `.venv` Linux do `uv sync` com um `.venv` de
+  Windows, e hoje não há código suficiente (só `/health`) para validar a técnica de exclusão do
+  subcaminho de verdade.
+- `docker compose up` confirmado: `db` fica `(healthy)` antes de `api` subir; `GET /health` responde
+  `200` **através do compose**.
 
 ### Próximo passo
 
-Fechar a Etapa 0: falta o `docker-compose.yml` (API + Postgres 16), com
-`/health` respondendo `200` via `docker compose up`.
+Etapa 0 fechada nos quatro pontos do critério de pronto: `docker compose up` sobe API e Postgres;
+`GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` fora do repositório
+(`git check-ignore` confirma).
 
-Três tópicos abertos, nesta ordem (ela pediu um por vez, para não se perder):
+Abrir a **Etapa 1 (migration)**: SQLAlchemy 2.0 tipado (`Mapped`, `mapped_column`) para as três
+tabelas de `docs/modelo.md`, depois Alembic. Uma decisão pendente antes de gerar a migration: uma
+`EXCLUDE` simples sobre `periodo` bloquearia reserva nova mesmo contra uma reserva já **cancelada**
+— o invariante fala só de reservas *ativas*. Existe uma cláusula que resolve isso na própria
+constraint; decidir e registrar (ADR) antes do código.
 
-1. **Serviços do compose** — quais são, qual depende de qual, e como a API
-   espera o Postgres estar *pronto para aceitar conexão*, não só "de pé".
-2. **Chaves do `.env.example`** — duas perguntas já feitas e ainda não
-   respondidas: no `DATABASE_URL`, qual **host** a API usa para alcançar o
-   Postgres de dentro do container; e se a senha fica duplicada em
-   `POSTGRES_PASSWORD` e na URL, ou se a URL é montada a partir das partes.
-3. **O comando que diz "pronto"** — o comando exato e a resposta exata esperada.
-
-Decisão anotada e pendente: montar a pasta viva como volume no compose, para o
-`--reload` do uvicorn voltar a fazer sentido em desenvolvimento. É decisão do
-compose, não do `Dockerfile` — pergunte antes de assumir.
-
-`.env.example` está modificado e **não commitado** de propósito: ele entra junto
-com o compose, depois que o `DATABASE_URL` for decidido.
-
-Critério de pronto da Etapa 0: `docker compose up` sobe API e Postgres;
-`GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no
-`.gitignore`.
+Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
+prova por SQL na mão, sem nenhuma linha de Python, de que o banco recusa duas reservas ativas
+sobrepostas.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.

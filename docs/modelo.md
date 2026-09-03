@@ -1,6 +1,6 @@
-# Modelo de Dados Conceitual para Banco de Dados PostgreSQL
+# 🛅 Modelo de Dados Conceitual para Banco de Dados PostgreSQL
 
-## RESERVA
+## 🔖RESERVA
 | coluna         | tipo | restrições | descrição | 
 |----------------|------|------------| ----------|
 | id_reserva     | INT  | PRIMARY KEY,  NOT NULL, GENERATED ALWAYS AS IDENTITY  | Identificador |
@@ -13,7 +13,7 @@
 | cancelada_em   | TIMESTAMPTZ   | CHECK  | Tipo de instante com fuso |
 
 
-## RECURSO
+## 🗄️RECURSO
 | coluna         | tipo | restrições | descrição | 
 |----------------|------|------------| ----------|
 | id_recurso   | INT  | PRIMARY KEY,  NOT NULL, GENERATED ALWAYS AS IDENTITY  | Identificador |
@@ -24,7 +24,7 @@
 | status_recurso    | VARCHAR(30)  | NOT NULL, CHECK  | Ativo, Inativo |
 
 
-## USUARIO
+## 👤USUARIO
 | coluna       | tipo | restrições | descrição |
 |--------------|------|------------| ----------|
 | id_usuario   | INT  | PRIMARY KEY,  NOT NULL,  GENERATED ALWAYS AS IDENTITY | Identificador |
@@ -35,13 +35,15 @@
 
 
 
-## REGRAS DE NEGÓCIO
+## ✍️ REGRAS DE NEGÓCIO
 
 | regra | Como será garantida? |
 |-------|----------------------|
-| Duas reservas não podem se sobrepor no mesmo recurso. | Banco garante |
+| Duas reservas **ativas** não podem se sobrepor no mesmo recurso. | Banco garante |
 | A reserva deve caber no horário de funcionamento do recurso. | Serviço garante |
 | Não se reserva recurso inativo. | Serviço garante |
 | Convidados <= Ocupação | Serviço garante |
 | Reservas só podem ser feitas do período presente em diante, jamais no passado | Serviço garante |
+| Status "Concluída" não é escrita na coluna porque é deduzida pelo sistema ao fim do período da reserva | Serviço garante |
+
 

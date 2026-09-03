@@ -3,7 +3,7 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 0 — fundação do ambiente**. A modelagem de dados está concluída.
+> Fase atual: **Etapa 1 — migrations e constraints**. Fundação do ambiente concluída.
 
 ---
 
@@ -26,8 +26,8 @@ Demonstrar isso, com teste de concorrência que prove o comportamento, é o obje
 | Etapa | Situação |
 |---|---|
 | Modelagem de dados | ✅ concluída |
-| Fundação: ambiente, container, lint | 🔨 em andamento |
-| Migrations e constraints | ⏳ |
+| Fundação: ambiente, container, lint | ✅ concluída |
+| Migrations e constraints | 🔨 em andamento |
 | API em camadas | ⏳ |
 | Autenticação e autorização | ⏳ |
 | Reservas, concorrência e estados | ⏳ |
