@@ -23,4 +23,4 @@ Torna o sistema mais simples. O ganho é evitar a necessidade de monitoramento c
 
 ## Como eu saberia que errei
 
-Se após o término do período da reserva, a mesma continuar com o status 'Confirmada' e o recurso ativo continuar bloqueado para novas reservas.
+Se após o término do período da reserva, a mesma continuar com o status 'confirmada' e o recurso ativo continuar bloqueado para novas reservas.

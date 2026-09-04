@@ -17,7 +17,7 @@ Escolhi manter cancelamento como colunas da tabela reserva para impedir que falh
 
 ## Consequências
 
-A escolha custa inserir uma nova coluna de identificador de quem cancelou a reserva na tabela reserva (uma vez que tanto o próprio usuário quanto o admin podem cancelar a reserva feita) como chave estrangeira. Implica também identificar o instante com fuso de quando o cancelamento foi feito, utilizando o tipo 'TIMESTAMPTZ'. O ganho é ter a informação em lugar único associado ao registro da reserva, o que evita duplicidades. O risco será eliminado ao garantir, pela constraint CHECK nas 3 colunas, que ao preencher as colunas cancelada_por_id_usuario e cancelada_em preenchidas a coluna status_reserva sempre seja alterada para o valor de 'Cancelada' e vice e versa. Caso contrário, a gravação deverá falhar.
+A escolha custa inserir uma nova coluna de identificador de quem cancelou a reserva na tabela reserva (uma vez que tanto o próprio usuário quanto o admin podem cancelar a reserva feita) como chave estrangeira. Implica também identificar o instante com fuso de quando o cancelamento foi feito, utilizando o tipo 'TIMESTAMPTZ'. O ganho é ter a informação em lugar único associado ao registro da reserva, o que evita duplicidades. O risco será eliminado ao garantir, pela constraint CHECK nas 3 colunas, que ao preencher as colunas cancelada_por_id_usuario e cancelada_em preenchidas a coluna status_reserva sempre seja alterada para o valor de 'cancelada' e vice e versa. Caso contrário, a gravação deverá falhar.
 
 
 ## Como eu saberia que errei
