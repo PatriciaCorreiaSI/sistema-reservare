@@ -11,7 +11,6 @@
 | status_reserva | VARCHAR(30) | NOT NULL, CHECK  | confirmada, cancelada |
 | cancelada_por_id_usuario  | INT | FOREIGN KEY, CHECK  | Identificador de quem cancelou a reserva |
 | cancelada_em   | TIMESTAMPTZ   | CHECK  | Tipo de instante com fuso |
-| status_usuario | VARCHAR(30)  | NOT NULL, CHECK  | ativo, inativo |
 
 
 ## 🗄️RECURSO

@@ -69,10 +69,12 @@ Antes de escrever implementação, verifique em que fase ela está:
 
 ## Estado atual
 
-- **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 5 ADRs escritos.
+- **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 6 ADRs escritos.
 - **Etapa 0 (fundação): concluída** — `docker compose up` sobe `db` e `api`; `/health` responde
   `200` pelo compose.
-- **Etapa 1 (migration): em andamento** — é aqui que estamos.
+- **Etapa 1 (migration): em andamento** — é aqui que estamos. Metade do critério de pronto já está
+  cumprida: o esquema existe em SQL e a prova por SQL na mão passa nos sete casos. Falta traduzir
+  para SQLAlchemy e gerar a migration Alembic.
 
 ### Já feito
 
@@ -130,22 +132,52 @@ Antes de escrever implementação, verifique em que fase ela está:
   subcaminho de verdade.
 - `docker compose up` confirmado: `db` fica `(healthy)` antes de `api` subir; `GET /health` responde
   `200` **através do compose**.
+- ADR 0007: a `EXCLUDE` recebe `WHERE (cancelada_em IS NULL)` — predicado pelo **cancelamento**, não
+  pelo status. A escolha é pelo lado seguro da falha: um estado novo que ninguém previu passa a
+  bloquear (erro visível, alguém reclama) em vez de liberar (erro silencioso, o invariante quebra
+  sem ninguém ver). Depende do `CHECK` do ADR 0002 estar de pé — se aquele CHECK cair, esta
+  constraint passa a proteger a coisa errada. `now()` não pode entrar no predicado: índice não
+  aceita expressão mutável, então reservas já concluídas continuam ocupando o índice.
+- `docs/esquema-alvo.sql`: o DDL alvo das três tabelas, rodando de ponta a ponta no compose. Todas
+  as constraints **nomeadas** (inclusive as FKs, via `CONSTRAINT <nome>` antes do `REFERENCES`) —
+  o nome aparece na mensagem de erro do usuário e o Alembic precisa dele para o `downgrade`.
+  `CREATE EXTENSION btree_gist` na primeira linha, porque GiST não tem `=` para inteiros sem ela.
+  `ON DELETE RESTRICT` nas três FKs — daí nasceu `status_usuario`: se o usuário nunca sai do banco,
+  precisa de desativação lógica. Índice manual nas três FKs, porque no Postgres FK **não** cria
+  índice do lado que aponta.
+- `reserva_formato_semiaberto` fecha dois furos que a `EXCLUDE` sozinha não vê: range **vazio**
+  (não sobrepõe nada, entraria sem reclamar) e range **infinito** (sobrepõe tudo, travaria o
+  recurso para sempre). Cuidado com `upper_inc`: ele já é falso num range sem fim, então não
+  distingue "fim exclusivo" de "sem fim" — é `upper_inf` que faz isso.
+- `docs/prova-invariante.sql`: sete casos em SQL puro, todos com o resultado esperado escrito
+  **antes** de rodar. Cada caso limpa `reserva` antes de começar, para não herdar estado do
+  anterior. `TRUNCATE ... RESTART IDENTITY` no topo torna a prova repetível. Rodar **sem**
+  `ON_ERROR_STOP`: metade dos casos deve falhar. Rótulos com `\warn`, não `\echo` — o primeiro
+  escreve em stderr, o mesmo canal dos erros, e só assim rótulo e resultado saem em ordem.
 
 ### Próximo passo
 
-Etapa 0 fechada nos quatro pontos do critério de pronto: `docker compose up` sobe API e Postgres;
-`GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` fora do repositório
-(`git check-ignore` confirma).
+A metade em SQL da Etapa 1 está fechada: o esquema roda do zero no compose e a prova de sete casos
+demonstra, **sem nenhuma linha de Python**, que o banco recusa sobreposição, aceita reservas que
+apenas se encostam, e volta a liberar o horário quando a reserva é cancelada.
 
-Abrir a **Etapa 1 (migration)**: SQLAlchemy 2.0 tipado (`Mapped`, `mapped_column`) para as três
-tabelas de `docs/modelo.md`, depois Alembic. Uma decisão pendente antes de gerar a migration: uma
-`EXCLUDE` simples sobre `periodo` bloquearia reserva nova mesmo contra uma reserva já **cancelada**
-— o invariante fala só de reservas *ativas*. Existe uma cláusula que resolve isso na própria
-constraint; decidir e registrar (ADR) antes do código.
+Falta a outra metade: **traduzir o esquema para SQLAlchemy 2.0 tipado** (`Mapped`,
+`mapped_column`) e gerar a migration com Alembic, até `alembic upgrade head` criar tudo do zero e
+`downgrade base` desfazer.
+
+Duas decisões antes do código:
+
+1. **Onde a `EXCLUDE` mora.** Ela não tem construtor próprio no SQLAlchemy como `CheckConstraint`
+   tem. Pode ir no `__table_args__` do modelo ou só na migration, como SQL literal. Se o modelo
+   não a conhece, ele deixa de descrever o banco de verdade — e é o modelo que a Etapa 2 vai ler.
+   Candidato a ADR.
+2. **`naming_convention` no `MetaData`.** Padroniza de uma vez os nomes de constraint que hoje
+   estão escolhidos à mão no `.sql`, e é o que faz o Alembic gerar `downgrade` confiável em vez de
+   depender de nome autogerado.
 
 Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
-prova por SQL na mão, sem nenhuma linha de Python, de que o banco recusa duas reservas ativas
-sobrepostas.
+prova por SQL na mão de que o banco recusa duas reservas ativas sobrepostas — esta segunda parte
+**já está cumprida** em `docs/prova-invariante.sql`.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.
@@ -201,8 +233,24 @@ em `backend/.venv/`):
 - `backend/.venv/Scripts/pre-commit install` — escreve o hook em `.git/hooks/`;
   **necessário após clonar**, porque `.git/` não é versionado
 
-A preencher conforme forem criados: `docker compose up`,
-`alembic upgrade head`, `pytest`.
+Banco, da raiz. As credenciais vêm das variáveis que já existem **dentro** do container — por isso
+as aspas simples, que impedem o PowerShell de expandir `$POSTGRES_USER` antes da hora:
+
+- `docker compose up -d db` — sobe só o banco; `docker compose ps` mostra quando fica `(healthy)`.
+  `Started` significa apenas que o container subiu, não que o Postgres aceita conexão
+- `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` — psql interativo.
+  Dentro dele: `\dt` lista tabelas, `\d reserva` mostra colunas, índices e constraints, `\q` sai
+- `Get-Content docs/prova-invariante.sql | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`
+  — roda um `.sql`. O `-T` é obrigatório: sem ele o `exec` tenta alocar terminal e ignora o pipe.
+  Acrescentar `-v ON_ERROR_STOP=1` **só** para o esquema, onde erro significa consertar; nunca para
+  a prova, onde metade dos casos deve falhar
+- Plano B quando o pipe travar: `docker compose cp <arquivo>.sql db:/tmp/x.sql` e depois
+  `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/x.sql'`
+
+O PowerShell 5.1 come aspas duplas ao chamar executável nativo, então `psql -c "SELECT ..."` numa
+linha só chega truncado ao container. Use o psql interativo ou `-f`.
+
+A preencher conforme forem criados: `alembic upgrade head`, `pytest`.
 
 ## Git
 

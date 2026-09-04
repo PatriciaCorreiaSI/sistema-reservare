@@ -17,7 +17,27 @@ Uma equipe compartilha recursos limitados e precisa reservá-los por janelas de 
 
 Verificar disponibilidade antes de inserir **não** resolve isso: entre a verificação e a gravação existe uma janela em que outra transação insere. Por isso a garantia é declarada no próprio PostgreSQL, com uma constraint de exclusão sobre `tstzrange` — de forma que a regra não dependa de o código lembrar de conferir.
 
+```sql
+CONSTRAINT reserva_sem_sobreposicao
+    EXCLUDE USING gist (id_recurso WITH =, periodo WITH &&)
+    WHERE (cancelada_em IS NULL)
+```
+
+Lê-se: *para qualquer par de linhas, se o recurso é o mesmo **e** os períodos se sobrepõem, recuse* — considerando apenas as reservas que não foram canceladas. O porquê desse `WHERE`, e das duas alternativas descartadas, está no [ADR 0007](docs/adr/0007-predicado-pelo-cancelamento.md).
+
 Demonstrar isso, com teste de concorrência que prove o comportamento, é o objetivo central do projeto.
+
+### Verificando o invariante
+
+O comportamento já é demonstrável em SQL puro, sem nenhuma linha de Python:
+
+```bash
+docker compose up -d db
+docker compose cp docs/prova-invariante.sql db:/tmp/prova.sql
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/prova.sql'
+```
+
+[`docs/prova-invariante.sql`](docs/prova-invariante.sql) percorre sete casos, cada um com o resultado esperado escrito antes de rodar — entre eles: reservas sobrepostas são recusadas; reservas que apenas se encostam (`[14h,16h)` e `[16h,18h)`) são as duas aceitas; e cancelar uma reserva devolve o horário para quem vier depois.
 
 ---
 
@@ -27,7 +47,7 @@ Demonstrar isso, com teste de concorrência que prove o comportamento, é o obje
 |---|---|
 | Modelagem de dados | ✅ concluída |
 | Fundação: ambiente, container, lint | ✅ concluída |
-| Migrations e constraints | 🔨 em andamento |
+| Migrations e constraints | 🔨 em andamento — esquema e prova em SQL prontos; falta o Alembic |
 | API em camadas | ⏳ |
 | Autenticação e autorização | ⏳ |
 | Reservas, concorrência e estados | ⏳ |
@@ -87,6 +107,8 @@ cd backend && uv run pre-commit run --all-files
 |---|---|
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Escopo, plano de execução e o que cada etapa ensina |
 | [`docs/modelo.md`](docs/modelo.md) | Modelo de dados, restrições e regras de negócio |
+| [`docs/esquema-alvo.sql`](docs/esquema-alvo.sql) | O DDL que a migration precisa produzir — tabelas, constraints nomeadas e índices |
+| [`docs/prova-invariante.sql`](docs/prova-invariante.sql) | Sete casos que demonstram, em SQL puro, o que o banco aceita e o que recusa |
 | [`docs/adr/`](docs/adr/) | Decisões de arquitetura, com alternativas descartadas e consequências |
 
 ---
