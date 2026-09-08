@@ -46,7 +46,7 @@ INSERT INTO reserva (id_usuario, id_recurso, convidados, periodo, status_reserva
 
 \warn
 \warn '=== Caso 5: reserva com período vazio ou sem fim ==='
-\warn '=== esperado: a reserva é RECUSADA (reserva_formato_semiaberto) ==='
+\warn '=== esperado: a reserva é RECUSADA (formato_semiaberto) ==='
 DELETE FROM reserva;
 INSERT INTO reserva (id_usuario, id_recurso, convidados, periodo, status_reserva) VALUES
 (1, 1, 5, '[2026-09-04 10:00:00+00,)', 'confirmada');
@@ -56,14 +56,14 @@ INSERT INTO reserva (id_usuario, id_recurso, convidados, periodo, status_reserva
 
 \warn
 \warn '=== Caso 6: reserva com status = "cancelada" sem cancelada_em ==='
-\warn '=== esperado: a reserva é RECUSADA (reserva_cancelamento) ==='
+\warn '=== esperado: a reserva é RECUSADA (cancelamento) ==='
 DELETE FROM reserva;
 INSERT INTO reserva (id_usuario, id_recurso, convidados, periodo, status_reserva) VALUES
 (1, 1, 5, '[2026-09-04 10:00:00+00, 2026-09-04 12:00:00+00)', 'cancelada');
 
 \warn
 \warn '=== Caso 7: reserva com limites invertidos ou com inclusividade trocada ==='
-\warn '=== esperado: a reserva é RECUSADA pelo tipo tstzrange ou (reserva_formato_semiaberto) ==='
+\warn '=== esperado: a reserva é RECUSADA pelo tipo tstzrange ou (formato_semiaberto) ==='
 DELETE FROM reserva;
 INSERT INTO reserva (id_usuario, id_recurso, convidados, periodo, status_reserva) VALUES
 (1, 1, 5, '[2026-09-04 12:00:00+00, 2026-09-04 10:00:00+00)', 'confirmada');

@@ -165,27 +165,44 @@ Falta a outra metade: **traduzir o esquema para SQLAlchemy 2.0 tipado** (`Mapped
 `mapped_column`) e gerar a migration com Alembic, até `alembic upgrade head` criar tudo do zero e
 `downgrade base` desfazer.
 
-Uma decisão fechada e uma em aberto:
+**Decisões fechadas — Fase 1 concluída:**
 
-1. **Onde a `EXCLUDE` mora — resolvido pelo ADR 0008:** declarada no `__table_args__` do modelo
-   **e** escrita à mão na migration. O motivo é legibilidade, não ganho técnico — isso foi
-   verificado, não suposto (SQLAlchemy 2.0.52 / Alembic 1.19.2, contra o `esquema-alvo.sql` rodando
-   num banco descartável): o `autogenerate` é **cego para `EXCLUDE` nos dois sentidos**. Não a cria
-   quando falta no banco, não a derruba quando falta no modelo, não avisa da divergência. E **não**
-   propõe `drop_index` espúrio para o índice GiST que a sustenta — esse risco não existe.
-2. **`naming_convention` no `MetaData` — em aberto.** Ela só nomeia constraint deixada **sem**
-   nome: nome explícito sempre ganha. Como no `esquema-alvo.sql` todas estão nomeadas à mão de
-   propósito (o nome aparece na mensagem de erro do usuário), aqui ela é rede para o que vier
-   depois, não padronização do que já existe. O dicionário padrão tem chave para `ix`, `uq`, `ck`,
-   `fk` e `pk` — não para `EXCLUDE`, cuja chave seria a própria classe da constraint. Mora no
-   `MetaData` e vale desde a primeira migration: mudar depois exige migration de renomeação.
+1. **Onde a `EXCLUDE` mora — ADR 0008:** declarada no `__table_args__` do modelo **e** escrita à
+   mão na migration. Motivo: legibilidade, não ganho técnico.
+2. **`naming_convention` — adotada**, em `app/models/base.py`; nota em `docs/modelo.md`.
 
-**Nota para a Fase 3, do mesmo experimento:** o `autogenerate` **compara `COMMENT ON COLUMN`**.
-O modelo precisa levar `comment="Hash da senha do usuário, gerada com Argon 2"` em
-`senha_usuario_hash`, senão a primeira migration autogerada **apaga** o comentário que hoje existe
-no banco. A regra geral vale mais que o caso: o `autogenerate` compara comentário, mas ignora
-`EXCLUDE`, `CHECK` e `CREATE EXTENSION` — ele compara algumas coisas e cala sobre outras, sem
-dizer quais. Tratá-lo como completo é o mesmo erro de forma do `if disponivel: criar()`.
+**O que o experimento com o Alembic provou** (SQLAlchemy 2.0.52 / Alembic 1.19.2, comparando
+contra o banco real e renderizando o `CREATE TABLE`). Isto vale mais que os dois casos acima:
+
+- O `autogenerate` é **cego para `EXCLUDE` nos dois sentidos**: não a cria quando falta no banco,
+  não a derruba quando falta no modelo, não avisa da divergência. E **não** propõe `drop_index`
+  espúrio para o índice GiST que a sustenta.
+- Ele **compara `COMMENT ON COLUMN`**. Sem `comment=` no modelo, a primeira migration **apaga** o
+  comentário que existe no banco.
+- Ignora `CHECK` e `CREATE EXTENSION`. Ou seja: compara algumas coisas e cala sobre outras sem
+  dizer quais — tratá-lo como completo é o mesmo erro de forma do `if disponivel: criar()`.
+- Na convenção, **só a chave `ck` reescreve nome explícito**, por ser a única com
+  `%(constraint_name)s`: `name="status"` vira `ck_recurso_status`. `fk`, `uq` e `ix` respeitam o
+  nome dado; `pk` só age quando não há nome; `EXCLUDE` não tem chave e fica intacta.
+- `mypy app` passou em código que estourava no import, por causa de `ignore_missing_imports`.
+  Ferramenta verde não é prova de que executa — cada uma responde a uma pergunta estreita.
+
+**`docs/esquema-alvo.sql` foi congelado como registro histórico** (cabeçalho no próprio arquivo):
+a verdade sobre o esquema passa a ser a migration, e ele não deve mais ser sincronizado.
+`docs/prova-invariante.sql` **continua vivo** — ele não cria esquema, só pressupõe que existe, então
+dá para rodá-lo contra o banco que o Alembic construir. É o teste de aceitação da Etapa 1.
+
+**Onde parei (sessão de 2026-09-08):** `app/models/` com `base.py`, `usuario.py`, `recurso.py` e
+`__init__.py` prontos — `ruff check app/models` limpo, o pacote importa, e o `Base.metadata` traz
+as duas tabelas.
+
+**Próximo passo: escrever `app/models/reserva.py`.** É a tabela difícil. O que ela tem de novo:
+duas FKs apontando para `usuario` (`id_usuario` e `cancelada_por_id_usuario`); as duas primeiras
+colunas anuláveis do projeto — e quem manda na nulidade é a anotação (`Mapped[X | None]`), não o
+`mapped_column`; `DateTime` que **precisa** de `timezone=True`, senão vira `TIMESTAMP WITHOUT TIME
+ZONE` e quebra a regra de todo timestamp em UTC; o `tstzrange`, que vem do dialeto Postgres; e no
+`__table_args__` os quatro `CHECK`, a `ExcludeConstraint` (nome explícito `reserva_sem_sobreposicao`,
+que é o que a prova espera ver na mensagem de erro) e os três `Index`. Depois dela, o Alembic.
 
 Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
 prova por SQL na mão de que o banco recusa duas reservas ativas sobrepostas — esta segunda parte

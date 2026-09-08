@@ -207,7 +207,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | ------ | ------------------- | ------------------------------------------------------------------------- |
 | —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
-| 2      | Etapa 1 (migration) | 🔨 prova em SQL puro ✅ feita; falta `alembic upgrade head` criar tudo |
+| 2      | Etapa 1 (migration) | 🔨 prova em SQL puro ✅ feita; modelos em andamento; falta `alembic upgrade head` |
 | 3–4    | Etapa 2             | CRUD de recursos em camadas, com testes                                   |
 | 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
@@ -272,7 +272,9 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 > **Esquema e prova em SQL: ✅ concluídos** — `docs/esquema-alvo.sql` roda do zero no compose, e
 > `docs/prova-invariante.sql` demonstra o invariante em sete casos, sem uma linha de Python.
 >
-> **Falta a migration:** traduzir para SQLAlchemy tipado e gerar o Alembic.
+> **Em andamento — os modelos:** `usuario` e `recurso` prontos em `backend/app/models/`; falta
+> `reserva`, e depois gerar a migration. O `esquema-alvo.sql` foi congelado como registro
+> histórico: a partir da migration, a verdade sobre o esquema passa a ser o Alembic.
 
 **Objetivo:** o banco deve **impedir** dado inválido, não confiar que o Python vai validar.
 
