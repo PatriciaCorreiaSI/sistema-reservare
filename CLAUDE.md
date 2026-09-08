@@ -165,15 +165,27 @@ Falta a outra metade: **traduzir o esquema para SQLAlchemy 2.0 tipado** (`Mapped
 `mapped_column`) e gerar a migration com Alembic, até `alembic upgrade head` criar tudo do zero e
 `downgrade base` desfazer.
 
-Duas decisões antes do código:
+Uma decisão fechada e uma em aberto:
 
-1. **Onde a `EXCLUDE` mora.** Ela não tem construtor próprio no SQLAlchemy como `CheckConstraint`
-   tem. Pode ir no `__table_args__` do modelo ou só na migration, como SQL literal. Se o modelo
-   não a conhece, ele deixa de descrever o banco de verdade — e é o modelo que a Etapa 2 vai ler.
-   Candidato a ADR.
-2. **`naming_convention` no `MetaData`.** Padroniza de uma vez os nomes de constraint que hoje
-   estão escolhidos à mão no `.sql`, e é o que faz o Alembic gerar `downgrade` confiável em vez de
-   depender de nome autogerado.
+1. **Onde a `EXCLUDE` mora — resolvido pelo ADR 0008:** declarada no `__table_args__` do modelo
+   **e** escrita à mão na migration. O motivo é legibilidade, não ganho técnico — isso foi
+   verificado, não suposto (SQLAlchemy 2.0.52 / Alembic 1.19.2, contra o `esquema-alvo.sql` rodando
+   num banco descartável): o `autogenerate` é **cego para `EXCLUDE` nos dois sentidos**. Não a cria
+   quando falta no banco, não a derruba quando falta no modelo, não avisa da divergência. E **não**
+   propõe `drop_index` espúrio para o índice GiST que a sustenta — esse risco não existe.
+2. **`naming_convention` no `MetaData` — em aberto.** Ela só nomeia constraint deixada **sem**
+   nome: nome explícito sempre ganha. Como no `esquema-alvo.sql` todas estão nomeadas à mão de
+   propósito (o nome aparece na mensagem de erro do usuário), aqui ela é rede para o que vier
+   depois, não padronização do que já existe. O dicionário padrão tem chave para `ix`, `uq`, `ck`,
+   `fk` e `pk` — não para `EXCLUDE`, cuja chave seria a própria classe da constraint. Mora no
+   `MetaData` e vale desde a primeira migration: mudar depois exige migration de renomeação.
+
+**Nota para a Fase 3, do mesmo experimento:** o `autogenerate` **compara `COMMENT ON COLUMN`**.
+O modelo precisa levar `comment="Hash da senha do usuário, gerada com Argon 2"` em
+`senha_usuario_hash`, senão a primeira migration autogerada **apaga** o comentário que hoje existe
+no banco. A regra geral vale mais que o caso: o `autogenerate` compara comentário, mas ignora
+`EXCLUDE`, `CHECK` e `CREATE EXTENSION` — ele compara algumas coisas e cala sobre outras, sem
+dizer quais. Tratá-lo como completo é o mesmo erro de forma do `if disponivel: criar()`.
 
 Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
 prova por SQL na mão de que o banco recusa duas reservas ativas sobrepostas — esta segunda parte

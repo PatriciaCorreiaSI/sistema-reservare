@@ -51,3 +51,10 @@
 | Recurso com reserva pode ser inativado, jamais deletado | Banco garante |
 
 
+
+## 🔑 CONVENÇÃO DE NOMES
+
+* Adotar o dicionário de cinco chaves (`ix`,`uq`,`ck`,`fk`,`pk`) e manter seus nomes explícitos. Ela não renomeia nada do que já existe. `naming_convention` mora no `MetaData` e só nomeia constraint deixada sem nome. Quando há um nome explício, ele ganha. Por isso a convenção é rede para o que vier depois e não padronização do que já existe. Vale desde a primeira migration. Mudar depois exige migration de renomeação.
+* Não há chave padrão para `EXCLUDE`. A chave seria a própria classe da constraint.
+
+
