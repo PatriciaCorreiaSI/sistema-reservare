@@ -234,6 +234,8 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ## 8. As etapas
 
+> **A numeração pula o 5, de propósito.** Nada foi perdido: o escopo da v1 da seção 3 está inteiro nas etapas abaixo. O número fica reservado para a **idempotência**, hoje no backlog da seção 9 — se ela for promovida, entra logo depois da Etapa 4, que é onde o raciocínio dela nasce, sem empurrar a numeração das outras.
+
 ### 🧱 Etapa 0 — Fundação
 
 > **Concluída:**✅ `docker compose up` sobe API e Postgres; `/health` responde `200` pelo compose.
