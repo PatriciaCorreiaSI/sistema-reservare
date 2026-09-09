@@ -263,22 +263,66 @@ reescrever aquele trecho com o motivo.
 **Onde parei (sessão de 2026-09-09):** `app/models/reserva.py` fechado — importa, `Base.metadata`
 traz as três tabelas, o DDL renderizado confere com `docs/esquema-alvo.sql`, `ruff` e `mypy` limpos.
 ADR 0009 escrito e `docs/aprendizados.md` atualizado. Tudo commitado e empurrado. O
-`docker-compose.yml` ainda **não** foi tocado.
+**A URL do banco é derivada, não escrita** (decisão desta sessão). Havia três formas: escrever a
+`DATABASE_URL` inteira nos dois lugares; usar uma variável com *fallback* para `localhost`; ou
+derivar de `POSTGRES_USER`/`PASSWORD`/`DB` mais um `DB_HOST` **obrigatório**. Ficou a terceira.
+
+O raciocínio, que vale mais que a escolha: a decisão original — *"`DATABASE_URL` é montada dentro do
+compose, por isso não existe como chave solta em `.env`"* — tinha o princípio certo (**derivar em vez
+de duplicar**) e uma premissa que venceu. Naquele momento havia **um** consumidor da URL, dentro da
+rede do compose. Agora há **dois em contextos de rede diferentes**: o container `api`, que enxerga
+`db`, e o Alembic no Windows, que só enxerga `localhost`. A URL deixou de ser derivável de uma
+fórmula única — ela depende de onde se está olhando. Só o **host** difere, então só ele é escrito
+duas vezes; o resto continua derivado.
+
+O *fallback* foi descartado pelo critério do ADR 0007: se a variável sumisse, ele conectaria em
+`localhost` **calado**. O que torna um fallback perigoso não é ter alternativa — é ter um padrão
+silencioso no fim da cadeia. Por isso `DB_HOST` é obrigatório e o `env.py` deve estourar sem ele.
+
+Montar a URL em Python com `URL.create()` traz um ganho concreto: a senha é **escapada
+corretamente**. Uma URL escrita à mão quebra se a senha tiver `@`, `#` ou `/`, e quebra de um jeito
+confuso, porque o parser corta no lugar errado.
+
+**Quando o deploy chegar (Etapa 9):** plataformas gerenciadas entregam uma `DATABASE_URL` pronta,
+não os componentes. O padrão maduro é aceitar as duas formas — usa a URL se ela vier, senão monta
+dos pedaços. Isso é acrescentar um ramo, não refazer a escolha; e não é o fallback ruim, porque as
+duas pontas são fontes explícitas.
+
+**Compose e `.env` já editados e validados** (`docker compose config` passa): `db` publica
+`127.0.0.1:5432:5432`; o serviço `api` perdeu a `DATABASE_URL` e ganhou os três `POSTGRES_*`
+interpolados mais `DB_HOST: db` literal; `.env` tem `DB_HOST=localhost` e `.env.example` a chave
+vazia. Cuidado ao colar saída de `docker compose config` em qualquer lugar — ela imprime a senha em
+texto puro.
 
 **Próximo passo, nesta ordem:**
 
-1. **Compose, duas edições** — `db` ganha `ports: ["127.0.0.1:5432:5432"]` (sem o `127.0.0.1:` a
-   porta fica exposta na rede local), e a `DATABASE_URL` troca `postgres://` por
-   `postgresql+psycopg://` — o primeiro o SQLAlchemy recusa com `Can't load plugin`.
-2. **Decidir de onde o `env.py` tira a URL.** Duas variáveis explícitas (`DATABASE_URL` volta ao
-   `.env` apontando para `@localhost:5432`; dentro do compose o bloco `environment:` do `api`
-   continua mandando com `@db:5432`) **ou** uma variável com fallback (usa `DATABASE_URL` se
-   existir, senão monta a partir de `POSTGRES_USER`/`PASSWORD`/`DB` com host `localhost`). A
-   primeira duplica o conceito; a segunda cala quando a variável some por engano.
-3. **`alembic init`** de dentro de `backend/`.
-4. **Ligar o `env.py`:** `target_metadata` importando o **pacote** `app.models` (importar só o
-   `Base` traz metadata vazio e gera migration em branco, sem erro), e a URL vinda do ambiente —
-   **nunca** do `alembic.ini`, que é versionado e levaria a senha para o repositório.
+1. ~~Compose e `.env`~~ — **feito nesta sessão.**
+2. ~~Decidir de onde vem a URL~~ — **feito:** derivada, com `DB_HOST` obrigatório.
+3. **`alembic init migrations`** de dentro de `backend/`. Como o `alembic.ini` nasce em `backend/` e
+   o Alembic o procura no diretório atual, todo comando da ferramenta roda de lá.
+4. **Ligar o `env.py`.** O esqueleto já existe (`alembic init migrations` rodado); nada dele foi
+   editado ainda. Quatro coisas, e a leitura do gerado já está feita:
+
+   - **`sqlalchemy.url` do `alembic.ini` (linha 89): comentar, não apagar** — decidido, falta
+     aplicar. Os dois falham alto se o `env.py` não injetar a URL (`Can't load plugin:
+     sqlalchemy.dialects:driver` com o placeholder; erro de URL faltando sem ele), então segurança
+     de falha empata. O que decide é que **o placeholder é um convite**: uma linha dizendo
+     `driver://user:pass@...` num repo público pede para alguém colar a URL real ali — e senha
+     commitada é senha *rotacionada*. Mesmo critério do ADR 0007: remover a armadilha vale mais que
+     confiar em disciplina. Comentar em vez de apagar preserva a descoberta — quem procurar onde se
+     configura o banco vê a chave e a nota apontando para o `env.py`. (O `alembic.ini` **não**
+     interpola variável de ambiente: `${DATABASE_URL}` ali não funciona, é lido como texto literal.)
+   - **`target_metadata`** (hoje `None`, linha 21 do `env.py`) recebe o `Base.metadata`, importando
+     o **pacote** `app.models` — importar só o `Base` traz metadata vazio e gera migration em
+     branco, sem erro. O `prepend_sys_path = .` do `alembic.ini` (linha 21) é o que faz esse import
+     funcionar: ele põe `backend/` no `sys.path` antes do `env.py` rodar.
+   - **A URL** montada com `URL.create()` a partir do ambiente, drivername `postgresql+psycopg`.
+     `run_migrations_offline()` e `run_migrations_online()` leem a URL **do mesmo objeto `config`**
+     (a primeira via `config.get_main_option`, a segunda via `engine_from_config`), então injetar
+     uma vez no `config` cobre as duas — não é preciso mexer nas duas funções.
+   - **Pendência conhecida:** o Python não lê `.env` sozinho. Dentro do container as variáveis
+     existem porque o compose as injeta; no Windows o `os.environ` vem vazio, e alguém precisa
+     carregar o arquivo. É uma linha, mas ela ainda não existe.
 5. **Completar a migration à mão** com o que o `autogenerate` não vê: `CREATE EXTENSION IF NOT
    EXISTS btree_gist` como **primeira** operação do `upgrade()` (depois do `create_table` já é
    tarde), e a `EXCLUDE` (ADR 0008). No `downgrade`, decidir se derruba a extensão — derrubar é
