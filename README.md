@@ -47,7 +47,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 |---|---|
 | Modelagem de dados | ✅ concluída |
 | Fundação: ambiente, container, lint | ✅ concluída |
-| Migrations e constraints | 🔨 em andamento — esquema e prova em SQL prontos; modelos SQLAlchemy concluídos; falta o Alembic |
+| Migrations e constraints | 🔨 em andamento — esquema e prova em SQL prontos; modelos SQLAlchemy concluídos; Alembic iniciado, falta a primeira migration |
 | API em camadas | ⏳ |
 | Autenticação e autorização | ⏳ |
 | Reservas, concorrência e estados | ⏳ |

@@ -122,10 +122,14 @@ Antes de escrever implementação, verifique em que fase ela está:
   teste passar contra o servidor temporário que o próprio Postgres sobe durante o `initdb`, antes
   do banco aceitar conexão de verdade. Volume nomeado `db_data` persiste os dados entre reinícios
   (não bind mount: permissão Unix da pasta de dados do Postgres é frágil vindo de um path do
-  Windows). Nenhuma porta do Postgres exposta ao host — inspeção via
-  `docker compose exec db psql`; porta da API publicada só em `127.0.0.1:8000`.
-  `DATABASE_URL` é montada dentro do compose a partir de `POSTGRES_USER`/`PASSWORD`/`DB` (host
-  `db`, o nome do serviço) — por isso não existe mais como chave solta em `.env`/`.env.example`.
+  Windows). Toda porta publicada é prefixada com `127.0.0.1:` — sem o prefixo o Docker publica em
+  `0.0.0.0` e o serviço fica visível para a rede local inteira. A API sai em `127.0.0.1:8000`.
+  **Revisto em 2026-09-09:** o Postgres passou a sair em `127.0.0.1:5432` (antes nenhuma porta dele
+  era exposta, e a inspeção era só por `docker compose exec db psql`). O motivo é o Alembic rodar do
+  host — ver a decisão registrada mais abaixo. *Pendente: decidir se isso vira ADR 0010.*
+  **`DATABASE_URL` não existe mais em lugar nenhum.** Ela foi substituída por `DB_HOST`: o serviço
+  `api` recebe os três `POSTGRES_*` interpolados mais `DB_HOST: db` literal; o `.env` do host tem
+  `DB_HOST=localhost`. A URL é montada em Python, não escrita — o porquê está na decisão abaixo.
   Live-reload via bind mount do código para dentro do container **foi adiado de propósito** para a
   Etapa 2: montar `backend/` sobre `/app` cobriria o `.venv` Linux do `uv sync` com um `.venv` de
   Windows, e hoje não há código suficiente (só `/health`) para validar a técnica de exclusão do
@@ -298,8 +302,11 @@ texto puro.
 
 1. ~~Compose e `.env`~~ — **feito nesta sessão.**
 2. ~~Decidir de onde vem a URL~~ — **feito:** derivada, com `DB_HOST` obrigatório.
-3. **`alembic init migrations`** de dentro de `backend/`. Como o `alembic.ini` nasce em `backend/` e
-   o Alembic o procura no diretório atual, todo comando da ferramenta roda de lá.
+3. ~~`alembic init migrations`~~ — **feito.** Gerou `backend/alembic.ini` e `migrations/` com
+   `env.py`, `script.py.mako`, `README` e a pasta vazia `versions/` (o Git não versiona pasta
+   vazia; ela aparece com a primeira migration). O `pre-commit` reformatou o `env.py` na entrada —
+   o Alembic escreve no estilo dele, o repositório tem outro, e isso vai se repetir a cada
+   migration gerada.
 4. **Ligar o `env.py`.** O esqueleto já existe (`alembic init migrations` rodado); nada dele foi
    editado ainda. Quatro coisas, e a leitura do gerado já está feita:
 
@@ -407,7 +414,22 @@ as aspas simples, que impedem o PowerShell de expandir `$POSTGRES_USER` antes da
 O PowerShell 5.1 come aspas duplas ao chamar executável nativo, então `psql -c "SELECT ..."` numa
 linha só chega truncado ao container. Use o psql interativo ou `-f`.
 
-A preencher conforme forem criados: `alembic upgrade head`, `pytest`.
+O Postgres também é alcançável direto do Windows em `127.0.0.1:5432`, desde que `docker compose up
+-d db` esteja no ar — é assim que o Alembic conecta.
+
+Alembic, de dentro de `backend/`. O `alembic.ini` mora lá e a ferramenta o procura no **diretório
+atual**, então rodar da raiz falha:
+
+- `uv run alembic revision --autogenerate -m "<mensagem>"` — gera a migration comparando
+  `Base.metadata` com o banco. **Nunca confie no resultado sem ler:** ele é cego para `EXCLUDE`,
+  `CHECK` e `CREATE EXTENSION`
+- `uv run alembic upgrade head` — aplica; `uv run alembic downgrade base` desfaz tudo
+- `uv run alembic current` — mostra em que revisão o banco está; `uv run alembic history` lista a
+  cadeia
+- `uv run alembic upgrade head --sql` — imprime o SQL sem conectar (modo *offline*), útil para
+  revisar antes de aplicar
+
+A preencher conforme for criado: `pytest`.
 
 ## Git
 
