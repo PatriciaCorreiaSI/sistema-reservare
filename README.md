@@ -18,7 +18,7 @@ Uma equipe compartilha recursos limitados e precisa reservá-los por janelas de 
 Verificar disponibilidade antes de inserir **não** resolve isso: entre a verificação e a gravação existe uma janela em que outra transação insere. Por isso a garantia é declarada no próprio PostgreSQL, com uma constraint de exclusão sobre `tstzrange` — de forma que a regra não dependa de o código lembrar de conferir.
 
 ```sql
-CONSTRAINT reserva_sem_sobreposicao
+CONSTRAINT ex_reserva_sem_sobreposicao
     EXCLUDE USING gist (id_recurso WITH =, periodo WITH &&)
     WHERE (cancelada_em IS NULL)
 ```

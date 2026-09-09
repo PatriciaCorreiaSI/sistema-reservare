@@ -57,6 +57,6 @@
 * `naming_convention` mora no `MetaData` e padroniza nomes de constraint e índice. Adotado o dicionário de cinco chaves (`ix`, `uq`, `ck`, `fk`, `pk`). Vale desde a primeira migration: mudar depois exige migration de renomeação.
 * **Nome explícito nem sempre ganha** — só a chave `ck` reescreve. Ela é a única que usa `%(constraint_name)s`, então o nome que você escreveu vira ingrediente e a convenção monta outro em cima: `name="status"` sai como `ck_recurso_status` no banco. `fk`, `uq` e `ix` não têm esse token e respeitam o nome explícito; `pk` só age quando não há nome. (Verificado em SQLAlchemy 2.0.52.)
 * Consequência prática: nomeie o `CHECK` pela parte semântica, **sem repetir o nome da tabela** — `name="recurso_status"` viraria `ck_recurso_recurso_status`.
-* Não há chave para `EXCLUDE`: ela mantém o nome explícito, então `sem_sobreposicao` chega intacto na mensagem de erro. Para cobri-la, a chave seria a própria classe da constraint.
+* Não há chave para `EXCLUDE`: ela mantém o nome explícito, então `ex_reserva_sem_sobreposicao` chega intacto na mensagem de erro. Para cobri-la, a chave seria a própria classe da constraint.
 
 

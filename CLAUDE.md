@@ -192,17 +192,59 @@ a verdade sobre o esquema passa a ser a migration, e ele não deve mais ser sinc
 `docs/prova-invariante.sql` **continua vivo** — ele não cria esquema, só pressupõe que existe, então
 dá para rodá-lo contra o banco que o Alembic construir. É o teste de aceitação da Etapa 1.
 
-**Onde parei (sessão de 2026-09-08):** `app/models/` com `base.py`, `usuario.py`, `recurso.py` e
-`__init__.py` prontos — `ruff check app/models` limpo, o pacote importa, e o `Base.metadata` traz
-as duas tabelas.
+**As dependências não existiam.** `sqlalchemy`, `alembic` e o driver nunca tinham entrado no
+`pyproject.toml` — o `import app.models` que parecia funcionar na sessão anterior rodava no venv
+solto do experimento com o Alembic, não no projeto. Instalados agora: SQLAlchemy 2.0.52, Alembic
+1.19.2 e `psycopg[binary]` 3.3.5. O **driver** foi escolhido pelo critério de não fechar porta: o
+`psycopg` 3 traz síncrono e assíncrono no mesmo pacote, então a decisão continua aberta —
+`psycopg2` (só síncrono) ou `asyncpg` (só assíncrono) já teriam decidido por baixo do pano.
+**Débito: ADR de síncrono × assíncrono**, adiado de propósito para depois do `reserva.py`.
 
-**Próximo passo: escrever `app/models/reserva.py`.** É a tabela difícil. O que ela tem de novo:
-duas FKs apontando para `usuario` (`id_usuario` e `cancelada_por_id_usuario`); as duas primeiras
-colunas anuláveis do projeto — e quem manda na nulidade é a anotação (`Mapped[X | None]`), não o
-`mapped_column`; `DateTime` que **precisa** de `timezone=True`, senão vira `TIMESTAMP WITHOUT TIME
-ZONE` e quebra a regra de todo timestamp em UTC; o `tstzrange`, que vem do dialeto Postgres; e no
-`__table_args__` os quatro `CHECK`, a `ExcludeConstraint` (nome explícito `reserva_sem_sobreposicao`,
-que é o que a prova espera ver na mensagem de erro) e os três `Index`. Depois dela, o Alembic.
+**`app/models/reserva.py` está escrito e o DDL renderizado bate com o alvo** — as três FKs com
+`ON DELETE RESTRICT`, os quatro `CHECK`, os três índices e a `EXCLUDE` completa com o predicado do
+ADR 0007. O que essa tabela ensinou, e não é derivável do código:
+
+- **Cada `mapped_column` tem duas vagas com vocabulários diferentes.** A anotação descreve o valor
+  **Python** (`datetime`, `Range[datetime]`); o argumento descreve o tipo **no banco**
+  (`DateTime(timezone=True)`, `TSTZRANGE()`). Repetir o mesmo nome nas duas é o erro natural, e o
+  `TSTZRANGE` na anotação estoura com `'SchemaItem' object ... expected`.
+- **Tipo explícito ganha da anotação.** `Mapped[int] = mapped_column(String(15))` cria `VARCHAR`.
+  Nem `ruff` nem `mypy` veem isso — só o Postgres, na migration, com `incompatible types`.
+- **Cada opção pertence a um parêntese.** `ondelete` é do `ForeignKey`; `index=True` é do
+  `mapped_column`. Trocar dá `Additional arguments should be named <dialectname>_<argument>`.
+- **A `ExcludeConstraint` é a única que não engole SQL cru.** O `CheckConstraint` cola qualquer
+  string dentro de `CHECK (...)` sem ler nada; a `ExcludeConstraint` exige tuplas
+  `(coluna, operador)` porque precisa saber quais colunas entram no índice GiST. O operador é `=` e
+  `&&` — o `WITH` é gerado por ela. O `WHERE` do ADR 0007 é o argumento `where=`, e recebe expressão
+  Python (`cancelada_em.is_(None)`), não string.
+- **`Index(name, *colunas)`** — o primeiro posicional já é o nome. Optamos por `index=True` nas três
+  colunas: a convenção gera `ix_reserva_id_usuario` e irmãos sozinha, sem `__table_args__`.
+- **A convenção `ck` exige `name=` explícito** (`InvalidRequestError: ... requires that constraint
+  is explicitly named`). Aspas triplas ajudam a quebrar SQL longo, mas fechar depois do `name=`
+  engole o argumento e cai nesse erro.
+- **As FKs não colidem:** a chave `fk` inclui `%(referred_table_name)s`, então as duas que apontam
+  para `usuario` saem `fk_reserva_id_usuario_usuario` e
+  `fk_reserva_cancelada_por_id_usuario_usuario`.
+- **Só entra no `Base.metadata` o módulo que alguém executa.** Sem `Reserva` no `__init__.py`, o
+  `autogenerate` compararia um metadata sem `reserva` contra um banco sem `reserva`, concluiria que
+  está tudo em ordem e geraria migration **vazia**, em silêncio.
+- **`CREATE EXTENSION btree_gist` não tem como sair do modelo** — `MetaData` não tem conceito de
+  extensão. A primeira migration precisa criá-la **à mão, antes** da tabela `reserva`, ou o
+  `CREATE TABLE` falha; e o `downgrade` tem de decidir se a derruba (pode quebrar outra coisa no
+  mesmo banco).
+- O VS Code aponta para o Python global porque o `.venv` mora em `backend/` e o workspace é a raiz —
+  **o mesmo descompasso de monorepo** que o `--directory backend` resolveu no `pre-commit`. Corrige
+  em *Python: Select Interpreter*.
+
+**Onde parei (sessão de 2026-09-09):** `app/models/reserva.py` importa, `Base.metadata` traz as três
+tabelas e o DDL renderizado confere com `docs/esquema-alvo.sql`. Faltam **8 `E501` + 2 `I001`** —
+as duas strings SQL longas ganharam aspas triplas mas ainda estão numa linha só; o `ruff format`
+não quebra literal de string, isso é à mão.
+
+**Próximo passo: Alembic.** `alembic init`, apontar `target_metadata` para o `Base.metadata`, gerar
+a primeira migration e completá-la à mão com o que o `autogenerate` não vê — `CREATE EXTENSION
+btree_gist` e a `EXCLUDE` (ADR 0008 já decidiu que ela é escrita à mão na migration **e** declarada
+no modelo). Depois, rodar `docs/prova-invariante.sql` contra o banco que o Alembic construir.
 
 Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
 prova por SQL na mão de que o banco recusa duas reservas ativas sobrepostas — esta segunda parte
