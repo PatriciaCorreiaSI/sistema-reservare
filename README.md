@@ -47,7 +47,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 |---|---|
 | Modelagem de dados | ✅ concluída |
 | Fundação: ambiente, container, lint | ✅ concluída |
-| Migrations e constraints | 🔨 em andamento — esquema e prova em SQL prontos; modelos SQLAlchemy em andamento; falta o Alembic |
+| Migrations e constraints | 🔨 em andamento — esquema e prova em SQL prontos; modelos SQLAlchemy concluídos; falta o Alembic |
 | API em camadas | ⏳ |
 | Autenticação e autorização | ⏳ |
 | Reservas, concorrência e estados | ⏳ |
@@ -110,6 +110,7 @@ cd backend && uv run pre-commit run --all-files
 | [`docs/esquema-alvo.sql`](docs/esquema-alvo.sql) | O DDL escrito à mão na Etapa 1 — congelado como registro histórico; a partir da migration, a verdade sobre o esquema é o Alembic |
 | [`docs/prova-invariante.sql`](docs/prova-invariante.sql) | Sete casos que demonstram, em SQL puro, o que o banco aceita e o que recusa |
 | [`docs/adr/`](docs/adr/) | Decisões de arquitetura, com alternativas descartadas e consequências |
+| [`docs/aprendizados.md`](docs/aprendizados.md) | Um conceito por linha — o que cada etapa ensinou na prática |
 
 ---
 

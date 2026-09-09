@@ -72,9 +72,9 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 6 ADRs escritos.
 - **Etapa 0 (fundação): concluída** — `docker compose up` sobe `db` e `api`; `/health` responde
   `200` pelo compose.
-- **Etapa 1 (migration): em andamento** — é aqui que estamos. Metade do critério de pronto já está
-  cumprida: o esquema existe em SQL e a prova por SQL na mão passa nos sete casos. Falta traduzir
-  para SQLAlchemy e gerar a migration Alembic.
+- **Etapa 1 (migration): em andamento** — é aqui que estamos. Duas das três partes estão fechadas:
+  o esquema existe em SQL e a prova por SQL na mão passa nos sete casos; e as três tabelas já estão
+  traduzidas para SQLAlchemy 2.0 tipado, com o DDL renderizado batendo com o alvo. Falta o Alembic.
 
 ### Já feito
 
@@ -236,15 +236,57 @@ ADR 0007. O que essa tabela ensinou, e não é derivável do código:
   **o mesmo descompasso de monorepo** que o `--directory backend` resolveu no `pre-commit`. Corrige
   em *Python: Select Interpreter*.
 
-**Onde parei (sessão de 2026-09-09):** `app/models/reserva.py` importa, `Base.metadata` traz as três
-tabelas e o DDL renderizado confere com `docs/esquema-alvo.sql`. Faltam **8 `E501` + 2 `I001`** —
-as duas strings SQL longas ganharam aspas triplas mas ainda estão numa linha só; o `ruff format`
-não quebra literal de string, isso é à mão.
+**ADR 0009 — a API é síncrona.** A decisão nasceu com o título errado ("qual template do
+`alembic init`") e foi reescrita: o template é *consequência*, a decisão é a API. O que pesou não foi
+"async é difícil", e sim que o teste de concorrência — o coração do projeto — fica demonstrável com
+threads: duas threads, duas conexões, um ponto de sincronização, concorrência visível. Em async num
+único event loop, o esforço migra de *provar que o banco está certo* para *provar que o teste está
+concorrendo de verdade*. O custo aceito está escrito no ADR: quem revisar isto como portfólio pode
+esperar `async` e notar a ausência. **Compromisso que decorre dele:** os repositories usarão
+`selectinload` explícito desde o começo, para que a conversão futura seja mecânica — restrição sobre
+código que ainda não existe, e que se perde se ninguém a escrever.
 
-**Próximo passo: Alembic.** `alembic init`, apontar `target_metadata` para o `Base.metadata`, gerar
-a primeira migration e completá-la à mão com o que o `autogenerate` não vê — `CREATE EXTENSION
-btree_gist` e a `EXCLUDE` (ADR 0008 já decidiu que ela é escrita à mão na migration **e** declarada
-no modelo). Depois, rodar `docs/prova-invariante.sql` contra o banco que o Alembic construir.
+Dois fatos aprendidos ao escrever o ADR, ambos invertidos na primeira versão: **carregamento
+preguiçoso é comportamento do síncrono** — async o proíbe (`MissingGreenlet`), e é por proibir que
+obriga o `selectinload`. E o **threadpool do FastAPI é limitado** (~40 threads): ele não cresce
+consumindo RAM, ele **enche e as requisições passam a esperar na fila**. O sintoma é latência
+subindo, não memória estourando — muda o que procurar ao medir.
+
+**Decisão 2 — o Alembic roda do host** (opção B), com a porta do Postgres publicada em
+`127.0.0.1:5432`. Razão: `alembic revision --autogenerate` **escreve um arquivo**, e ele precisa
+aterrissar no repositório para ser revisado, completado à mão e commitado. Rodando dentro do
+container, o arquivo nasce numa imagem congelada — o que forçaria agora o bind mount adiado para a
+Etapa 2, ou um `docker compose cp` a cada iteração. **Pendente:** publicar essa porta reverte o
+"nenhuma porta do Postgres exposta ao host" registrado acima — decidir se vira ADR 0010 ou se basta
+reescrever aquele trecho com o motivo.
+
+**Onde parei (sessão de 2026-09-09):** `app/models/reserva.py` fechado — importa, `Base.metadata`
+traz as três tabelas, o DDL renderizado confere com `docs/esquema-alvo.sql`, `ruff` e `mypy` limpos.
+ADR 0009 escrito e `docs/aprendizados.md` atualizado. Tudo commitado e empurrado. O
+`docker-compose.yml` ainda **não** foi tocado.
+
+**Próximo passo, nesta ordem:**
+
+1. **Compose, duas edições** — `db` ganha `ports: ["127.0.0.1:5432:5432"]` (sem o `127.0.0.1:` a
+   porta fica exposta na rede local), e a `DATABASE_URL` troca `postgres://` por
+   `postgresql+psycopg://` — o primeiro o SQLAlchemy recusa com `Can't load plugin`.
+2. **Decidir de onde o `env.py` tira a URL.** Duas variáveis explícitas (`DATABASE_URL` volta ao
+   `.env` apontando para `@localhost:5432`; dentro do compose o bloco `environment:` do `api`
+   continua mandando com `@db:5432`) **ou** uma variável com fallback (usa `DATABASE_URL` se
+   existir, senão monta a partir de `POSTGRES_USER`/`PASSWORD`/`DB` com host `localhost`). A
+   primeira duplica o conceito; a segunda cala quando a variável some por engano.
+3. **`alembic init`** de dentro de `backend/`.
+4. **Ligar o `env.py`:** `target_metadata` importando o **pacote** `app.models` (importar só o
+   `Base` traz metadata vazio e gera migration em branco, sem erro), e a URL vinda do ambiente —
+   **nunca** do `alembic.ini`, que é versionado e levaria a senha para o repositório.
+5. **Completar a migration à mão** com o que o `autogenerate` não vê: `CREATE EXTENSION IF NOT
+   EXISTS btree_gist` como **primeira** operação do `upgrade()` (depois do `create_table` já é
+   tarde), e a `EXCLUDE` (ADR 0008). No `downgrade`, decidir se derruba a extensão — derrubar é
+   simétrico, mas quebra o vizinho se outra coisa naquele banco passar a usá-la.
+6. **Rodar `docs/prova-invariante.sql`** contra o banco que o Alembic construir. É o teste de
+   aceitação da etapa.
+
+Subir o Docker Desktop antes — na sessão de 2026-09-09 ele estava parado.
 
 Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
 prova por SQL na mão de que o banco recusa duas reservas ativas sobrepostas — esta segunda parte
