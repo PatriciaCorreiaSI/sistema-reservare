@@ -7,7 +7,7 @@ INSERT INTO recurso (nome_recurso, ocupacao, hora_func_inicio, hora_func_fim, st
 
 \warn
 \warn '=== Caso 1: sobreposição no mesmo recurso ==='  
-\warn '=== esperado:a segunda reserva é RECUSADA (reserva_sem_sobreposicao) ==='
+\warn '=== esperado:a segunda reserva é RECUSADA (ex_reserva_sem_sobreposicao) ==='
 DELETE FROM reserva;
 INSERT INTO reserva (id_usuario, id_recurso, convidados, periodo, status_reserva) VALUES
 (1, 1, 5, '[2026-09-04 10:00:00+00, 2026-09-04 12:00:00+00)', 'confirmada');

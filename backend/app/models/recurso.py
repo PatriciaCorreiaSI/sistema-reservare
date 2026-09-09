@@ -18,8 +18,8 @@ class Recurso(Base):
 
     __table_args__ = (
         CheckConstraint("status_recurso IN ('ativo', 'inativo')", name="status"),
-        CheckConstraint("ocupacao > 0", name="ocupacao_positiva"),
         CheckConstraint(
             "hora_func_inicio < hora_func_fim", name="horario_dentro_do_dia"
         ),
+        CheckConstraint("ocupacao > 0", name="ocupacao_positiva"),
     )
