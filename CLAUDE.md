@@ -72,9 +72,12 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 1 (modelagem): concluída** — `docs/modelo.md`, 6 ADRs escritos.
 - **Etapa 0 (fundação): concluída** — `docker compose up` sobe `db` e `api`; `/health` responde
   `200` pelo compose.
-- **Etapa 1 (migration): em andamento** — é aqui que estamos. Duas das três partes estão fechadas:
-  o esquema existe em SQL e a prova por SQL na mão passa nos sete casos; e as três tabelas já estão
-  traduzidas para SQLAlchemy 2.0 tipado, com o DDL renderizado batendo com o alvo. Falta o Alembic.
+- **Etapa 1 (migrations): concluída em 2026-09-10** — as três partes fecharam. O esquema existe em
+  SQL e a prova por SQL na mão passa nos sete casos; as três tabelas estão traduzidas para
+  SQLAlchemy 2.0 tipado; e a migration `8cf01df862a4` cria tudo do zero, com a prova passando
+  contra o banco que o Alembic construiu.
+- **Etapa 2 (primeira fatia vertical): é aqui que estamos** — ainda não começada. Ver "Próximo
+  passo".
 
 ### Já feito
 
@@ -159,15 +162,11 @@ Antes de escrever implementação, verifique em que fase ela está:
   `ON_ERROR_STOP`: metade dos casos deve falhar. Rótulos com `\warn`, não `\echo` — o primeiro
   escreve em stderr, o mesmo canal dos erros, e só assim rótulo e resultado saem em ordem.
 
-### Próximo passo
+### Decisões e aprendizados da Etapa 1
 
-A metade em SQL da Etapa 1 está fechada: o esquema roda do zero no compose e a prova de sete casos
-demonstra, **sem nenhuma linha de Python**, que o banco recusa sobreposição, aceita reservas que
-apenas se encostam, e volta a liberar o horário quando a reserva é cancelada.
-
-Falta a outra metade: **traduzir o esquema para SQLAlchemy 2.0 tipado** (`Mapped`,
-`mapped_column`) e gerar a migration com Alembic, até `alembic upgrade head` criar tudo do zero e
-`downgrade base` desfazer.
+O que segue é o registro do que foi decidido e do que custou tempo ao longo da Etapa 1 — a parte
+que não é derivável lendo o código. A etapa está fechada: isto fica como memória, não como plano.
+O que vem a seguir está em "Próximo passo", no fim desta seção.
 
 **Decisões fechadas — Fase 1 concluída:**
 
@@ -276,10 +275,7 @@ Etapa 2, ou um `docker compose cp` a cada iteração. **Pendente:** publicar ess
 "nenhuma porta do Postgres exposta ao host" registrado acima — decidir se vira ADR 0010 ou se basta
 reescrever aquele trecho com o motivo.
 
-**Onde parei (sessão de 2026-09-09):** `app/models/reserva.py` fechado — importa, `Base.metadata`
-traz as três tabelas, o DDL renderizado confere com `docs/esquema-alvo.sql`, `ruff` e `mypy` limpos.
-ADR 0009 escrito e `docs/aprendizados.md` atualizado. Tudo commitado e empurrado. O
-**A URL do banco é derivada, não escrita** (decisão desta sessão). Havia três formas: escrever a
+**A URL do banco é derivada, não escrita.** Havia três formas: escrever a
 `DATABASE_URL` inteira nos dois lugares; usar uma variável com *fallback* para `localhost`; ou
 derivar de `POSTGRES_USER`/`PASSWORD`/`DB` mais um `DB_HOST` **obrigatório**. Ficou a terceira.
 
@@ -306,60 +302,90 @@ duas pontas são fontes explícitas.
 
 **Compose e `.env` já editados e validados** (`docker compose config` passa): `db` publica
 `127.0.0.1:5432:5432`; o serviço `api` perdeu a `DATABASE_URL` e ganhou os três `POSTGRES_*`
-interpolados mais `DB_HOST: db` literal; `.env` tem `DB_HOST=localhost` e `.env.example` a chave
-vazia. Cuidado ao colar saída de `docker compose config` em qualquer lugar — ela imprime a senha em
-texto puro.
+interpolados mais `DB_HOST: db` literal; `.env` tem `DB_HOST=127.0.0.1` (era `localhost` — ver a
+armadilha logo abaixo) e `.env.example` a chave vazia com a nota do porquê. Cuidado ao colar saída
+de `docker compose config` em qualquer lugar — ela imprime a senha em texto puro.
 
-**Próximo passo, nesta ordem:**
+**O que a ligação do `env.py` ensinou** (sessão de 2026-09-10):
 
-1. ~~Compose e `.env`~~ — **feito nesta sessão.**
-2. ~~Decidir de onde vem a URL~~ — **feito:** derivada, com `DB_HOST` obrigatório.
-3. ~~`alembic init migrations`~~ — **feito.** Gerou `backend/alembic.ini` e `migrations/` com
-   `env.py`, `script.py.mako`, `README` e a pasta vazia `versions/` (o Git não versiona pasta
-   vazia; ela aparece com a primeira migration). O `pre-commit` reformatou o `env.py` na entrada —
-   o Alembic escreve no estilo dele, o repositório tem outro, e isso vai se repetir a cada
-   migration gerada.
-4. **Ligar o `env.py`.** O esqueleto já existe (`alembic init migrations` rodado); nada dele foi
-   editado ainda. Quatro coisas, e a leitura do gerado já está feita:
+- **`sqlalchemy.url` do `alembic.ini` ficou comentada, não apagada.** Os dois jeitos falham alto se
+  o `env.py` não injetar a URL, então segurança de falha empata. O que decidiu foi que o placeholder
+  é um convite: `driver://user:pass@...` num repo público pede para alguém colar a URL real ali.
+  Comentar preserva a descoberta — quem procurar onde se configura o banco vê a chave e a nota
+  apontando para o `env.py`. O `alembic.ini` **não** interpola variável de ambiente.
+- **`target_metadata` recebe `app.models.Base.metadata`, importando o pacote.** O
+  `prepend_sys_path = .` do `alembic.ini` é o que faz esse import funcionar: põe `backend/` no
+  `sys.path` antes do `env.py` rodar.
+- **A URL é injetada uma vez, no nível do módulo**, com `config.set_main_option(...)`. As duas
+  funções (`offline` e `online`) leem do mesmo objeto `config`, então não é preciso mexer nelas.
+  Cuidado: `set_main_option` **devolve `None`** — reatribuir `config` com o resultado apaga o
+  objeto, e o erro (`AttributeError` em `NoneType`) aparece quatro linhas adiante.
+- **`str()` numa `URL` mascara a senha com `***`.** A conexão falha por "senha incorreta" e o erro
+  aponta para o lugar errado. O método que não mascara é `render_as_string(hide_password=False)`.
+- **`load_dotenv` quer o caminho de um arquivo, e falha calado.** Apontado para uma pasta, carrega
+  zero chaves — e aí o `os.environ[...]` estoura com `KeyError`, que é o comportamento desejado.
+  Apontado para o próprio `env.py`, é pior: ele **lê as linhas `CHAVE=valor` do código Python** e
+  popula `os.environ` com o texto literal `os.environ["POSTGRES_USER"]`. A chave passa a existir,
+  o `KeyError` não acontece, e o erro só aparece na conexão. O caminho é derivado de `__file__`,
+  não do diretório atual — `Path(__file__).parent.parent.parent / ".env"`.
+- **`os.environ[...]` protege contra chave ausente, não contra chave presente com lixo dentro.**
+  Não é defeito da escolha; é o limite dela.
 
-   - **`sqlalchemy.url` do `alembic.ini` (linha 89): comentar, não apagar** — decidido, falta
-     aplicar. Os dois falham alto se o `env.py` não injetar a URL (`Can't load plugin:
-     sqlalchemy.dialects:driver` com o placeholder; erro de URL faltando sem ele), então segurança
-     de falha empata. O que decide é que **o placeholder é um convite**: uma linha dizendo
-     `driver://user:pass@...` num repo público pede para alguém colar a URL real ali — e senha
-     commitada é senha *rotacionada*. Mesmo critério do ADR 0007: remover a armadilha vale mais que
-     confiar em disciplina. Comentar em vez de apagar preserva a descoberta — quem procurar onde se
-     configura o banco vê a chave e a nota apontando para o `env.py`. (O `alembic.ini` **não**
-     interpola variável de ambiente: `${DATABASE_URL}` ali não funciona, é lido como texto literal.)
-   - **`target_metadata`** (hoje `None`, linha 21 do `env.py`) recebe o `Base.metadata`, importando
-     o **pacote** `app.models` — importar só o `Base` traz metadata vazio e gera migration em
-     branco, sem erro. O `prepend_sys_path = .` do `alembic.ini` (linha 21) é o que faz esse import
-     funcionar: ele põe `backend/` no `sys.path` antes do `env.py` rodar.
-   - **A URL** montada com `URL.create()` a partir do ambiente, drivername `postgresql+psycopg`.
-     `run_migrations_offline()` e `run_migrations_online()` leem a URL **do mesmo objeto `config`**
-     (a primeira via `config.get_main_option`, a segunda via `engine_from_config`), então injetar
-     uma vez no `config` cobre as duas — não é preciso mexer nas duas funções.
-   - **Pendência conhecida:** o Python não lê `.env` sozinho. Dentro do container as variáveis
-     existem porque o compose as injeta; no Windows o `os.environ` vem vazio, e alguém precisa
-     carregar o arquivo. É uma linha, mas ela ainda não existe.
-5. **Completar a migration à mão** com o que o `autogenerate` não vê: `op.execute("CREATE EXTENSION
-   IF NOT EXISTS btree_gist")` como **primeira** operação do `upgrade()` (depois do `create_table`
-   da `reserva` já é tarde — a `EXCLUDE` usa `using='gist'`, e o GiST não compara inteiros com `=`
-   sem a extensão). A `EXCLUDE` **não** precisa ser escrita à mão: por ser tabela nova, ela veio
-   junto no `create_table` — ver a nota corrigida sobre renderizar × comparar, mais acima.
-   No `downgrade`, decidir se derruba a extensão. *(Correção de 2026-09-10: derrubar não "quebra o
-   vizinho" — o Postgres recusa `DROP EXTENSION` quando outros objetos dependem dela. O que decide
-   é a propriedade: o `IF NOT EXISTS` do `upgrade` admite que a extensão pode ser anterior a esta
-   migration, e desfazer o que talvez não tenhamos feito é o erro. Desfaça só o que você tem
-   certeza de que fez.)*
-6. **Rodar `docs/prova-invariante.sql`** contra o banco que o Alembic construir. É o teste de
-   aceitação da etapa.
+**`DB_HOST=127.0.0.1`, não `localhost`** — a armadilha que custou a maior parte da sessão; está em
+`docs/aprendizados.md`. Em resumo: `localhost` é um nome que o Windows resolve para `::1` antes de
+`127.0.0.1`; o compose publica a porta só em IPv4; e o driver não tem limite de espera por padrão,
+então ele **pendura em vez de falhar**, de forma intermitente. O `healthcheck` do compose protege o
+serviço `api`, que tem `depends_on`; ele não protege quem digita comandos no host.
 
-Subir o Docker Desktop antes — na sessão de 2026-09-09 ele estava parado.
+**A primeira migration — `8cf01df862a4`.** Veio quase completa do `autogenerate`, inclusive a
+`EXCLUDE` e os nove `CHECK`, porque as tabelas não existiam (ver renderizar × comparar, mais acima).
+Foi completada à mão com três coisas:
 
-Critério de pronto da Etapa 1: `alembic upgrade head` cria tudo do zero e `downgrade base` desfaz;
-prova por SQL na mão de que o banco recusa duas reservas ativas sobrepostas — esta segunda parte
-**já está cumprida** em `docs/prova-invariante.sql`.
+1. `op.execute("CREATE EXTENSION IF NOT EXISTS btree_gist")` como **primeira** operação do
+   `upgrade()`. `op.execute` manda SQL cru — é a saída para o que não tem `op.alguma_coisa`.
+2. Os dois `CHECK` longos reescritos com aspas triplas. O `autogenerate` os colapsa numa string de
+   390 caracteres com `\n` escapado, o que estoura o `E501` — e o `ruff format` **não** resolve,
+   porque ele quebra chamadas de função, não strings. Reformatar não muda nada no banco: o Postgres
+   guarda a **árvore** da expressão, não o texto. Os parênteses redundantes somem e `IN (...)` volta
+   como `= ANY (ARRAY[...])`.
+3. Um comentário no `downgrade()` dizendo que a `btree_gist` **não** é derrubada de propósito —
+   ausência não se explica sozinha. O critério: o `IF NOT EXISTS` do `upgrade` admite que a extensão
+   pode ser anterior a esta migration, e desfazer o que talvez não tenhamos feito é o erro.
+   *(Derrubar não "quebraria o vizinho": o Postgres recusa `DROP EXTENSION` com dependentes. O que
+   decide é a propriedade, não o estrago.)*
+
+**Antes de rodar `--autogenerate`, confira o estado do banco.** Se as tabelas já existirem, a
+diferença é nenhuma e ele gera migration **vazia**, sem erro nem aviso — e ela passaria no `upgrade`
+sem reclamar, porque as tabelas já estavam lá. Foi preciso `docker compose down -v` para apagar o
+volume e recriar do zero; sem o `-v`, o `down` preserva os volumes e o banco volta com tudo.
+
+**Critério de pronto da Etapa 1: cumprido em 2026-09-10.** `alembic upgrade head` cria as três
+tabelas, a extensão e a `EXCLUDE` num banco vazio; `docs/prova-invariante.sql` passa nos sete casos
+contra esse banco; `downgrade base` deixa só a `alembic_version` vazia, com a `btree_gist`
+instalada. No caso 7 a prova mostra duas camadas de defesa em profundidades diferentes: o limite
+invertido é recusado pelo **tipo** `tstzrange`, antes de existir linha para testar, e a
+inclusividade trocada — um range válido — é barrada pelo `ck_reserva_formato_semiaberto`.
+
+### Próximo passo
+
+**Etapa 2 — primeira fatia vertical.** Um recurso completo, da requisição HTTP ao banco e de volta,
+com teste: CRUD de `recurso` em `routers/` → `services/` → `repositories/`, schemas Pydantic
+separados por direção, e o primeiro `pytest` com banco de teste isolado. O critério de pronto, os
+conceitos novos e as armadilhas estão na Etapa 2 do [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+Três coisas ficaram pendentes da Etapa 1 e pesam aqui:
+
+1. **O bind mount do código para dentro do container**, adiado de propósito na Etapa 0 — montar
+   `backend/` sobre `/app` cobriria o `.venv` Linux do `uv sync` com um `.venv` de Windows. O
+   argumento para adiar era não haver código suficiente para validar a técnica de exclusão do
+   subcaminho; na Etapa 2 vai haver.
+2. **A porta do Postgres publicada no host** reverte o "nenhuma porta do Postgres exposta"
+   registrado acima. Decidir se vira ADR 0010 ou se basta a nota com o motivo.
+3. **O compromisso do ADR 0009:** os repositories usam `selectinload` explícito desde o começo, para
+   que uma conversão futura para `async` seja mecânica. É restrição sobre código que ainda não
+   existe — se ninguém a escrever agora, ela se perde.
+
+Subir o Docker Desktop antes de começar.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.

@@ -207,8 +207,8 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | ------ | ------------------- | ------------------------------------------------------------------------- |
 | —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
-| 2      | Etapa 1 (migration) | 🔨 prova em SQL puro ✅ feita; modelos em andamento; falta `alembic upgrade head` |
-| 3–4    | Etapa 2             | CRUD de recursos em camadas, com testes                                   |
+| 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
+| 3–4    | Etapa 2             | 🔨 **é aqui que estamos** — CRUD de recursos em camadas, com testes        |
 | 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
@@ -267,14 +267,17 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ### 🗄️ Etapa 1 — Modelagem e migrations
 
-> **Modelagem: ✅ concluída** — `docs/modelo.md`.
+> **✅ Etapa concluída em 2026-09-10.** O critério de pronto abaixo está cumprido: a migration
+> `8cf01df862a4` cria as três tabelas, a extensão `btree_gist` e a `EXCLUDE` num banco vazio;
+> `docs/prova-invariante.sql` passa nos sete casos contra o banco que o Alembic construiu; e
+> `downgrade base` desfaz — deixando a `btree_gist` instalada, de propósito.
 >
-> **Esquema e prova em SQL: ✅ concluídos** — `docs/esquema-alvo.sql` roda do zero no compose, e
-> `docs/prova-invariante.sql` demonstra o invariante em sete casos, sem uma linha de Python.
+> `docs/esquema-alvo.sql` foi **congelado como registro histórico**: a verdade sobre o esquema
+> passa a ser a migration, e ele não deve mais ser sincronizado. `docs/prova-invariante.sql`
+> continua vivo — ele não cria esquema, só pressupõe que existe, e é o teste de aceitação da etapa.
 >
-> **Em andamento — os modelos:** `usuario` e `recurso` prontos em `backend/app/models/`; falta
-> `reserva`, e depois gerar a migration. O `esquema-alvo.sql` foi congelado como registro
-> histórico: a partir da migration, a verdade sobre o esquema passa a ser o Alembic.
+> O que a etapa ensinou e não está no código está registrado em `CLAUDE.md` (seção "Decisões e
+> aprendizados da Etapa 1") e em `docs/aprendizados.md`.
 
 **Objetivo:** o banco deve **impedir** dado inválido, não confiar que o Python vai validar.
 

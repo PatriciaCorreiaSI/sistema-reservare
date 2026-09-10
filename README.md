@@ -3,7 +3,8 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 1 — migrations e constraints**. Fundação do ambiente concluída.
+> Fase atual: **Etapa 2 — primeira fatia vertical**. Fundação, modelagem e migrations concluídas:
+> `alembic upgrade head` cria o esquema do zero e a prova do invariante passa contra ele.
 
 ---
 
@@ -29,10 +30,14 @@ Demonstrar isso, com teste de concorrência que prove o comportamento, é o obje
 
 ### Verificando o invariante
 
-O comportamento já é demonstrável em SQL puro, sem nenhuma linha de Python:
+O esquema é criado pela migration, e a prova roda contra o banco que ela construiu — em SQL puro,
+sem nenhuma linha de Python:
 
 ```bash
-docker compose up -d db
+docker compose up -d db                        # espere ficar (healthy)
+cd backend && uv run alembic upgrade head      # cria as tabelas, a extensão e a EXCLUDE
+cd ..
+
 docker compose cp docs/prova-invariante.sql db:/tmp/prova.sql
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/prova.sql'
 ```
@@ -47,8 +52,8 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 |---|---|
 | Modelagem de dados | ✅ concluída |
 | Fundação: ambiente, container, lint | ✅ concluída |
-| Migrations e constraints | 🔨 em andamento — esquema e prova em SQL prontos; modelos SQLAlchemy concluídos; Alembic iniciado, falta a primeira migration |
-| API em camadas | ⏳ |
+| Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
+| API em camadas | ⏳ próxima |
 | Autenticação e autorização | ⏳ |
 | Reservas, concorrência e estados | ⏳ |
 | Testes e integração contínua | ⏳ |
