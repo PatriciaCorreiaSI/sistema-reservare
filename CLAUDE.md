@@ -178,13 +178,25 @@ Falta a outra metade: **traduzir o esquema para SQLAlchemy 2.0 tipado** (`Mapped
 **O que o experimento com o Alembic provou** (SQLAlchemy 2.0.52 / Alembic 1.19.2, comparando
 contra o banco real e renderizando o `CREATE TABLE`). Isto vale mais que os dois casos acima:
 
-- O `autogenerate` é **cego para `EXCLUDE` nos dois sentidos**: não a cria quando falta no banco,
-  não a derruba quando falta no modelo, não avisa da divergência. E **não** propõe `drop_index`
-  espúrio para o índice GiST que a sustenta.
+- **O `autogenerate` faz duas coisas diferentes, e a cegueira só existe numa delas.** Quando a
+  tabela **não existe** no banco, ele *renderiza* o modelo inteiro em `create_table` — e aí
+  `EXCLUDE` e `CHECK` **vêm junto**, porque estão no `__table_args__`. Quando a tabela **já
+  existe**, ele *compara* item a item para achar a diferença — e nesse modo é cego para `EXCLUDE`
+  (não a cria quando falta no banco, não a derruba quando falta no modelo, não avisa da
+  divergência) e para `CHECK`. É o comparador que é cego, não o renderizador.
+  **Consequência prática:** a primeira migration vem completa; as *seguintes*, que alteram tabela
+  existente, é que vão calar. *(Corrigido em 2026-09-10: a nota anterior dizia "cego para
+  `EXCLUDE`" sem ressalva, porque o experimento só exercitou o comparador — o banco tinha as
+  tabelas do `esquema-alvo.sql`. A primeira migration real trouxe a `EXCLUDE` completa, com o
+  predicado do ADR 0007, e os nove `CHECK`.)*
+- **`CREATE EXTENSION` nunca sai do modelo**, em nenhum dos dois modos: `MetaData` não tem o
+  conceito. Essa continua sendo escrita à mão.
+- Ele **não** propõe `drop_index` espúrio para o índice GiST que sustenta a `EXCLUDE`.
 - Ele **compara `COMMENT ON COLUMN`**. Sem `comment=` no modelo, a primeira migration **apaga** o
   comentário que existe no banco.
-- Ignora `CHECK` e `CREATE EXTENSION`. Ou seja: compara algumas coisas e cala sobre outras sem
-  dizer quais — tratá-lo como completo é o mesmo erro de forma do `if disponivel: criar()`.
+- A lição de forma permanece: ele compara algumas coisas e cala sobre outras sem dizer quais —
+  tratá-lo como completo é o mesmo erro de forma do `if disponivel: criar()`. Só que a fronteira
+  do silêncio é **tabela nova × tabela existente**, não "esta constraint × aquela".
 - Na convenção, **só a chave `ck` reescreve nome explícito**, por ser a única com
   `%(constraint_name)s`: `name="status"` vira `ck_recurso_status`. `fk`, `uq` e `ix` respeitam o
   nome dado; `pk` só age quando não há nome; `EXCLUDE` não tem chave e fica intacta.
@@ -330,10 +342,16 @@ texto puro.
    - **Pendência conhecida:** o Python não lê `.env` sozinho. Dentro do container as variáveis
      existem porque o compose as injeta; no Windows o `os.environ` vem vazio, e alguém precisa
      carregar o arquivo. É uma linha, mas ela ainda não existe.
-5. **Completar a migration à mão** com o que o `autogenerate` não vê: `CREATE EXTENSION IF NOT
-   EXISTS btree_gist` como **primeira** operação do `upgrade()` (depois do `create_table` já é
-   tarde), e a `EXCLUDE` (ADR 0008). No `downgrade`, decidir se derruba a extensão — derrubar é
-   simétrico, mas quebra o vizinho se outra coisa naquele banco passar a usá-la.
+5. **Completar a migration à mão** com o que o `autogenerate` não vê: `op.execute("CREATE EXTENSION
+   IF NOT EXISTS btree_gist")` como **primeira** operação do `upgrade()` (depois do `create_table`
+   da `reserva` já é tarde — a `EXCLUDE` usa `using='gist'`, e o GiST não compara inteiros com `=`
+   sem a extensão). A `EXCLUDE` **não** precisa ser escrita à mão: por ser tabela nova, ela veio
+   junto no `create_table` — ver a nota corrigida sobre renderizar × comparar, mais acima.
+   No `downgrade`, decidir se derruba a extensão. *(Correção de 2026-09-10: derrubar não "quebra o
+   vizinho" — o Postgres recusa `DROP EXTENSION` quando outros objetos dependem dela. O que decide
+   é a propriedade: o `IF NOT EXISTS` do `upgrade` admite que a extensão pode ser anterior a esta
+   migration, e desfazer o que talvez não tenhamos feito é o erro. Desfaça só o que você tem
+   certeza de que fez.)*
 6. **Rodar `docs/prova-invariante.sql`** contra o banco que o Alembic construir. É o teste de
    aceitação da etapa.
 
@@ -421,8 +439,10 @@ Alembic, de dentro de `backend/`. O `alembic.ini` mora lá e a ferramenta o proc
 atual**, então rodar da raiz falha:
 
 - `uv run alembic revision --autogenerate -m "<mensagem>"` — gera a migration comparando
-  `Base.metadata` com o banco. **Nunca confie no resultado sem ler:** ele é cego para `EXCLUDE`,
-  `CHECK` e `CREATE EXTENSION`
+  `Base.metadata` com o banco. **Nunca confie no resultado sem ler.** `CREATE EXTENSION` nunca sai
+  do modelo; e em tabela que **já existe** ele também cala sobre `EXCLUDE` e `CHECK` (em tabela
+  nova os dois vêm junto). Confira também o **estado do banco antes de rodar**: se as tabelas já
+  existirem, a diferença é nenhuma e ele gera uma migration **vazia**, sem erro nem aviso
 - `uv run alembic upgrade head` — aplica; `uv run alembic downgrade base` desfaz tudo
 - `uv run alembic current` — mostra em que revisão o banco está; `uv run alembic history` lista a
   cadeia
