@@ -1,7 +1,14 @@
+import os
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from dotenv import load_dotenv
+from sqlalchemy import URL, engine_from_config, pool
+
+import app.models
+
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,12 +23,31 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = app.models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def url_do_ambiente() -> str:
+    POSTGRES_USER = os.environ["POSTGRES_USER"]
+    POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
+    POSTGRES_DB = os.environ["POSTGRES_DB"]
+    DB_HOST = os.environ["DB_HOST"]
+    url = URL.create(
+        drivername="postgresql+psycopg",
+        username=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+        host=DB_HOST,
+        database=POSTGRES_DB,
+    )
+
+    return url.render_as_string(hide_password=False)
+
+
+config.set_main_option("sqlalchemy.url", url_do_ambiente())
 
 
 def run_migrations_offline() -> None:
