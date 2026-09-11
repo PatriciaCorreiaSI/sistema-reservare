@@ -303,6 +303,14 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ### 🚶 Etapa 2 — Primeira fatia vertical
 
+> **🔨 Em andamento desde 2026-09-11.** Fase Decidir fechada com dois ADRs: o
+> [0010](adr/0010-requisicao-e-transacao.md) (a requisição é a transação — nenhuma camada chama
+> `commit()`, todo repository que escreve faz `flush()`) e o
+> [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md) (cada teste roda numa transação
+> desfeita no fim; `TRUNCATE` é a exceção nomeada para testes que precisam de transação real).
+> Nada do critério de pronto abaixo está cumprido ainda. O raciocínio das decisões e o estado
+> detalhado estão em `CLAUDE.md`, seção "Próximo passo".
+
 **Objetivo:** um recurso completo, da requisição HTTP ao banco e de volta, com teste. Fino, mas inteiro.
 
 **Conceitos novos**
