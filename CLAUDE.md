@@ -76,8 +76,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   SQL e a prova por SQL na mão passa nos sete casos; as três tabelas estão traduzidas para
   SQLAlchemy 2.0 tipado; e a migration `8cf01df862a4` cria tudo do zero, com a prova passando
   contra o banco que o Alembic construiu.
-- **Etapa 2 (primeira fatia vertical): é aqui que estamos** — ainda não começada. Ver "Próximo
-  passo".
+- **Etapa 2 (primeira fatia vertical): é aqui que estamos** — fase Decidir concluída em
+  2026-09-11 (ADRs 0010 e 0011); fase Desenhar ainda não começada. Ver "Próximo passo".
 
 ### Já feito
 
@@ -126,13 +126,17 @@ Antes de escrever implementação, verifique em que fase ela está:
   do banco aceitar conexão de verdade. Volume nomeado `db_data` persiste os dados entre reinícios
   (não bind mount: permissão Unix da pasta de dados do Postgres é frágil vindo de um path do
   Windows). Toda porta publicada é prefixada com `127.0.0.1:` — sem o prefixo o Docker publica em
-  `0.0.0.0` e o serviço fica visível para a rede local inteira. A API sai em `127.0.0.1:8000`.
-  **Revisto em 2026-09-09:** o Postgres passou a sair em `127.0.0.1:5432` (antes nenhuma porta dele
-  era exposta, e a inspeção era só por `docker compose exec db psql`). O motivo é o Alembic rodar do
-  host — ver a decisão registrada mais abaixo. *Pendente: decidir se isso vira ADR 0010.*
+  `0.0.0.0` e o serviço fica visível para a rede local inteira. A API sai em `127.0.0.1:8000` e o
+  Postgres em `127.0.0.1:5432`. O banco não nasceu publicado — até 2026-09-09 a inspeção era só por
+  `docker compose exec db psql` — e passou a ser porque o Alembic roda do host (decisão registrada
+  mais abaixo). O princípio que importa não mudou: nada publicado em `0.0.0.0`; em loopback, só quem
+  já roda na máquina alcança, e quem já roda na máquina já lê o `.env`. Este compose é de
+  desenvolvimento — o deploy (Etapa 9) usa Postgres gerenciado, fora dele. Decidido em 2026-09-11
+  que isto é nota, não ADR: a decisão de fundo (`127.0.0.1` em tudo) ficou de pé; o que envelheceu
+  foi o fato.
   **`DATABASE_URL` não existe mais em lugar nenhum.** Ela foi substituída por `DB_HOST`: o serviço
   `api` recebe os três `POSTGRES_*` interpolados mais `DB_HOST: db` literal; o `.env` do host tem
-  `DB_HOST=localhost`. A URL é montada em Python, não escrita — o porquê está na decisão abaixo.
+  `DB_HOST=127.0.0.1`. A URL é montada em Python, não escrita — o porquê está na decisão abaixo.
   Live-reload via bind mount do código para dentro do container **foi adiado de propósito** para a
   Etapa 2: montar `backend/` sobre `/app` cobriria o `.venv` Linux do `uv sync` com um `.venv` de
   Windows, e hoje não há código suficiente (só `/health`) para validar a técnica de exclusão do
@@ -271,9 +275,11 @@ subindo, não memória estourando — muda o que procurar ao medir.
 `127.0.0.1:5432`. Razão: `alembic revision --autogenerate` **escreve um arquivo**, e ele precisa
 aterrissar no repositório para ser revisado, completado à mão e commitado. Rodando dentro do
 container, o arquivo nasce numa imagem congelada — o que forçaria agora o bind mount adiado para a
-Etapa 2, ou um `docker compose cp` a cada iteração. **Pendente:** publicar essa porta reverte o
-"nenhuma porta do Postgres exposta ao host" registrado acima — decidir se vira ADR 0010 ou se basta
-reescrever aquele trecho com o motivo.
+Etapa 2, ou um `docker compose cp` a cada iteração. A porta publicada é consequência desta decisão,
+e ficou registrada como nota no trecho do compose, não como ADR. **Esta decisão pode ser revista
+quando o bind mount entrar (Etapa 2):** com o código montado dentro do container, o arquivo da
+migration aterrissaria no repositório de qualquer forma, e o argumento principal para rodar do host
+enfraquece. Se sobrar decisão real nesse momento, aí sim é matéria de ADR.
 
 **A URL do banco é derivada, não escrita.** Havia três formas: escrever a
 `DATABASE_URL` inteira nos dois lugares; usar uma variável com *fallback* para `localhost`; ou
@@ -373,15 +379,48 @@ com teste: CRUD de `recurso` em `routers/` → `services/` → `repositories/`, 
 separados por direção, e o primeiro `pytest` com banco de teste isolado. O critério de pronto, os
 conceitos novos e as armadilhas estão na Etapa 2 do [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-Três coisas ficaram pendentes da Etapa 1 e pesam aqui:
+**Fase Decidir: fechada em 2026-09-11.** Duas decisões, ambas em ADR, que restringem todo o código
+da etapa:
+
+- **ADR 0010 — a requisição é a transação.** Uma `Session` por requisição (ela não é segura entre
+  threads; a API é síncrona, então cada requisição é uma thread). A dependência `obter_sessao` faz
+  `yield session`; depois do `yield`, `commit()` se o handler voltou sem exceção, `rollback()` se
+  uma exceção passou, `close()` sempre. **Nenhuma camada chama `commit()`.** O custo aceito é o
+  erro do banco ficar longe do código — por isso a regra: **todo repository que escreve faz
+  `session.flush()` antes de devolver.** O fato que sustenta a regra: constraint é verificada no
+  fim de cada comando (salvo `DEFERRABLE`, que a nossa não é), e o `INSERT` só viaja no `flush`
+  — então o `IntegrityError` aparece no `flush`, dentro do repository, onde o service acima
+  consegue traduzi-lo em exceção de domínio. Sinal de erro: `IntegrityError` chegando ao cliente
+  como `500`.
+- **ADR 0011 — isolar cada teste numa transação desfeita no fim.** Banco `reservare_test`
+  separado, no mesmo Postgres; esquema construído por `alembic upgrade head` uma vez por rodada
+  (prova a migration junto). Padrão: o teste abre uma transação, `dependency_overrides` troca
+  `obter_sessao` por uma que entrega a `Session` presa a essa transação **sem comitar**, e o
+  teste faz `rollback` no fim. O ADR 0010 é o que torna isso simples — se algum repository
+  comitasse, seria preciso *savepoint*. Exceção **nomeada desde já**, com marcador próprio do
+  `pytest`: testes que precisam de transação real (o de concorrência da Etapa 4 é o primeiro)
+  comitam de verdade e limpam com `TRUNCATE` depois. Sinal de erro: teste que passa sozinho e
+  falha na suíte; teste de concorrência travado esperando.
+
+Fato aprendido ao decidir, que vira o centro da Etapa 4: quando a transação 2 tenta inserir sobre
+uma linha que a 1 fez `flush` mas não comitou, o Postgres **não recusa — espera**. A 2 fica
+bloqueada até a 1 decidir: `commit` na 1 dá erro da `EXCLUDE` na 2; `rollback` na 1 deixa a 2
+entrar. É por isso que o teste de concorrência precisa de `commit` real, e não cabe na transação
+desfeita.
+
+**O que vem agora é a fase Desenhar:** nomes de módulos e rotas, assinaturas sem corpo das três
+camadas, os schemas, e o primeiro teste escrito antes do código. Depois a fase Tentar sozinha:
+módulo de conexão (`Engine` + `obter_sessao`), schemas, repository, service, router, tradutor de
+exceções, `conftest.py` com as fixtures, testes de caminho feliz e de erro.
+
+Duas coisas ficaram pendentes da Etapa 1 e pesam aqui (a terceira — se a porta do Postgres
+publicada virava ADR — fechou em 2026-09-11 como nota; ver o trecho do compose):
 
 1. **O bind mount do código para dentro do container**, adiado de propósito na Etapa 0 — montar
    `backend/` sobre `/app` cobriria o `.venv` Linux do `uv sync` com um `.venv` de Windows. O
    argumento para adiar era não haver código suficiente para validar a técnica de exclusão do
-   subcaminho; na Etapa 2 vai haver.
-2. **A porta do Postgres publicada no host** reverte o "nenhuma porta do Postgres exposta"
-   registrado acima. Decidir se vira ADR 0010 ou se basta a nota com o motivo.
-3. **O compromisso do ADR 0009:** os repositories usam `selectinload` explícito desde o começo, para
+   subcaminho; na Etapa 2 vai haver. Quando entrar, reabre a pergunta de onde o Alembic roda.
+2. **O compromisso do ADR 0009:** os repositories usam `selectinload` explícito desde o começo, para
    que uma conversão futura para `async` seja mecânica. É restrição sobre código que ainda não
    existe — se ninguém a escrever agora, ela se perde.
 

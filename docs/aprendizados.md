@@ -3,7 +3,7 @@
 ### 🧱 Etapa 0 — Fundação
 
 | **Conceitos** | **Novo aprendizado** |
-|--------------|----------------------|
+|---------------|----------------------|
 |🪝**Ancoragem do .gitignore:** | 1. Barra (/) no início ou no meio ancora na raiz; sem barra casa em qualquer profundidade do repo. O .gitignore não protege arquivos pré-existentes já rastreados. 2. Ele decide o que o Git começa a rastrear a partir da criação do .gitignore.|
 |💼 **Alterar nome do diretório local:** | 1. A ligação com o GIthub é a URL do remote. Alterar o nome da pasta local não interfere em nada. 2. É uma alteração meramente cosmética. Custa apenas fechar o VS Code e reabrir a pasta renomeada e nada mais. |
 |🐍 **Python-version × requires-python:** | 1. O arquivo python-version (instrução local) define a versão python utilizada no sistema e está deliberada. 2. O atributo requires-python no arquivo pyproject.toml pode restringir a versão (ex:>=3.14,<3.15) ou deixar aberto para novas atualizações futuras de versões (ex:>=3.14), como está o valor atual. O padrão do uv é deixar aberto. |
@@ -29,7 +29,7 @@
 ### 🗄️ Etapa 1 — Modelagem e migrations
 
 | **Conceitos** | **Novo aprendizado** |
-|--------------|----------------------|
+|--------------|-----------------------|
 |🥊 **Constraint de coluna × constraint de tabela:** | 1. Cada vírgula dentro do ```CREATE TABLE``` cria uma nova coluna. Desse modo, **constraint de coluna** deve ficar na linha da coluna sem vírgula. Não precisa repetir o nome da coluna. 2. Já a **constraint de tabela** deve ser construída após a vírgula em linha própria. Já nomear a **constraint** é opcional nas duas formas. |
 |🗝️ ```PRIMARY KEY × FOREIGN KEY``` e **nulidade:** | 1. **PK** já traz implícito o fato de ser NOT NULL. Por isso não precisa declará-lo explicitamente e fazê-lo seria redundante. 2. **FK** não possui esse atributo, então precisa que a nulidade (```NOT NULL```) seja explicitada, se for o caso, na sua declaração. |
 |🏛️ **Cláusula × predicado:** | 1.**Cláusula** é uma estrutura sintática de um comando ```SQL``` que funciona como um recipiente, exe: ```WHERE```. Já **predicado** é uma condição lógica que avalia valores como ```V```, ```F``` ou ```desconhecido```, funcionando como o conteúdo desse recipiente, exe: ```cancelada_em IS NULL```. Uma mesma cláusula pode ter diferentes predicados que alteram seu comportamento.  |
@@ -57,3 +57,20 @@
 |♻️ **Migration × `create_all()`:** | `create_all()` responde como o esquema deveria ser e só cria o que não existe, nunca altera o que já existe, e não avisa. **Migration** responde como sair de onde estou até lá, nas duas direções: como aplicar e como desfazer. Em produção nunca se parte do zero. Na Migration há revisão, é um arquivo versionado no repositório que alguém lê antes de aplicar. O `create_all()` acontece em tempo de execução sem ninguém ver. |
 |📊 **`autogenerate`: Renderizar × Comparar:** |  `migration = (o que os modelos dizem) - (o que o banco já tem)`. 1. **Tabela não existe no banco**: o `autogenerate` copia o modelo inteiro, `CHECK` e `EXCLUDE` junto. Isso é **renderizar**. 2. **Tabela já existe**: o `autogenerate` **compara** os meus modelos com o banco e escreve a diferença entre os dois, mas é cego para `EXCLUDE` e `CHECK`. Assim a primeira migration vem completa. As seguintes vêm incompletas e sem avisar. |
 |🎲 **O estado do banco antes do `autogenerate`:** |  Se o banco já tem tudo, o `autogenerate` gera: `def upgrade() -> None: pass` sem erro e sem aviso. Por isso, antes de rodar `--autogenerate` devo saber em que estado o banco está. Para a primeira migration ele precisa estar vazio. Em `docker compose down -v` é o `-v` que apaga o volume. |
+
+
+### 🚶 Etapa 2 — Primeira fatia vertical
+
+| **Conceitos** | **Novo aprendizado** |
+|---------------|----------------------|
+|⚙️ **Engine:** | Motor, mecanismo do SQLAlchemy usado como ponto de entrada  central que conecta o código python da aplicação ao banco de dados. Não é a conexão. É a fábrica e guarda das conexões.  |
+|📘 **ORM:** | Técnica de desenvolvimento que permite conversar com o banco de dados usando paradigma de Orientação a Objetos. Ou seja, em vez de escrever código SQL puro, escreve em Python, Java, JavaScript, etc, e o ORM funciona como o tradutor automático entre o código e o banco de dados relacional. |
+|🎞️ **`Session` no ORM:** | Ferramenta que gerencia a persistência dos dados e atua como uma área de trabalho temporária, um rascunho para todas as operações que se quer realizar no banco. Se a engine é o tubo que conecta o código ao banco, a `Session` é a dona da transação inteligente que controla o que entra e o que sai por esse tubo. Ela não é segura entre threads e é barata. A `session` é a implementação direta do padrão **Unit of Work (Unidade de Trabalho)**. |
+|📨 **`handler` da rota:** | Função Python que processa a requisição do usuário e define a resposta que ele vai receber quando acessa uma URL específica. Ele recebe a `Session` pelo `Depends` e repassa os dados puros para o `service`. |
+|💨 **`flush()` × `commit()`:** | **`flush`:** Traduz os objetos do código em comandos SQL e envia para o banco de forma reversível. A transação continua aberta. **`Commit`:**  salva permanentemente no banco as alterações feitas na transação. Encerra a transação e a `Session`, no próximo uso, abre uma nova. |
+|🔙 **`rollback`:** | Reverte as alterações feitas na transação atual do banco de dados. "Rasga o rascunho" da transação inteira. Após o `commit` não é possível dar `rollback`. |
+|🛠️ **`repository`:** | **Repository Pattern:** é um padrão da arquitetura de software que serve para isolar a lógica de acesso ao banco de dados das regras de negócio da aplicação. Ao invés de espalhar consultas SQL ou comandos SQLALchemy por todo o código, centraliza tudo em uma classe especialista: o *repository*.  |
+|🧠 **`service`:** | É a camada onde vivem as regras de negócio da aplicação. Recebe os dados puros do mundo externo, decide o que fazer com eles de acordo com as regras da aplicação e dita as ordens para outras ferramentas: `handler` recebe a requisição HTTP, valida se os dados básicos chegaram. Entrega para o `Service` que aplica as regras de negócio. `Repository` executa a busca ou escrita quando o `service` manda. |
+|🛄 **Quando o SQL viaja** | `session.add()` não envia nada. O `INSERT` viaja em três momentos: `flush()` explícito, `commit()`, ou automaticamente antes de uma consulta(`autoflush`) |
+|🔍 **Constraint é verificada no fim de cada comando:** | O erro no banco aparece no `flush`, não no commit. salvo quando configuradas como `DEFERRABLE`. as únicas que não aceitam adiamento de forma alguma são as restrições `CHECK` e `NOT NULL`. |
+|💉 **Injeção de dependência e `Depends` com `yield`:** | A função declara o que precisa e alguém entrega; antes do `yield` é preparo, depois é limpeza. `dependency_overrides` troca quem entrega. Isso é útil em testes, quando se usa um banco teste para realizar a entrega. `dependency_overrides` faz outra função entregar uma `Session` do banco de testes, sem mudar uma linha do `handler`. |

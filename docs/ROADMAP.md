@@ -208,7 +208,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
-| 3–4    | Etapa 2             | 🔨 **é aqui que estamos** — CRUD de recursos em camadas, com testes        |
+| 3–4    | Etapa 2             | 🔨 **é aqui que estamos** — CRUD de recursos em camadas, com testes. Fase Decidir fechada em 2026-09-11 (ADRs 0010 e 0011); falta desenhar e construir |
 | 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
