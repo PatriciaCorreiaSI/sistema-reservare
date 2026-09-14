@@ -19,6 +19,7 @@ existe uma janela em que outra transação insere.
 
 Documentação viva: [`docs/ROADMAP.md`](docs/ROADMAP.md) (plano e etapas),
 [`docs/modelo.md`](docs/modelo.md) (modelo de dados e regras de negócio),
+[`docs/api.md`](docs/api.md) (contrato HTTP: schemas, rotas, códigos e o porquê),
 [`docs/adr/`](docs/adr/) (decisões de arquitetura).
 
 ## Quem decide
@@ -76,8 +77,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   SQL e a prova por SQL na mão passa nos sete casos; as três tabelas estão traduzidas para
   SQLAlchemy 2.0 tipado; e a migration `8cf01df862a4` cria tudo do zero, com a prova passando
   contra o banco que o Alembic construiu.
-- **Etapa 2 (primeira fatia vertical): é aqui que estamos** — fase Decidir concluída em
-  2026-09-11 (ADRs 0010 e 0011); fase Desenhar ainda não começada. Ver "Próximo passo".
+- **Etapa 2 (primeira fatia vertical): é aqui que estamos** — Decidir e Desenhar concluídas, código
+  das quatro camadas escrito em 2026-09-14 e verificado à mão; falta o `pytest`. Ver "Próximo passo".
 
 ### Já feito
 
@@ -408,21 +409,69 @@ bloqueada até a 1 decidir: `commit` na 1 dá erro da `EXCLUDE` na 2; `rollback`
 entrar. É por isso que o teste de concorrência precisa de `commit` real, e não cabe na transação
 desfeita.
 
-**O que vem agora é a fase Desenhar:** nomes de módulos e rotas, assinaturas sem corpo das três
-camadas, os schemas, e o primeiro teste escrito antes do código. Depois a fase Tentar sozinha:
-módulo de conexão (`Engine` + `obter_sessao`), schemas, repository, service, router, tradutor de
-exceções, `conftest.py` com as fixtures, testes de caminho feliz e de erro.
+**Fase Desenhar: fechada em 2026-09-14** em `docs/api.md` — os três schemas, a tabela de rotas
+com códigos e o porquê de cada escolha. Três convenções da fatia, registradas lá e não em ADR:
+recurso nasce `ativo` (o service atribui, não o cliente); `PATCH` parcial e não `PUT`
+(`exclude_unset=True`; o caso real é desativar, um campo só); `DELETE` apaga de verdade e devolve
+`409` quando a FK `ON DELETE RESTRICT` de `reserva` recusa. `nome_recurso` **não** é único, então o
+`POST` não tem caso de `409`.
 
-Duas coisas ficaram pendentes da Etapa 1 e pesam aqui (a terceira — se a porta do Postgres
-publicada virava ADR — fechou em 2026-09-11 como nota; ver o trecho do compose):
+**Fase Tentar sozinha: código pronto, sem teste (2026-09-14).** Escrito pela autora, um método por
+vez, com `ruff` + `mypy` limpos e o caminho feliz verificado à mão pelo `/docs`:
 
-1. **O bind mount do código para dentro do container**, adiado de propósito na Etapa 0 — montar
-   `backend/` sobre `/app` cobriria o `.venv` Linux do `uv sync` com um `.venv` de Windows. O
-   argumento para adiar era não haver código suficiente para validar a técnica de exclusão do
-   subcaminho; na Etapa 2 vai haver. Quando entrar, reabre a pergunta de onde o Alembic roda.
-2. **O compromisso do ADR 0009:** os repositories usam `selectinload` explícito desde o começo, para
-   que uma conversão futura para `async` seja mecânica. É restrição sobre código que ainda não
-   existe — se ninguém a escrever agora, ela se perde.
+- `app/db.py` — `url_do_ambiente()` (devolve `URL`, não string), `engine`, `FabricaDeSessao` e
+  `obter_sessao` (ADR 0010 linha a linha). O `migrations/env.py` **importa** `url_do_ambiente` de
+  lá — a URL tem um dono só; o `render_as_string(hide_password=False)` ficou no `env.py`, que é
+  quem precisa da string. Provado com `alembic current` → `8cf01df862a4 (head)`.
+- `app/repositories/recurso.py` — `RecursoRepository(sessao)`, cinco métodos, nenhum `if`.
+  Leitura: montar (`select`) → executar (`scalar`/`scalars`). Escrita: `add`/`delete`/alterar o
+  objeto → `flush`; nunca `commit`. `listar` devolve `Sequence[Recurso]` (o que `.all()` promete),
+  com `order_by` obrigatório para a paginação ser estável.
+- `app/services/excecoes.py` — `ErroDominio` (base), `RecursoNaoEncontrado`, `RecursoEmUso`.
+- `app/services/recurso.py` — `RecursoService(sessao: Session = Depends(obter_sessao))` constrói o
+  repository no `__init__`. É a única camada com `if`/`for`/`try`: `None` vira
+  `RecursoNaoEncontrado`; `criar` faz `Recurso(**dados.model_dump(), status_recurso="ativo")`;
+  `atualizar` aplica `model_dump(exclude_unset=True)` com `setattr`; `remover` traduz
+  `IntegrityError` em `RecursoEmUso` com `raise ... from erro`.
+- `app/schemas/recurso.py` — `RecursoCriar`, `RecursoAtualizar` (tudo `| None = None`),
+  `RecursoResposta` (`from_attributes=True`, a única linha que liga schema a modelo).
+- `app/routers/recurso.py` — `APIRouter(prefix="/recursos")`, cinco handlers, cada um recebe
+  `service: RecursoService = Depends()` e devolve `RecursoResposta.model_validate(...)`. Sem `try`.
+- `app/main.py` — dois `@app.exception_handler`: `RecursoNaoEncontrado` → `404`, `RecursoEmUso` →
+  `409`, ambos com `{"detail": ...}` (o formato que o `422` do FastAPI já usa).
+
+Verificado à mão: `GET` por id `200`/`404`, `POST` `201` com `status_recurso: "ativo"`, `GET` lista,
+`PATCH` `404`, `DELETE` `204`. **O `409` do `DELETE` nunca foi exercitado** — não há `reserva` no
+banco de desenvolvimento (a prova da Etapa 1 limpa `reserva` ao fim de cada caso), então a FK não
+tinha o que proteger. Provocá-lo exige `usuario` + `reserva`; é trabalho das fixtures do `pytest`.
+
+Dois aprendizados desta sessão que as ferramentas não pegam: `status_recurso="arivo"` (typo numa
+string) passou por `ruff` e `mypy` — só o `CHECK` do banco, no `flush`, pegaria, como `500`; e uma
+chamada sem `=` (`self.buscar_por_id(id)` sem guardar o retorno) só apareceu como "nome não
+definido" duas linhas abaixo. Os dois são o argumento do `pytest`.
+
+**Dívida conhecida da fatia:** `criar` e `atualizar` deixam `IntegrityError` (um `CHECK` de
+ocupação ou de horário) subir cru → `500`. Só `remover` traduz. A Etapa 4 trata isso distinguindo
+*qual* constraint falhou; por ora fica registrado, não escondido.
+
+**Próximo passo (sessão seguinte):**
+
+**O primeiro `pytest`** — é o que falta para o critério de pronto da Etapa 2. Na ordem:
+
+1. `uv add --dev pytest httpx` (o `TestClient` do FastAPI usa `httpx`).
+2. Banco `reservare_test` no mesmo Postgres (ADR 0011) e `alembic upgrade head` contra ele uma vez
+   por rodada — decidir como a URL de teste é montada sem duplicar `url_do_ambiente()` (trocar só o
+   `database`, via `url.set(database=...)`).
+3. `backend/tests/conftest.py`: fixture de sessão presa a uma transação com `rollback` no fim;
+   `dependency_overrides[obter_sessao]` entregando essa sessão; `TestClient`.
+4. Testes de caminho feliz das cinco rotas e de erro: `404` no `GET`/`PATCH`/`DELETE`, `422` no
+   `POST` sem campo, e o **`409` do `DELETE`** — o único que precisa de fixture de `usuario` +
+   `reserva`.
+5. Reescrever `docs/aprendizados.md` com o vocabulário do pytest **depois** de usá-lo, não antes.
+
+Pendentes da Etapa 1 que continuam adiados e **não** travam nada: o bind mount (a API roda por
+`uv run uvicorn` no host; o container `api` não é usado no desenvolvimento) e o `selectinload` do
+ADR 0009 (não se aplica a `recurso`, que não tem relacionamento; entra com `reserva` na Etapa 4).
 
 Subir o Docker Desktop antes de começar.
 

@@ -208,7 +208,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
-| 3–4    | Etapa 2             | 🔨 **é aqui que estamos** — CRUD de recursos em camadas, com testes. Fase Decidir fechada em 2026-09-11 (ADRs 0010 e 0011); falta desenhar e construir |
+| 3–4    | Etapa 2             | 🔨 **é aqui que estamos** — CRUD de recursos em camadas, com testes. Decidir (ADRs 0010 e 0011) e Desenhar (`api.md`) fechadas; as quatro camadas escritas e verificadas à mão em 2026-09-14; falta o `pytest` |
 | 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
@@ -308,8 +308,10 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 > `commit()`, todo repository que escreve faz `flush()`) e o
 > [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md) (cada teste roda numa transação
 > desfeita no fim; `TRUNCATE` é a exceção nomeada para testes que precisam de transação real).
-> Nada do critério de pronto abaixo está cumprido ainda. O raciocínio das decisões e o estado
-> detalhado estão em `CLAUDE.md`, seção "Próximo passo".
+> Fase Desenhar fechada em 2026-09-14 em [`api.md`](api.md); as quatro camadas do CRUD de
+> `recurso` estão escritas e verificadas à mão pelo `/docs`. Falta o `pytest` — sem ele, o
+> critério de pronto abaixo não está cumprido. O estado detalhado está em `CLAUDE.md`, seção
+> "Próximo passo".
 
 **Objetivo:** um recurso completo, da requisição HTTP ao banco e de volta, com teste. Fino, mas inteiro.
 
