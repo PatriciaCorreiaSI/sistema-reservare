@@ -24,11 +24,11 @@ target_metadata = app.models.Base.metadata
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
-config.set_main_option(
-    "sqlalchemy.url", url_do_ambiente().render_as_string(hide_password=False)
-)
+if config.get_main_option("sqlalchemy.url") is None:
+    config.set_main_option(
+        "sqlalchemy.url", url_do_ambiente().render_as_string(hide_password=False)
+    )
 
 
 def run_migrations_offline() -> None:
