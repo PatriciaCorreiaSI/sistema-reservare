@@ -1,3 +1,10 @@
+from datetime import UTC, datetime
+
+from sqlalchemy.dialects.postgresql import Range
+
+from app.models import Reserva, Usuario
+
+
 def test_health(client):
     resposta = client.get("/health")
     assert resposta.status_code == 200
@@ -96,6 +103,49 @@ def test_atualizar_recurso_inexistente(client):
 def test_remover_recurso_inexistente(client):
     resposta = client.delete("recursos/999999")
     assert resposta.status_code == 404
+
+
+def test_remover_recurso_em_uso(client, sessao):
+    # Prepara recurso pela porta HTTP
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 10,
+        "hora_func_inicio": "08:00:00",
+        "hora_func_fim": "18:00:00",
+    }
+
+    id_recurso = client.post("/recursos", json=dados).json()["id_recurso"]
+
+    # Prepara usuário e reserva pela porta do banco de dados
+    usuario = Usuario(
+        privilegio_usuario="usuario",
+        nome_usuario="Ana",
+        email_usuario="ana@teste.com",
+        senha_usuario_hash="hash-falso",
+        status_usuario="ativo",
+    )
+    sessao.add(usuario)
+    sessao.flush()
+
+    periodo = Range(
+        datetime(2026, 10, 1, 9, 0, tzinfo=UTC),
+        datetime(2026, 10, 1, 10, 0, tzinfo=UTC),
+        bounds="[)",
+    )
+
+    reserva = Reserva(
+        id_usuario=usuario.id_usuario,
+        id_recurso=id_recurso,
+        convidados=7,
+        periodo=periodo,
+        status_reserva="confirmada",
+    )
+    sessao.add(reserva)
+    sessao.flush()
+
+    # Agir e conferir
+    resposta = client.delete(f"/recursos/{id_recurso}")
+    assert resposta.status_code == 409
 
 
 def test_criar_recurso_sem_campo_obrigatorio(client):
