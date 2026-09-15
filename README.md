@@ -3,8 +3,9 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 2 — primeira fatia vertical**. Fundação, modelagem e migrations concluídas:
-> `alembic upgrade head` cria o esquema do zero e a prova do invariante passa contra ele.
+> Fase atual: **Etapa 3 — autenticação e autorização**. Fundação, modelagem, migrations e a
+> primeira fatia vertical concluídas: CRUD de `recurso` em camadas, com 11 testes isolados por
+> transação num banco de teste próprio.
 
 ---
 
@@ -53,7 +54,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Modelagem de dados | ✅ concluída |
 | Fundação: ambiente, container, lint | ✅ concluída |
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
-| API em camadas | 🔨 em andamento — CRUD de `recurso` em router → service → repository escrito e verificado à mão pelo `/docs`; falta o `pytest` |
+| API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
 | Autenticação e autorização | ⏳ |
 | Reservas, concorrência e estados | ⏳ |
 | Testes e integração contínua | ⏳ |

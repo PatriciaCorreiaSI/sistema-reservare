@@ -77,8 +77,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   SQL e a prova por SQL na mão passa nos sete casos; as três tabelas estão traduzidas para
   SQLAlchemy 2.0 tipado; e a migration `8cf01df862a4` cria tudo do zero, com a prova passando
   contra o banco que o Alembic construiu.
-- **Etapa 2 (primeira fatia vertical): é aqui que estamos** — Decidir e Desenhar concluídas, código
-  das quatro camadas escrito em 2026-09-14 e verificado à mão; falta o `pytest`. Ver "Próximo passo".
+- **Etapa 2 (primeira fatia vertical): concluída em 2026-09-15** — CRUD de `recurso` nas quatro
+  camadas e o primeiro `pytest`: 11 testes verdes, isolados por transação (ADR 0011), inclusive o
+  `409` do `DELETE`. Três pendências pequenas antes da Etapa 3 — ver "Próximo passo".
 
 ### Já feito
 
@@ -373,12 +374,14 @@ instalada. No caso 7 a prova mostra duas camadas de defesa em profundidades dife
 invertido é recusado pelo **tipo** `tstzrange`, antes de existir linha para testar, e a
 inclusividade trocada — um range válido — é barrada pelo `ck_reserva_formato_semiaberto`.
 
-### Próximo passo
+### Decisões e aprendizados da Etapa 2
 
-**Etapa 2 — primeira fatia vertical.** Um recurso completo, da requisição HTTP ao banco e de volta,
-com teste: CRUD de `recurso` em `routers/` → `services/` → `repositories/`, schemas Pydantic
-separados por direção, e o primeiro `pytest` com banco de teste isolado. O critério de pronto, os
-conceitos novos e as armadilhas estão na Etapa 2 do [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Etapa 2 — primeira fatia vertical, concluída em 2026-09-15.** Um recurso completo, da requisição
+HTTP ao banco e de volta, com teste: CRUD de `recurso` em `routers/` → `services/` →
+`repositories/`, schemas Pydantic separados por direção, e o primeiro `pytest` com banco de teste
+isolado. O critério de pronto, os conceitos novos e as armadilhas estão na Etapa 2 do
+[`docs/ROADMAP.md`](docs/ROADMAP.md). Como na Etapa 1, o que segue é registro do que foi decidido e
+do que custou tempo — a parte que não é derivável lendo o código.
 
 **Fase Decidir: fechada em 2026-09-11.** Duas decisões, ambas em ADR, que restringem todo o código
 da etapa:
@@ -454,26 +457,80 @@ definido" duas linhas abaixo. Os dois são o argumento do `pytest`.
 ocupação ou de horário) subir cru → `500`. Só `remover` traduz. A Etapa 4 trata isso distinguindo
 *qual* constraint falhou; por ora fica registrado, não escondido.
 
-**Próximo passo (sessão seguinte):**
+**O primeiro `pytest` — feito em 2026-09-15.** Onze testes verdes em `backend/tests/`: `test_health`,
+caminho feliz das cinco rotas, os três `404`, o `422` e o `409` do `DELETE` — o único caso que nunca
+tinha sido exercitado, agora provado de ponta a ponta (FK `ON DELETE RESTRICT` recusa →
+`IntegrityError` no `flush` → `RecursoEmUso` → `409`). O que a sessão ensinou e não está no código:
 
-**O primeiro `pytest`** — é o que falta para o critério de pronto da Etapa 2. Na ordem:
+- **A URL de teste é derivada, não escrita** — `url_do_ambiente().set(database="reservare_test")`.
+  Para o Alembic mirar nesse banco, o `env.py` ganhou uma condição (opção 2, escolhida entre três:
+  `subprocess` com `POSTGRES_DB` trocado, esta, ou `-x` do Alembic): só deriva a URL do `.env` se
+  `config.get_main_option("sqlalchemy.url")` for `None`. Quem chama (o `conftest.py`) injeta a URL
+  com `set_main_option` e roda `command.upgrade(config, "head")` como biblioteca, no mesmo
+  processo. Custo registrado: se alguém descomentar o placeholder do `alembic.ini`, o `env.py`
+  passa a respeitá-lo em vez de derivar. É o ramo "aceita a URL se vier, senão monta dos pedaços"
+  previsto para a Etapa 9 — antecipado por um motivo real.
+- **O `env.py` é o chamado, não o chamador.** A primeira tentativa colocou
+  `alembic.command.upgrade(...)` dentro dele — recursão infinita, porque é o `upgrade` que carrega
+  o `env.py`. A chamada programática pertence a quem manda rodar.
+- **O banco `reservare_test` foi criado à mão** (`CREATE DATABASE` no psql); o Alembic cria
+  tabelas, não bancos. `CREATE DATABASE` copia `template1`, então o banco novo nasce **sem**
+  `btree_gist` — o `CREATE EXTENSION IF NOT EXISTS` da migration foi exercitado de verdade pela
+  segunda vez.
+- **Fixture não é `Depends()`.** A analogia "injeção de dependência" levou a `self`, `Depends(...)`
+  e anotação de tipo como forma de pedir uma fixture. No pytest só o **nome do parâmetro** importa;
+  o decorador `@pytest.fixture` é o que torna a função fixture; `test_` no nome a transforma em
+  teste. Escopo `session` para o engine e o `upgrade` (uma vez por rodada); `function`, o padrão,
+  para a transação e o `TestClient` (uma vez por teste). Escopo estreito pode depender do largo,
+  nunca o contrário.
+- **A cadeia do `conftest.py`:** `url_de_teste` → `engine_de_teste` (upgrade + engine, `dispose`
+  depois do `yield`) → `sessao` (`connect` → `begin` → `Session(bind=conexao)`; depois `close`,
+  `rollback`, `close`) → `client` (uma função interna que faz só `yield sessao` entra em
+  `app.dependency_overrides[obter_sessao]` — **a função, sem parênteses**, não a `Session`;
+  `clear()` depois do `yield`). A substituta não faz `commit`/`rollback`: a transação é da fixture.
+  O `engine` do `app/db.py` fica criado e ocioso — ninguém pede conexão a ele.
+- **Um teste pode pedir `client` e `sessao` juntos** e recebe a *mesma* sessão, porque o pytest
+  cria cada fixture uma vez por teste. É o que permite montar o cenário do `409` gravando `Usuario`
+  e `Reserva` direto pelos modelos (`add` + `flush`, sem `commit`) e agir por HTTP. Regra que
+  ficou: **prepara pelo caminho mais direto, age pela interface que está sendo testada** — montar
+  por `POST /reservas` faria o teste do `DELETE /recursos` depender de rotas que não são as dele.
+  Um teste é três atos: preparar, agir, conferir.
+- **O `TestClient` relança exceção não tratada** em vez de devolver `500`. Um `IntegrityError` cru
+  aparece como traceback no teste, não como número — a dívida de `criar`/`atualizar` vai se
+  manifestar assim.
+- **`Range(inicio, fim, bounds="[)")` com `tzinfo=UTC`** é a primeira `reserva` gravada por
+  Python; passou pelos `CHECK` sem ajuste. `time` viaja como `"08:00:00"` no JSON, nos dois
+  sentidos.
+- **Dois *warnings* ficaram, de propósito.** `StarletteDeprecationWarning` pedindo `httpx2` no
+  lugar de `httpx` (a stack mudou depois do ROADMAP; trocar é `uv remove httpx` +
+  `uv add --dev httpx2` e rodar a suíte — backlog). E `SAWarning: transaction already deassociated
+  from connection`, só no teste do `409`: o `IntegrityError` no `flush` faz a `Session` desfazer
+  sozinha a transação externa, e o `rollback()` da fixture chega tarde. A resposta é a que o ADR
+  0011 já antecipou: `Session(bind=conexao, join_transaction_mode="create_savepoint")` — a sessão
+  desfaz só o *savepoint* e a transação da fixture segue de pé.
+- Miudezas que custaram tempo: `\c` e `\dt` são do psql, não do PowerShell; `git status` com
+  `MM` depois de o pre-commit corrigir um arquivo é o ciclo normal (`git add` de novo e repetir o
+  commit — rodar `ruff format` antes do `add` evita a dupla); de dentro de `backend/` o caminho é
+  `migrations/env.py`, sem o prefixo.
 
-1. `uv add --dev pytest httpx` (o `TestClient` do FastAPI usa `httpx`).
-2. Banco `reservare_test` no mesmo Postgres (ADR 0011) e `alembic upgrade head` contra ele uma vez
-   por rodada — decidir como a URL de teste é montada sem duplicar `url_do_ambiente()` (trocar só o
-   `database`, via `url.set(database=...)`).
-3. `backend/tests/conftest.py`: fixture de sessão presa a uma transação com `rollback` no fim;
-   `dependency_overrides[obter_sessao]` entregando essa sessão; `TestClient`.
-4. Testes de caminho feliz das cinco rotas e de erro: `404` no `GET`/`PATCH`/`DELETE`, `422` no
-   `POST` sem campo, e o **`409` do `DELETE`** — o único que precisa de fixture de `usuario` +
-   `reserva`.
-5. Reescrever `docs/aprendizados.md` com o vocabulário do pytest **depois** de usá-lo, não antes.
+### Próximo passo
 
-Pendentes da Etapa 1 que continuam adiados e **não** travam nada: o bind mount (a API roda por
-`uv run uvicorn` no host; o container `api` não é usado no desenvolvimento) e o `selectinload` do
-ADR 0009 (não se aplica a `recurso`, que não tem relacionamento; entra com `reserva` na Etapa 4).
+Três pendências pequenas da Etapa 2, nesta ordem, antes de abrir a Etapa 3:
 
-Subir o Docker Desktop antes de começar.
+1. **`join_transaction_mode="create_savepoint"`** na fixture `sessao` do `conftest.py` — e ver o
+   `SAWarning` sumir com `uv run pytest -k em_uso`.
+2. **Fixture `recurso_criado`**: o bloco `dados` + `POST` se repete em seis testes. Refatoração
+   pequena, boa para começar o dia — a repetição foi deixada de propósito para ser sentida antes
+   de ser abstraída.
+3. **`docs/aprendizados.md`** com o vocabulário do pytest — fixture, escopo, `yield`,
+   `dependency_overrides`, `TestClient`, as duas portas do cenário — agora que foi usado.
+
+Depois, **Etapa 3 — autenticação e autorização**, começando pela fase Decidir: o ROADMAP já nomeia a
+decisão central (logout com JWT é um problema — sessão em banco × token). É matéria de ADR antes de
+qualquer rota.
+
+Subir o Docker Desktop antes de começar; `uv run pytest` de dentro de `backend/` deve dar
+`11 passed` antes de mexer em qualquer coisa.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.
@@ -563,7 +620,17 @@ atual**, então rodar da raiz falha:
 - `uv run alembic upgrade head --sql` — imprime o SQL sem conectar (modo *offline*), útil para
   revisar antes de aplicar
 
-A preencher conforme for criado: `pytest`.
+Testes, de dentro de `backend/`. Precisam do `db` no ar (`docker compose up -d db`, da raiz) e do
+banco `reservare_test` já criado — o `conftest.py` aplica `alembic upgrade head` nele uma vez por
+rodada, mas não o cria:
+
+- `uv run pytest` — a suíte inteira; `-q` resume, `-v` lista cada teste com `PASSED`/`FAILED`
+- `uv run pytest -k em_uso` — só os testes cujo nome contém o trecho; ou o caminho completo,
+  `uv run pytest tests/test_recurso.py::test_remover_recurso_em_uso`
+- `uv run pytest -s` — libera a saída de `print()` (sem o `-s` o pytest a engole). Para investigar;
+  o `print` não commita
+- O pytest só mostra valores quando o `assert` **falha** (`assert 404 == 409`) — leia esse número
+  antes de qualquer outra coisa
 
 ## Git
 

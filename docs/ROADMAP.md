@@ -208,8 +208,8 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | —      | Etapa 1 (modelagem) | ✅ **concluída** — `docs/modelo.md`                                       |
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
-| 3–4    | Etapa 2             | 🔨 **é aqui que estamos** — CRUD de recursos em camadas, com testes. Decidir (ADRs 0010 e 0011) e Desenhar (`api.md`) fechadas; as quatro camadas escritas e verificadas à mão em 2026-09-14; falta o `pytest` |
-| 5–6    | Etapa 3             | Cadastro, login, logout que invalida de verdade, autorização por papel    |
+| 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
+| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Abre pela fase Decidir, depois de três pendências pequenas da Etapa 2 (ver `CLAUDE.md`) |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
@@ -303,15 +303,21 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ### 🚶 Etapa 2 — Primeira fatia vertical
 
-> **🔨 Em andamento desde 2026-09-11.** Fase Decidir fechada com dois ADRs: o
-> [0010](adr/0010-requisicao-e-transacao.md) (a requisição é a transação — nenhuma camada chama
-> `commit()`, todo repository que escreve faz `flush()`) e o
-> [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md) (cada teste roda numa transação
-> desfeita no fim; `TRUNCATE` é a exceção nomeada para testes que precisam de transação real).
-> Fase Desenhar fechada em 2026-09-14 em [`api.md`](api.md); as quatro camadas do CRUD de
-> `recurso` estão escritas e verificadas à mão pelo `/docs`. Falta o `pytest` — sem ele, o
-> critério de pronto abaixo não está cumprido. O estado detalhado está em `CLAUDE.md`, seção
-> "Próximo passo".
+> **✅ Etapa concluída em 2026-09-15.** O critério de pronto abaixo está cumprido: CRUD de
+> `recurso` em `routers/` → `services/` → `repositories/`, schemas separados por direção, dois
+> `@app.exception_handler` traduzindo `RecursoNaoEncontrado` em `404` e `RecursoEmUso` em `409`; e
+> o primeiro `pytest` — 11 testes em `backend/tests/`, cada um numa transação desfeita no fim
+> (ADR [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md)) contra um banco
+> `reservare_test` que o próprio `conftest.py` constrói com `alembic upgrade head`. Cobre o caminho
+> feliz das cinco rotas, os três `404`, o `422` e o `409` do `DELETE` — este montando `usuario` e
+> `reserva` direto pelos modelos, porque ainda não têm rota.
+>
+> As decisões da etapa estão nos ADRs [0010](adr/0010-requisicao-e-transacao.md) (a requisição é
+> a transação — nenhuma camada chama `commit()`, todo repository que escreve faz `flush()`) e 0011;
+> o desenho, em [`api.md`](api.md). O que a etapa ensinou e não está no código está em `CLAUDE.md`
+> (seção "Decisões e aprendizados da Etapa 2"). Três pendências pequenas ficaram registradas lá
+> como primeiro trabalho da próxima sessão: o *savepoint* na fixture `sessao`, a fixture
+> `recurso_criado` e o vocabulário do pytest em `docs/aprendizados.md`.
 
 **Objetivo:** um recurso completo, da requisição HTTP ao banco e de volta, com teste. Fino, mas inteiro.
 
