@@ -536,9 +536,23 @@ do `409` sumiu — só resta o warning do `httpx2`, que é backlog. O que a sess
   `app.dependency_overrides.clear()` — código morto, o `clear()` nunca rodava. Virou `yield`. Os
   11 testes já passavam antes: verde nunca provou que o `clear()` executava.
 
-Agora, **Etapa 3 — autenticação e autorização**, começando pela fase Decidir: o ROADMAP já nomeia a
-decisão central (logout com JWT é um problema — sessão em banco × token). É matéria de ADR antes de
-qualquer rota.
+**Etapa 3 — autenticação e autorização: fase Decidir aberta em 2026-09-16.** O ADR 0012 está escrito
+e aceito: **JWT curto (access, 15 min) + refresh token opaco no banco**, que é o que o logout apaga.
+O critério, escrito no ADR, é exercitar o padrão do mercado — com a admissão, na seção de
+alternativas, de que a sessão opaca seria a escolha tecnicamente mais simples e com garantia mais
+forte para um serviço só, síncrono, já dentro de uma transação por requisição (ADR 0010). A
+admissão aparece **uma vez**, no lugar dela; repetida na Decisão e nas Consequências fazia o ADR
+soar como pedido de desculpas — foi a lição de forma da sessão. Sinal de erro registrado: admin
+desativa um usuário e ele continua operando por até 15 min com o access que já tem.
+
+Próximo, ainda sem código:
+
+1. Abrir um token em jwt.io e ver as três partes e o payload legível com o próprio olho.
+2. **ADR 0013 — por onde o token viaja**: cookie `httpOnly` × cabeçalho `Authorization`. É a
+   decisão XSS × CSRF; independe do ADR 0012 (qualquer mecanismo viaja por qualquer transporte).
+3. Só depois a fase Desenhar: tabela do refresh token (guardar em hash? rotacionar a cada uso?),
+   rotas de `/auth`, schemas, o que **não** entra no payload do JWT, e o teste do critério de
+   pronto ("após o logout o refresh não funciona mais").
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em
