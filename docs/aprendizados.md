@@ -1,6 +1,6 @@
 # 👩‍🎓Uma linha por conceito novo aprendido
 
-### 🧱 Etapa 0 — Fundação
+## 🧱 Etapa 0 — Fundação
 
 | **Conceitos** | **Novo aprendizado** |
 |---------------|----------------------|
@@ -26,7 +26,7 @@
 |🥊**Banco garante × Serviço garante** | 1. **Banco garante:** regra que o banco de dados sozinho, com sua linguagem SQL, consegue assegurar, exe: constraint ```CHECK``` garante que somente os status ```ativo``` e ```inativo``` sejam possíveis na coluna ```status_recurso```. 2. **Serviço garante:** regra que o banco de dados não possui recurso para assegurar sozinho e precisa que o serviço assegure, exe: o sistema identificar o instante atual para comparar com o período final da reserva no banco de dados e conseguir alterar seu status para "concluída". |
 
 
-### 🗄️ Etapa 1 — Modelagem e migrations
+## 🗄️ Etapa 1 — Modelagem e migrations
 
 | **Conceitos** | **Novo aprendizado** |
 |--------------|-----------------------|
@@ -59,7 +59,7 @@
 |🎲 **O estado do banco antes do `autogenerate`:** |  Se o banco já tem tudo, o `autogenerate` gera: `def upgrade() -> None: pass` sem erro e sem aviso. Por isso, antes de rodar `--autogenerate` devo saber em que estado o banco está. Para a primeira migration ele precisa estar vazio. Em `docker compose down -v` é o `-v` que apaga o volume. |
 
 
-### 🚶 Etapa 2 — Primeira fatia vertical
+## 🚶 Etapa 2 — Primeira fatia vertical
 
 | **Conceitos** | **Novo aprendizado** |
 |---------------|----------------------|
@@ -77,6 +77,17 @@
 |🏃 **Bloqueio no Postgres:** | O Postgres não recusa uma linha que conflita com outra ainda não comitada. Ele espera a outra transação decidir. `COMMIT` lá vira erro da `EXCLUDE` aqui; `ROLLBACK` lá deixa entrar aqui. Dentro da mesma transação a recusa é imediata, porque não há corrida. |
 |🔧 **Fixture:** | Função que prepara algo para entregar ao teste e limpar depois. O decorador é `@pytest.fixture`. O nome da função é como o teste a chama. `test_` no nome a transforma em teste. |
 |🗃️ **conftest.py:** | Arquivo que contém as `fixtures`. O pytest o lê sozinho e as fixtures dele valem para a pasta inteira sem `import`.|
-|📶 **`Session(bind=conexao)`:**| A sessão nasce dentro da conexão que já tem a transação aberta. O `rollback` da fixture desfaz tudo. `FabricaDeSessao()` abriria conexão nova fora da transação. |
+|📶 **`Session(bind=conexao)`:**| A sessão nasce dentro da conexão que já tem a transação aberta. Depois do `join_transaction_mode="create_savepoint"`, num `IntegrityError` a `Session` desfaz só até o savepoint e a transação segue viva para o `rollback` do fim. `FabricaDeSessao()` abriria conexão nova fora da transação. |
 |🛣️ **Duas portas para o cenário:**| HTTP (`client`) para o que tem rota; banco de dados (`sessao.add(objeto) + sessao.flush()`) para o que NÃO tem rota. Prepara pelo caminho mais direto, age pela interface testada. |
 |⌚ **`tzinfo=UTC`** | Em Python, é a convenção para "todo timestamp em UTC" na prática. Sem ele o `datetime` é `naive`, ou seja, uma hora sem lugar, e o driver adivinha ou recusa.|
+
+
+## 🔐 Etapa 3 — Autenticação e autorização
+
+| **Conceitos** | **Novo aprendizado** |
+|---------------|----------------------|
+|🔐 **Token opaco**| Chave de busca numa tabela. Invalida-se apagando a linha da tabela após logout|
+|🗝️ **Token autocontido**| JWT: carrega os dados e uma assinatura. Não tem o que apagar no logout.|
+|🗿 **Stateless**| O servidor não guarda estado sobre quem está logado. É o que torna o JWT barato de verificar e impossível de revogar.|
+|🪪 **Access × refresh e a janela**| 1. O **access** é o token JWT de vida curta, 15 minutos, que se apresenta a cada requisição. O access já emitido vive até expirar, mesmo após logout. 2. O **refresh** é um token opaco, no banco, de vida longa (dias); é o que obtém um access novo quando o atual expira. O refresh invalida de verdade: logout apaga a linha e o token morre no instante.|
+|📔 **Por que o mercado usa JWT apesar do logout**|Resolve verificar identidade sem banco, em vários serviços. Quem tem um serviço só, síncrono, já dentro de uma transação, não tem esse problema.|
