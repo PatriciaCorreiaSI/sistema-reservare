@@ -24,48 +24,24 @@ def test_criar_recurso(client):
     assert corpo["status_recurso"] == "ativo"
 
 
-def test_buscar_recurso_por_id(client):
-    dados = {
-        "nome_recurso": "Sala 1",
-        "ocupacao": 10,
-        "hora_func_inicio": "08:00:00",
-        "hora_func_fim": "18:00:00",
-    }
-    criado = client.post("/recursos", json=dados).json()
-
-    resposta = client.get(f"/recursos/{criado['id_recurso']}")
+def test_buscar_recurso_por_id(client, recurso_criado):
+    resposta = client.get(f"/recursos/{recurso_criado['id_recurso']}")
 
     assert resposta.status_code == 200
     assert resposta.json()["nome_recurso"] == "Sala 1"
 
 
-def test_listar_recurso(client):
-    dados = {
-        "nome_recurso": "Sala 1",
-        "ocupacao": 10,
-        "hora_func_inicio": "08:00:00",
-        "hora_func_fim": "18:00:00",
-    }
-    criado = client.post("/recursos", json=dados).json()
-
+def test_listar_recurso(client, recurso_criado):
     resposta = client.get("/recursos")
 
     assert resposta.status_code == 200
     ids = [r["id_recurso"] for r in resposta.json()]
-    assert criado["id_recurso"] in ids
+    assert recurso_criado["id_recurso"] in ids
 
 
-def test_atualizar_recurso(client):
-    dados = {
-        "nome_recurso": "Sala 1",
-        "ocupacao": 10,
-        "hora_func_inicio": "08:00:00",
-        "hora_func_fim": "18:00:00",
-    }
-    criado = client.post("/recursos", json=dados).json()
-
+def test_atualizar_recurso(client, recurso_criado):
     resposta = client.patch(
-        f"/recursos/{criado['id_recurso']}", json={"status_recurso": "inativo"}
+        f"/recursos/{recurso_criado['id_recurso']}", json={"status_recurso": "inativo"}
     )
 
     assert resposta.status_code == 200
@@ -74,19 +50,11 @@ def test_atualizar_recurso(client):
     assert corpo["status_recurso"] == "inativo"
 
 
-def test_remover_recurso(client):
-    dados = {
-        "nome_recurso": "Sala 1",
-        "ocupacao": 10,
-        "hora_func_inicio": "08:00:00",
-        "hora_func_fim": "18:00:00",
-    }
-    criado = client.post("/recursos", json=dados).json()
-
-    resposta = client.delete(f"/recursos/{criado['id_recurso']}")
+def test_remover_recurso(client, recurso_criado):
+    resposta = client.delete(f"/recursos/{recurso_criado['id_recurso']}")
     assert resposta.status_code == 204
 
-    depois = client.get(f"recursos/{criado['id_recurso']}")
+    depois = client.get(f"recursos/{recurso_criado['id_recurso']}")
     assert depois.status_code == 404
 
 
@@ -105,16 +73,9 @@ def test_remover_recurso_inexistente(client):
     assert resposta.status_code == 404
 
 
-def test_remover_recurso_em_uso(client, sessao):
+def test_remover_recurso_em_uso(client, sessao, recurso_criado):
     # Prepara recurso pela porta HTTP
-    dados = {
-        "nome_recurso": "Sala 1",
-        "ocupacao": 10,
-        "hora_func_inicio": "08:00:00",
-        "hora_func_fim": "18:00:00",
-    }
-
-    id_recurso = client.post("/recursos", json=dados).json()["id_recurso"]
+    id_recurso = recurso_criado["id_recurso"]
 
     # Prepara usuário e reserva pela porta do banco de dados
     usuario = Usuario(

@@ -79,7 +79,7 @@ Antes de escrever implementação, verifique em que fase ela está:
   contra o banco que o Alembic construiu.
 - **Etapa 2 (primeira fatia vertical): concluída em 2026-09-15** — CRUD de `recurso` nas quatro
   camadas e o primeiro `pytest`: 11 testes verdes, isolados por transação (ADR 0011), inclusive o
-  `409` do `DELETE`. Três pendências pequenas antes da Etapa 3 — ver "Próximo passo".
+  `409` do `DELETE`. As três pendências pequenas fecharam em 2026-09-16 (ver o fim da seção).
 
 ### Já feito
 
@@ -515,22 +515,34 @@ tinha sido exercitado, agora provado de ponta a ponta (FK `ON DELETE RESTRICT` r
 
 ### Próximo passo
 
-Três pendências pequenas da Etapa 2, nesta ordem, antes de abrir a Etapa 3:
+**As três pendências da Etapa 2 fecharam em 2026-09-16** (savepoint na fixture `sessao`, fixture
+`recurso_criado`, vocabulário do pytest no `aprendizados.md`): `11 passed`, e o `SAWarning` do teste
+do `409` sumiu — só resta o warning do `httpx2`, que é backlog. O que a sessão ensinou:
 
-1. **`join_transaction_mode="create_savepoint"`** na fixture `sessao` do `conftest.py` — e ver o
-   `SAWarning` sumir com `uv run pytest -k em_uso`.
-2. **Fixture `recurso_criado`**: o bloco `dados` + `POST` se repete em seis testes. Refatoração
-   pequena, boa para começar o dia — a repetição foi deixada de propósito para ser sentida antes
-   de ser abstraída.
-3. **`docs/aprendizados.md`** com o vocabulário do pytest — fixture, escopo, `yield`,
-   `dependency_overrides`, `TestClient`, as duas portas do cenário — agora que foi usado.
+- **Argumento nomeado não é variável.** `join_transaction_mode="create_savepoint"` numa linha solta
+  é Python válido que cria uma variável local que ninguém lê; a `Session` da linha seguinte não
+  sabe que ela existe. O lugar é dentro do parêntese, ao lado do `bind=`. Nem `ruff` nem `pytest`
+  apontam — o warning só continua lá.
+- **Fixture não se chama, se recebe** — dos dois lados. Na definição, `recurso_criado(client)` pede
+  o `client` pelo parâmetro (sem isso, o nome `client` dentro da função é a *função* `def client`,
+  que não tem `.post`). No uso, `recurso_criado` entra no parâmetro do teste, sem parênteses e sem
+  `import` do `conftest.py`. Um teste pode pedir `client` e `recurso_criado` juntos: é o mesmo
+  `client` por baixo, porque o pytest cria cada fixture uma vez por teste.
+- **A fixture devolve o `dict` do recurso, não a resposta HTTP** — é o que cinco dos seis testes
+  querem. O `test_criar_recurso` **não** usa a fixture: nele o `POST` é o ato, não a preparação,
+  e o `assert 201` precisa da resposta inteira. Se o formato do `POST` mudar, ele é o único que
+  quebra *por causa do `POST`*; os outros quebram pela fixture, o que é sinal diferente.
+- **Bug antigo corrigido de carona:** a fixture `client` fazia `return TestClient(app)` seguido de
+  `app.dependency_overrides.clear()` — código morto, o `clear()` nunca rodava. Virou `yield`. Os
+  11 testes já passavam antes: verde nunca provou que o `clear()` executava.
 
-Depois, **Etapa 3 — autenticação e autorização**, começando pela fase Decidir: o ROADMAP já nomeia a
+Agora, **Etapa 3 — autenticação e autorização**, começando pela fase Decidir: o ROADMAP já nomeia a
 decisão central (logout com JWT é um problema — sessão em banco × token). É matéria de ADR antes de
 qualquer rota.
 
-Subir o Docker Desktop antes de começar; `uv run pytest` de dentro de `backend/` deve dar
-`11 passed` antes de mexer em qualquer coisa.
+Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em
+qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.

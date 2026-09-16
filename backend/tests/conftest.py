@@ -30,7 +30,7 @@ def engine_de_teste(url_de_teste):
 def sessao(engine_de_teste):
     conexao = engine_de_teste.connect()
     transacao = conexao.begin()
-    sessao = Session(bind=conexao)
+    sessao = Session(bind=conexao, join_transaction_mode="create_savepoint")
     yield sessao
     sessao.close()
     transacao.rollback()
@@ -43,5 +43,16 @@ def client(sessao):
         yield sessao
 
     app.dependency_overrides[obter_sessao] = obter_sessao_de_teste
-    return TestClient(app)
+    yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def recurso_criado(client):
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 10,
+        "hora_func_inicio": "08:00:00",
+        "hora_func_fim": "18:00:00",
+    }
+    return client.post("/recursos", json=dados).json()

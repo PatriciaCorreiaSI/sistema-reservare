@@ -315,9 +315,9 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 > As decisões da etapa estão nos ADRs [0010](adr/0010-requisicao-e-transacao.md) (a requisição é
 > a transação — nenhuma camada chama `commit()`, todo repository que escreve faz `flush()`) e 0011;
 > o desenho, em [`api.md`](api.md). O que a etapa ensinou e não está no código está em `CLAUDE.md`
-> (seção "Decisões e aprendizados da Etapa 2"). Três pendências pequenas ficaram registradas lá
-> como primeiro trabalho da próxima sessão: o *savepoint* na fixture `sessao`, a fixture
-> `recurso_criado` e o vocabulário do pytest em `docs/aprendizados.md`.
+> (seção "Decisões e aprendizados da Etapa 2"). As três pendências pequenas que ficaram — o
+> *savepoint* na fixture `sessao`, a fixture `recurso_criado` e o vocabulário do pytest em
+> `docs/aprendizados.md` — fecharam em 2026-09-16.
 
 **Objetivo:** um recurso completo, da requisição HTTP ao banco e de volta, com teste. Fino, mas inteiro.
 
