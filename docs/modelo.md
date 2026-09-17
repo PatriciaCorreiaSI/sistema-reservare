@@ -36,23 +36,41 @@
 
 
 
+## 🔑 REFRESH_TOKEN
+| coluna       | tipo | restrições | descrição |
+|--------------|------|------------| ----------|
+| id_refresh_token | INT | PRIMARY KEY, NOT NULL, GENERATED ALWAYS AS IDENTITY | Identificador |
+| id_usuario | INT | FOREIGN KEY, NOT NULL  | Qual usuário realizou o login |
+| hash_token | VARCHAR(64)  | HASH,  NOT NULL, UNIQUE | SHA-256 |
+| familia_token | UUID | NOT NULL | De qual login este descende|
+| criado_em | TIMESTAMPTZ   | NOT NULL  | Instante em que o token foi emitido (no login ou na rotação)  |
+| expira_em | TIMESTAMPTZ   | NOT NULL  | Depois disso o token não vale, mesmo não revogado |
+| revogado_em | TIMESTAMPTZ   | NULL  | NULL permitido, e o nulo é o estado normal = vivo. Preenchido no logout, na rotação e na detecção de reuso. |
+
+
+
 ## ✍️ REGRAS DE NEGÓCIO
 
 | regra | Como será garantida? |
 |-------|----------------------|
-| Duas reservas **ativas** não podem se sobrepor no mesmo recurso. | Banco garante |
-| A reserva deve caber no horário de funcionamento do recurso. | Serviço garante |
-| Não se reserva recurso inativo. | Serviço garante |
-| Convidados <= Ocupação | Serviço garante |
+| Duas reservas `ativas` não podem se sobrepor no mesmo recurso. | Banco garante |
+| A reserva deve caber no `horário de funcionamento` do recurso. | Serviço garante |
+| Não se reserva recurso `inativo`. | Serviço garante |
+| `Convidados <= Ocupação` | Serviço garante |
 | Reservas só podem ser feitas do período presente em diante, jamais no passado | Serviço garante |
-| Status "Concluída" não é escrita na coluna porque é deduzida pelo sistema ao fim do período da reserva | Serviço garante |
+| Status `Concluída` não é escrita na coluna porque é deduzida pelo sistema ao fim do período da reserva | Serviço garante |
 | Recurso funciona dentro de um mesmo dia e não atravessa a meia-noite | Banco garante |
-| Usuário com reserva pode ser inativado, jamais deletado | Banco garante |
-| Recurso com reserva pode ser inativado, jamais deletado | Banco garante |
+| Usuário com reserva pode ser `inativado`, jamais `deletado` | Banco garante |
+| Recurso com reserva pode ser `inativado`, jamais `deletado` | Banco garante |
+| `Refresh válido` é `não expirado` e `não revogado` | Serviço garante |
+| Logout e rotação marcam `revogado_em`, não apagam | Serviço garante |
+| Refresh já `revogado` sendo reapresentado revoga a família inteira | Serviço garante |
+| `expira_em > criado_em` | Banco garante |
+| Usuário apagado, token é apagado por `CASCADE`; token não é histórico | banco garante |
 
 
 
-## 🔑 CONVENÇÃO DE NOMES
+## 📔 CONVENÇÃO DE NOMES
 
 * `naming_convention` mora no `MetaData` e padroniza nomes de constraint e índice. Adotado o dicionário de cinco chaves (`ix`, `uq`, `ck`, `fk`, `pk`). Vale desde a primeira migration: mudar depois exige migration de renomeação.
 * **Nome explícito nem sempre ganha** — só a chave `ck` reescreve. Ela é a única que usa `%(constraint_name)s`, então o nome que você escreveu vira ingrediente e a convenção monta outro em cima: `name="status"` sai como `ck_recurso_status` no banco. `fk`, `uq` e `ix` não têm esse token e respeitam o nome explícito; `pk` só age quando não há nome. (Verificado em SQLAlchemy 2.0.52.)

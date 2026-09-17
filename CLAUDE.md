@@ -564,11 +564,23 @@ ver** — a primeira versão falava em "vazamento" do cookie, e o atacante de CS
 E o `docs/aprendizados.md` registra o conceito **inteiro e universal**; o que o projeto decidiu
 sobre ele fica no ADR — não alinhar um ao outro.
 
-**Próximo passo: fase Desenhar da Etapa 3**, ainda sem implementação. Nomes e assinaturas, sem
-corpo:
+**Fase Desenhar da Etapa 3 — item 1 fechado em 2026-09-17.** A tabela `refresh_token` está em
+`docs/modelo.md`, com as regras de negócio dela. O que ficou decidido lá, e o raciocínio que não
+está no documento: **hash SHA-256, não Argon2** — não por velocidade, mas porque (a) a lentidão do
+Argon2 só compra algo contra dicionário, e token de 32 bytes aleatórios não tem dicionário; (b) o
+salt do Argon2 torna o hash não determinístico, e o servidor precisa de `WHERE hash_token = ...`.
+**Marcar `revogado_em`, não apagar** — a detecção de reuso exige que o token usado continue
+existindo; apagado, ele fica indistinguível de um token inventado (mesmo critério do ADR 0007:
+falha visível). **Rotação com `familia_token` UUID** — reuso de um refresh revogado revoga a
+família inteira. **`ON DELETE CASCADE`** na FK — token não é histórico; convive com o `RESTRICT`
+da reserva porque só dispara para usuário sem reserva. Critério que custou uma rodada: "banco
+garante" = uma constraint recusa a linha gravada direto pelo psql; "serviço garante" = Python
+decide. Ao virar modelo SQLAlchemy: índice em `familia_token` e em `id_usuario`.
 
-1. Tabela do refresh token: colunas, guardar em hash ou em claro, rotacionar a cada uso (a
-   pergunta acima), FK para `usuario` com `ON DELETE` decidido.
+**Próximo passo: itens 2 a 5 da fase Desenhar**, ainda sem implementação. Nomes e assinaturas,
+sem corpo. Lembrete para o desenho das rotas: o refresh **não** viaja em toda requisição — só em
+`/auth/refresh` e no logout; o access (JWT) é o que viaja sempre, validado por assinatura.
+
 2. Rotas de `/auth` com códigos: cadastro, login, refresh, logout — e o que cada uma devolve.
 3. Schemas separados por direção, e o que **não** entra no payload do JWT (nada que não se
    mostraria ao próprio usuário: nem senha, nem e-mail se não for preciso).
