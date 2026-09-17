@@ -209,7 +209,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
-| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Fase Decidir: ADR 0012 aceito (JWT curto + refresh no banco); falta o ADR do transporte (cookie × cabeçalho) antes de desenhar |
+| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Fase Decidir fechada: ADR 0012 (JWT curto + refresh no banco) e ADR 0013 (token no cabeçalho `Authorization`); fase Desenhar aberta |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
@@ -342,13 +342,16 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **🔨 Em andamento — fase Decidir aberta em 2026-09-16.** A decisão central está tomada no ADR
-> [0012](adr/0012-jwt-curto-com-refresh-no-banco.md): access token JWT de 15 minutos + refresh
-> token opaco guardado no banco, que é o que o logout apaga. A sessão opaca (invalidação no
-> instante, menos código) foi pesada de verdade e descartada com o motivo escrito: exercitar o
-> padrão do mercado sabendo quando ele é e quando não é a resposta. Falta o segundo ADR da fase —
-> por onde o token viaja, cookie `httpOnly` × cabeçalho `Authorization` — antes de desenhar
-> tabela, rotas e schemas.
+> **🔨 Em andamento — fase Decidir fechada em 2026-09-17; fase Desenhar aberta.** Duas decisões
+> em ADR. [0012](adr/0012-jwt-curto-com-refresh-no-banco.md): access token JWT de 15 minutos +
+> refresh token opaco guardado no banco, que é o que o logout apaga. A sessão opaca (invalidação
+> no instante, menos código) foi pesada de verdade e descartada com o motivo escrito: exercitar o
+> padrão do mercado sabendo quando ele é e quando não é a resposta.
+> [0013](adr/0013-transportar-token-no-cabecalho-authorization.md): o token viaja no cabeçalho
+> `Authorization: Bearer`, guardado só em memória pelo frontend. O cookie `httpOnly` perdeu não
+> pelo CSRF (que `SameSite` mitiga), mas porque Vite e API são origens diferentes em
+> desenvolvimento. Falta desenhar: tabela do refresh, rotas de `/auth`, schemas, a dependência que
+> valida o token, e o teste do critério de pronto — tudo em `docs/api.md` antes de código.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 

@@ -55,7 +55,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Fundação: ambiente, container, lint | ✅ concluída |
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
-| Autenticação e autorização | 🔨 em andamento — fase Decidir: ADR 0012 escolhe JWT curto + refresh token no banco; nenhuma rota ainda |
+| Autenticação e autorização | 🔨 em andamento — fase Decidir fechada: ADR 0012 (JWT curto + refresh token no banco) e ADR 0013 (token no cabeçalho `Authorization`); fase Desenhar aberta, nenhuma rota ainda |
 | Reservas, concorrência e estados | ⏳ |
 | Testes e integração contínua | ⏳ |
 | Front-end | ⏳ |

@@ -545,14 +545,37 @@ admissão aparece **uma vez**, no lugar dela; repetida na Decisão e nas Consequ
 soar como pedido de desculpas — foi a lição de forma da sessão. Sinal de erro registrado: admin
 desativa um usuário e ele continua operando por até 15 min com o access que já tem.
 
-Próximo, ainda sem código:
+**Fase Decidir fechada em 2026-09-17 com o ADR 0013: o token viaja no cabeçalho
+`Authorization: Bearer`**, guardado pelo frontend só em memória — nunca em `localStorage`. O que
+pesou não foi só XSS × CSRF: foi que, na Etapa 7, Vite (`:5173`) e API (`:8000`) são origens
+diferentes para o navegador, e cookie entre origens exige CORS com credenciais, `SameSite=None` e
+`Secure` (HTTPS). O híbrido (access no cabeçalho, refresh em cookie restrito a `/auth/refresh`) ficou
+registrado como evolução natural, não como v1. **Dois compromissos sobre código que ainda não
+existe**, do mesmo tipo do `selectinload` do ADR 0009: o token só em memória (Etapa 7), e a
+extração do token concentrada numa dependência só, para que a troca de transporte seja localizada
+no backend. **Pergunta que o ADR empurra para a fase Desenhar:** com o refresh na memória do JS, ele
+é a exposição real (vale dias, não 15 min) — rotacionar a cada uso permite detectar reuso de um
+refresh antigo e invalidar a família toda.
 
-1. Abrir um token em jwt.io e ver as três partes e o payload legível com o próprio olho.
-2. **ADR 0013 — por onde o token viaja**: cookie `httpOnly` × cabeçalho `Authorization`. É a
-   decisão XSS × CSRF; independe do ADR 0012 (qualquer mecanismo viaja por qualquer transporte).
-3. Só depois a fase Desenhar: tabela do refresh token (guardar em hash? rotacionar a cada uso?),
-   rotas de `/auth`, schemas, o que **não** entra no payload do JWT, e o teste do critério de
-   pronto ("após o logout o refresh não funciona mais").
+O que a revisão do ADR ensinou, e vale para os próximos: **consequência não é sinal** — o refresh
+exposto é o que a escolha custa; o sinal de erro é o que se observa *antes* do estrago (token em
+`localStorage` numa revisão, requisito de sessão entre subdomínios). **XSS rouba, CSRF usa sem
+ver** — a primeira versão falava em "vazamento" do cookie, e o atacante de CSRF nunca vê o cookie.
+E o `docs/aprendizados.md` registra o conceito **inteiro e universal**; o que o projeto decidiu
+sobre ele fica no ADR — não alinhar um ao outro.
+
+**Próximo passo: fase Desenhar da Etapa 3**, ainda sem implementação. Nomes e assinaturas, sem
+corpo:
+
+1. Tabela do refresh token: colunas, guardar em hash ou em claro, rotacionar a cada uso (a
+   pergunta acima), FK para `usuario` com `ON DELETE` decidido.
+2. Rotas de `/auth` com códigos: cadastro, login, refresh, logout — e o que cada uma devolve.
+3. Schemas separados por direção, e o que **não** entra no payload do JWT (nada que não se
+   mostraria ao próprio usuário: nem senha, nem e-mail se não for preciso).
+4. A dependência que extrai e valida o token (`Depends`) — a única porta de entrada, para que os
+   handlers protegidos só a declarem.
+5. O teste do critério de pronto, escrito antes do código: "após o logout o refresh não funciona
+   mais". Registrar em `docs/api.md`, como na Etapa 2.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em
