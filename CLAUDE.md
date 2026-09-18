@@ -577,17 +577,53 @@ da reserva porque só dispara para usuário sem reserva. Critério que custou um
 garante" = uma constraint recusa a linha gravada direto pelo psql; "serviço garante" = Python
 decide. Ao virar modelo SQLAlchemy: índice em `familia_token` e em `id_usuario`.
 
-**Próximo passo: itens 2 a 5 da fase Desenhar**, ainda sem implementação. Nomes e assinaturas,
-sem corpo. Lembrete para o desenho das rotas: o refresh **não** viaja em toda requisição — só em
-`/auth/refresh` e no logout; o access (JWT) é o que viaja sempre, validado por assinatura.
+**Fase Desenhar da Etapa 3 — fechada em 2026-09-18**, itens 2 a 4 em `docs/api.md`, nas seções
+`## Autenticação` (schemas, dependências, rotas de `/auth`) e `## Usuário` (schemas, `POST
+/usuarios`). O que ficou decidido lá, e o raciocínio que não está no documento:
 
-2. Rotas de `/auth` com códigos: cadastro, login, refresh, logout — e o que cada uma devolve.
-3. Schemas separados por direção, e o que **não** entra no payload do JWT (nada que não se
-   mostraria ao próprio usuário: nem senha, nem e-mail se não for preciso).
-4. A dependência que extrai e valida o token (`Depends`) — a única porta de entrada, para que os
-   handlers protegidos só a declarem.
-5. O teste do critério de pronto, escrito antes do código: "após o logout o refresh não funciona
-   mais". Registrar em `docs/api.md`, como na Etapa 2.
+- **Cadastro mora em `/usuarios`, não em `/auth`.** `/auth` é o conjunto de rotas sobre a sessão
+  de quem chama (*eu* entro, renovo, saio); cadastrar outra pessoa é CRUD de `usuario`. Só admin
+  cadastra (`403`); o **primeiro admin** nasce fora da API, por um comando `criar_admin` com senha
+  de variável de ambiente — a escrever na implementação. Nos testes a fixture grava o admin pelo
+  modelo.
+- **`refresh` e `logout` são `POST`** (escrevem `revogado_em`; `GET` promete não alterar e poria o
+  token na URL, que vai para log). O refresh viaja **no corpo**, nunca no `Authorization` — quando
+  `/auth/refresh` é chamado o access já expirou, então ele não autentica nada ali. Rotação: access
+  e refresh novos a cada uso; reuso de revogado → `401` e família inteira revogada, e o cliente
+  legítimo também cai (custo aceito: o servidor não sabe qual dos dois é o ladrão).
+- **Logout é idempotente**: refresh já revogado ou inexistente também devolve `204`.
+- **Login devolve uma resposta só** (`401`, mesmo texto) para e-mail inexistente, senha errada e
+  usuário inativo — para a API não servir de lista de quem está cadastrado.
+- **Payload do JWT: `sub`, `exp`, `privilegio`.** O `privilegio` entra para a dependência
+  autorizar sem ir ao banco; o custo (rebaixado segue admin por 15 min) é o mesmo já aceito no
+  ADR 0012. Não entra e-mail, nome, senha, hash.
+- **Duas dependências encadeadas**: `obter_usuario_atual` (lê `HTTPBearer`, valida assinatura e
+  `exp`, devolve `UsuarioAtual` com `id_usuario` + `privilegio`, `401`) e `exigir_admin` (depende
+  da primeira, `403`). `/auth/*` não declara nenhuma.
+
+Conceitos que custaram rodadas, agora no `aprendizados.md` ou aprendidos na sessão: **schema não
+é tabela** (o schema descreve o que viaja no JSON; `hash_token`, `expira_em`, `revogado_em` são
+calculados ou consultados pelo servidor e nunca entram numa entrada — tudo que o cliente manda ele
+pode mentir; `UsuarioCriar` leva `senha` em texto, o Argon2 é do servidor); os códigos `4xx` como
+perguntas distintas (`422` bem formada? → `401` quem é? → `403` pode? → `409` conflita?), na ordem
+em que o servidor consegue verificar; **dependência como guarda**; e o que é uma **assinatura**.
+
+**Item 5 foi rebaixado de propósito**: o teste do critério de pronto não vai em prosa no
+`api.md` — o mercado escreve o teste direto em Python, e ela já tem onze. Ele vira o primeiro
+passo da fase Tentar.
+
+**Metodologia acordada em 2026-09-18** (vale para as próximas revisões): ela tenta **uma** vez; eu
+digo o que está certo e trago a **resposta certa** para o que errou, com o conceito ao lado.
+Rodadas sucessivas de dicas sobre o mesmo ponto atrapalham em vez de ensinar.
+
+**Próximo passo: fase Tentar da Etapa 3, começando pelo teste.** `backend/tests/test_auth.py` com
+o teste do critério de pronto em Python — "após o logout o refresh não funciona mais" —, escrito
+antes das rotas existirem (vai falhar; é o estado certo). Fixture de usuário gravada pelo modelo,
+com o **Argon2 de uma senha conhecida** em `senha_usuario_hash`; login e logout por HTTP como
+preparação; `POST /auth/refresh` como ato; `assert 401` e, pela `sessao`, a linha de
+`refresh_token` ainda existente com `revogado_em` preenchido (marcar, não apagar). Depois, na
+ordem das camadas: modelo `RefreshToken` + migration → `pwdlib` e a lib de JWT (`uv add`) →
+repositories → services → dependências → routers. Débito da fatia: `criar_admin`.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em
