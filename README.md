@@ -68,9 +68,9 @@ Nada é listado como pronto antes de estar funcionando.
 
 ## Stack
 
-**Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16
+**Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16 · `pwdlib` (Argon2) · PyJWT
 **Front-end** — Vite · React · TypeScript · TanStack Query
-**Qualidade** — pytest · Playwright · ruff · GitHub Actions
+**Qualidade** — pytest · Playwright · ruff · mypy · GitHub Actions
 **Infra** — Docker Compose
 
 As justificativas de cada escolha estão no [roadmap](docs/ROADMAP.md#4-stack-e-por-quê).
@@ -83,12 +83,25 @@ Requisito: [uv](https://docs.astral.sh/uv/). Ele lê o `backend/.python-version`
 
 ```bash
 git clone https://github.com/PatriciaCorreiaSI/sistema-reservare.git
-cd sistema-reservare/backend
+cd sistema-reservare
+cp .env.example .env            # preencha as chaves; DB_HOST=127.0.0.1 no host
+docker compose up -d db         # espere ficar (healthy) em `docker compose ps`
+
+cd backend
 uv sync
+uv run alembic upgrade head     # cria as tabelas no banco do compose
 uv run uvicorn app.main:app --reload
 ```
 
-A API sobe em `http://127.0.0.1:8000` — `/health` responde `200`, e `/docs` traz a documentação interativa.
+A API sobe em `http://127.0.0.1:8000` — `/health` responde `200`, e `/docs` traz a documentação interativa. O `.env` é obrigatório: a URL do banco é montada a partir dele na importação, sem valor padrão — a ausência de uma chave falha alto, de propósito.
+
+### Testes
+
+Precisam do `db` no ar e de um banco `reservare_test` criado uma vez à mão (`CREATE DATABASE reservare_test;` no psql do container). O `conftest.py` aplica as migrations nele a cada rodada; cada teste roda numa transação desfeita no fim ([ADR 0011](docs/adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md)).
+
+```bash
+cd backend && uv run pytest
+```
 
 ### Verificação antes do commit
 

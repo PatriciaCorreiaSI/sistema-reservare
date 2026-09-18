@@ -83,6 +83,9 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 2 (primeira fatia vertical): concluída em 2026-09-15** — CRUD de `recurso` nas quatro
   camadas e o primeiro `pytest`: 11 testes verdes, isolados por transação (ADR 0011), inclusive o
   `409` do `DELETE`. As três pendências pequenas fecharam em 2026-09-16 (ver o fim da seção).
+- **Etapa 3 (autenticação e autorização): em andamento** — Decidir (ADRs 0012 e 0013) e Desenhar
+  (`docs/api.md`) fechadas; Tentar aberta em 2026-09-18 com o teste do critério de pronto, a
+  tabela `refresh_token` e o PyJWT prontos. Detalhes no fim da seção.
 
 ### Já feito
 
@@ -646,15 +649,17 @@ Rodadas sucessivas de dicas sobre o mesmo ponto atrapalham em vez de ensinar.
    - `esquema-alvo.sql` **não** ganha a tabela nova — congelado desde 2026-09-10; a verdade é a
      migration.
 
-**Próximo passo: biblioteca de JWT e a chave secreta.** Recomendado `PyJWT` (mantido, escopo só
-JWT, é o que o tutorial do FastAPI usa desde 2024) contra `python-jose` (parado, CVEs em 2024) —
-**ainda não confirmado por ela**; é nota no CLAUDE.md, não ADR. Depois de `uv add pyjwt`: variável
-`JWT_SEGREDO` no `.env` (valor de `secrets.token_urlsafe(48)`) e chave vazia com nota no
-`.env.example`, **obrigatória, sem fallback** — mesmo critério do `DB_HOST`. Em seguida, na ordem
-das camadas: `RefreshTokenRepository` (assinaturas primeiro, molde `RecursoRepository`) →
-`AuthService` e `UsuarioService` → `obter_usuario_atual`/`exigir_admin` → routers de `/auth` e
-`/usuarios`. Débito da fatia: comando `criar_admin`. O `test_auth.py` fica verde quando a cadeia
-fechar.
+**Biblioteca de JWT: `PyJWT`, decidida e instalada em 2026-09-18** (nota, não ADR). Escolhida
+contra `python-jose` pelo critério que descartou o Passlib: mantida, escopo só JWT, e é o que o
+tutorial do FastAPI usa desde 2024 — `python-jose` está parado e teve CVEs em 2024. A chave
+`JWT_SEGREDO` já está no `.env` (`secrets.token_urlsafe(48)`) e vazia com nota no `.env.example`.
+No código ela será `os.environ["JWT_SEGREDO"]`, **obrigatória, sem fallback** — critério do
+`DB_HOST`.
+
+**Próximo passo: `RefreshTokenRepository`**, assinaturas primeiro, molde `RecursoRepository`
+(nenhum `if`; escrita faz `flush`, nunca `commit`). Depois, na ordem das camadas: `AuthService` e
+`UsuarioService` → `obter_usuario_atual`/`exigir_admin` → routers de `/auth` e `/usuarios`.
+Débito da fatia: comando `criar_admin`. O `test_auth.py` fica verde quando a cadeia fechar.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em
@@ -666,7 +671,7 @@ qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
 ## Stack decidida
 
 Python 3.14 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 · Alembic ·
-PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · pytest + httpx ·
+PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · `PyJWT` · pytest + httpx ·
 Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query ·
 Playwright.
 

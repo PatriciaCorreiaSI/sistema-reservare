@@ -86,6 +86,7 @@ Pagamento · reserva recorrente · multi-tenant · notificação por e-mail · f
 | Banco      | PostgreSQL 16                 | Único com `EXCLUDE` + `tstzrange`, que é o coração do projeto. **Não comece com SQLite**                                                   |
 | Migrations | Alembic                       | `create_all()` é marca de projeto de estudante                                                                                             |
 | Senhas     | `pwdlib` com Argon2           | **Passlib está sem manutenção desde 2020**                                                                                                 |
+| JWT        | `PyJWT`                       | Mantido, escopo só JWT, é o que o tutorial do FastAPI usa desde 2024. **`python-jose` está parado e teve CVEs em 2024**                    |
 | Pacotes    | `uv`                          | Substitui pip + venv; padrão de fato                                                                                                       |
 | Lint       | `ruff`                        | Substitui black + flake8 + isort                                                                                                           |
 | Testes     | `pytest` + `httpx`            | Contra o Postgres do próprio compose                                                                                                       |
@@ -209,7 +210,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
-| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Fase Decidir fechada: ADR 0012 (JWT curto + refresh no banco) e ADR 0013 (token no cabeçalho `Authorization`); fase Desenhar aberta |
+| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; fase Tentar aberta em 2026-09-18: teste do critério de pronto, tabela `refresh_token` e PyJWT prontos; faltam repository, services, dependências e routers |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
@@ -355,8 +356,8 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 > do JWT (`sub`, `exp`, `privilegio` — nunca senha, hash ou e-mail); e as duas dependências
 > encadeadas, `obter_usuario_atual` (`401`) e `exigir_admin` (`403`). Construído até agora: o
 > teste do critério de pronto, escrito antes das rotas e falhando como deve; a tabela
-> `refresh_token` (modelo + migration). Faltam a lib de JWT, repository, services, dependências e
-> routers.
+> `refresh_token` (modelo + migration); `PyJWT` instalado e a chave `JWT_SEGREDO` no ambiente.
+> Faltam repository, services, dependências e routers.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
