@@ -51,7 +51,10 @@ Antes de escrever implementação, verifique em que fase ela está:
 
 - Pergunte em que fase estamos quando não estiver claro.
 - Explique o porquê antes do como. Conceito primeiro, comando depois.
-- Ao revisar, aponte a falha e o raciocínio — não entregue só o código corrigido.
+- Ao revisar, o ciclo é de **uma rodada** (acordado em 2026-09-18): ela tenta uma vez; você
+  diz o que está certo e, para o que errou, traz **a resposta certa** com o conceito ao lado —
+  nunca uma segunda rodada de dicas sobre o mesmo ponto. Se a primeira tentativa errou, é porque
+  ela não sabe o conceito; dica não ensina o que não se sabe, resposta ao lado do erro ensina.
 - Quando ela pedir "escreve pra mim", ofereça primeiro: o desenho, as
   assinaturas, ou o teste que deveria passar. Se ela reafirmar o pedido, é
   decisão dela — escreva, e explique cada trecho.
@@ -616,14 +619,42 @@ passo da fase Tentar.
 digo o que está certo e trago a **resposta certa** para o que errou, com o conceito ao lado.
 Rodadas sucessivas de dicas sobre o mesmo ponto atrapalham em vez de ensinar.
 
-**Próximo passo: fase Tentar da Etapa 3, começando pelo teste.** `backend/tests/test_auth.py` com
-o teste do critério de pronto em Python — "após o logout o refresh não funciona mais" —, escrito
-antes das rotas existirem (vai falhar; é o estado certo). Fixture de usuário gravada pelo modelo,
-com o **Argon2 de uma senha conhecida** em `senha_usuario_hash`; login e logout por HTTP como
-preparação; `POST /auth/refresh` como ato; `assert 401` e, pela `sessao`, a linha de
-`refresh_token` ainda existente com `revogado_em` preenchido (marcar, não apagar). Depois, na
-ordem das camadas: modelo `RefreshToken` + migration → `pwdlib` e a lib de JWT (`uv add`) →
-repositories → services → dependências → routers. Débito da fatia: `criar_admin`.
+**Fase Tentar da Etapa 3 — aberta em 2026-09-18, dois passos fechados no mesmo dia:**
+
+1. **`backend/tests/test_auth.py`** — `test_refresh_apos_logout_devolve_401`, escrito antes das
+   rotas. Fixture `usuario` no `conftest.py` grava pelo modelo, com `SENHA_HASH` (Argon2 de
+   `"senha123"` via `pwdlib`, calculado uma vez no nível do módulo — Argon2 é lento de
+   propósito). Login e logout por HTTP são preparação; `POST /auth/refresh` é o ato. Estado
+   atual e correto: `1 failed, 11 passed`, com `KeyError: 'refresh_token'` — o login ainda não
+   existe. Erro pego na revisão: o ato chamava `/auth/logout` de novo, o que provaria o
+   *contrário* do decidido (logout é idempotente). Quando comentário e código discordam, um mente.
+2. **Modelo `RefreshToken` + migration `de451a039a1a`**, aplicada nos dois bancos. Veio completa
+   do `autogenerate` (tabela nova → renderiza). O que custou tempo, e as ferramentas não pegam:
+   - **`NOT NULL` vem da anotação.** `Mapped[datetime]` gera `NOT NULL`; `Mapped[datetime | None]`
+     permite nulo. A primeira versão inverteu os três instantes — `revogado_em NOT NULL` tornaria
+     impossível gravar um token vivo, e o comentário da coluna contradizia o tipo ao lado.
+   - **Vírgula faz tupla, parêntese não.** `__table_args__ = (CheckConstraint(...))` sem a vírgula
+     final é o próprio `CheckConstraint`, e o SQLAlchemy recusa. Com um item só, a vírgula é tudo.
+   - **`ndex=True`** (typo) passou por `ruff` e `mypy` — `mapped_column` recebe `**kw` — e só
+     estourou no import: `Additional arguments should be named <dialectname>_<argument>`. A
+     verificação que falta às ferramentas é `uv run python -c "import app.models"`.
+   - **Erros de digitação nos `comment=` viajam para o `COMMENT ON COLUMN`** da migration. Como
+     ela ainda não tinha sido aplicada, o caminho foi corrigir o modelo, apagar o arquivo e
+     regenerar — migration não aplicada é só texto; depois de aplicada, renomear é outra migration.
+   - `ruff --fix` e `ruff format` não quebram **strings**; comentário de coluna longo se quebra à
+     mão em duas literais adjacentes (com espaço no fim da primeira).
+   - `esquema-alvo.sql` **não** ganha a tabela nova — congelado desde 2026-09-10; a verdade é a
+     migration.
+
+**Próximo passo: biblioteca de JWT e a chave secreta.** Recomendado `PyJWT` (mantido, escopo só
+JWT, é o que o tutorial do FastAPI usa desde 2024) contra `python-jose` (parado, CVEs em 2024) —
+**ainda não confirmado por ela**; é nota no CLAUDE.md, não ADR. Depois de `uv add pyjwt`: variável
+`JWT_SEGREDO` no `.env` (valor de `secrets.token_urlsafe(48)`) e chave vazia com nota no
+`.env.example`, **obrigatória, sem fallback** — mesmo critério do `DB_HOST`. Em seguida, na ordem
+das camadas: `RefreshTokenRepository` (assinaturas primeiro, molde `RecursoRepository`) →
+`AuthService` e `UsuarioService` → `obter_usuario_atual`/`exigir_admin` → routers de `/auth` e
+`/usuarios`. Débito da fatia: comando `criar_admin`. O `test_auth.py` fica verde quando a cadeia
+fechar.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em

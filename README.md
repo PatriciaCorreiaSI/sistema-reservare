@@ -3,9 +3,10 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 3 — autenticação e autorização**. Fundação, modelagem, migrations e a
-> primeira fatia vertical concluídas: CRUD de `recurso` em camadas, com 11 testes isolados por
-> transação num banco de teste próprio.
+> Fase atual: **Etapa 3 — autenticação e autorização**, em construção: contrato desenhado em
+> `docs/api.md`, tabela `refresh_token` migrada e o teste do critério de pronto escrito antes das
+> rotas. Fundação, modelagem, migrations e a primeira fatia vertical concluídas: CRUD de `recurso`
+> em camadas, com 11 testes isolados por transação num banco de teste próprio.
 
 ---
 
@@ -55,7 +56,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Fundação: ambiente, container, lint | ✅ concluída |
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
-| Autenticação e autorização | 🔨 em andamento — fase Decidir fechada: ADR 0012 (JWT curto + refresh token no banco) e ADR 0013 (token no cabeçalho `Authorization`); fase Desenhar aberta, nenhuma rota ainda |
+| Autenticação e autorização | 🔨 em andamento — decidido (ADR 0012: JWT curto + refresh token no banco; ADR 0013: token no cabeçalho `Authorization`) e desenhado (`docs/api.md`: rotas, schemas, payload do JWT, dependências); construídos a tabela `refresh_token` e o teste "refresh após logout devolve `401`", que falha até as rotas existirem. Nenhuma rota ainda |
 | Reservas, concorrência e estados | ⏳ |
 | Testes e integração contínua | ⏳ |
 | Front-end | ⏳ |

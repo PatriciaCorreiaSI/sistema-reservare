@@ -342,16 +342,21 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **🔨 Em andamento — fase Decidir fechada em 2026-09-17; fase Desenhar aberta.** Duas decisões
-> em ADR. [0012](adr/0012-jwt-curto-com-refresh-no-banco.md): access token JWT de 15 minutos +
-> refresh token opaco guardado no banco, que é o que o logout apaga. A sessão opaca (invalidação
-> no instante, menos código) foi pesada de verdade e descartada com o motivo escrito: exercitar o
-> padrão do mercado sabendo quando ele é e quando não é a resposta.
+> **🔨 Em andamento — fases Decidir e Desenhar fechadas; fase Tentar aberta em 2026-09-18.**
+> Duas decisões em ADR. [0012](adr/0012-jwt-curto-com-refresh-no-banco.md): access token JWT de
+> 15 minutos + refresh token opaco guardado no banco, que é o que o logout revoga. A sessão opaca
+> (invalidação no instante, menos código) foi pesada de verdade e descartada com o motivo
+> escrito: exercitar o padrão do mercado sabendo quando ele é e quando não é a resposta.
 > [0013](adr/0013-transportar-token-no-cabecalho-authorization.md): o token viaja no cabeçalho
 > `Authorization: Bearer`, guardado só em memória pelo frontend. O cookie `httpOnly` perdeu não
 > pelo CSRF (que `SameSite` mitiga), mas porque Vite e API são origens diferentes em
-> desenvolvimento. Falta desenhar: tabela do refresh, rotas de `/auth`, schemas, a dependência que
-> valida o token, e o teste do critério de pronto — tudo em `docs/api.md` antes de código.
+> desenvolvimento. O desenho está em [`api.md`](api.md): rotas de `/auth` (login, refresh com
+> rotação, logout idempotente) e `POST /usuarios` só para admin; schemas por direção; o payload
+> do JWT (`sub`, `exp`, `privilegio` — nunca senha, hash ou e-mail); e as duas dependências
+> encadeadas, `obter_usuario_atual` (`401`) e `exigir_admin` (`403`). Construído até agora: o
+> teste do critério de pronto, escrito antes das rotas e falhando como deve; a tabela
+> `refresh_token` (modelo + migration). Faltam a lib de JWT, repository, services, dependências e
+> routers.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
