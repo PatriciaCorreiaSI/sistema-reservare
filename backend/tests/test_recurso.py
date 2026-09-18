@@ -104,8 +104,10 @@ def test_remover_recurso_em_uso(client, sessao, recurso_criado):
     sessao.add(reserva)
     sessao.flush()
 
-    # Agir e conferir
+    # Agir
     resposta = client.delete(f"/recursos/{id_recurso}")
+
+    # Conferir
     assert resposta.status_code == 409
 
 
