@@ -656,9 +656,10 @@ tutorial do FastAPI usa desde 2024 — `python-jose` está parado e teve CVEs em
 No código ela será `os.environ["JWT_SEGREDO"]`, **obrigatória, sem fallback** — critério do
 `DB_HOST`.
 
-**Sessão de 2026-09-21 — os dois repositories fecharam** (`RefreshTokenRepository`, commit
-`21032a9`; `UsuarioRepository`, commit `be33f5b` + `buscar_por_id` acrescentado depois, ainda não
-comitado). O que a sessão ensinou, e não está no código:
+**Sessão de 2026-09-21 — os dois repositories, os schemas de `/auth` e o `security.py` fecharam**
+(`RefreshTokenRepository`, commit `21032a9`; `UsuarioRepository`, `be33f5b`; `security.py` +
+`load_dotenv` no pacote + `buscar_por_id` + schemas, `e9f4929`). Suíte em `1 failed, 11 passed`,
+o estado correto. O que a sessão ensinou, e não está no código:
 
 - **Repository deriva do uso, e o uso tem de ser listado inteiro.** Os métodos saíram de passar
   rota a rota do `api.md` marcando cada ida ao banco. `buscar_por_id` de `usuario` foi esquecido na
@@ -684,25 +685,27 @@ comitado). O que a sessão ensinou, e não está no código:
   O `privilegio` do `api.md`/`modelo.md` virou `privilegio_usuario` em tudo (commit `bd5859e`) — um
   nome só de ponta a ponta, inclusive no payload do JWT e no `UsuarioAtual`.
 
-**Item 2 (`AuthService`) desenhado, em andamento.** Assinaturas fechadas e explicadas na sessão:
+**Item 2 (`AuthService`) desenhado, em andamento.** O que já existe e o que ficou decidido:
 
-- `app/security.py` — funções puras, sem sessão, compartilhadas por service e dependência (a
-  dependência do item 4 não vai ao banco e não pode carregar um service): constantes
-  `ACCESS_MINUTOS = 15`, `REFRESH_DIAS = 7`, `JWT_ALGORITMO = "HS256"`,
-  `JWT_SEGREDO = os.environ[...]`, `hasher`; `criar_access_token(id_usuario: int,
-  privilegio_usuario: str, agora: datetime) -> str`, `gerar_refresh_token() -> str`,
-  `hash_refresh_token(refresh_token: str) -> str`. **Estado: assinaturas prontas, corpos `pass`,
-  arquivo não comitado e falhando nas quatro verificações** (F401, E501, empty-body, e `KeyError:
-  JWT_SEGREDO` no import — ver o próximo item). Fatos para os corpos: `sub` **tem de ser `str`**
-  (PyJWT ≥ 2.10 recusa numérico na decodificação); `exp` aceita `datetime` consciente de fuso;
-  `jwt.encode(payload, JWT_SEGREDO, algorithm=...)`, `secrets.token_urlsafe(32)`,
-  `sha256(x.encode()).hexdigest()`; `uuid` **não** é usado aqui (a família nasce no service).
-- **`load_dotenv` precisa migrar de `app/db.py` para `app/__init__.py`** — ainda não feito. Hoje
-  `import app.security` sozinho estoura porque quem carrega o `.env` é o `db.py`; funciona só se
-  ele for importado antes, por acaso da ordem. No `__init__` do pacote, roda antes de qualquer
-  `app.x`, e os dois módulos falham no **startup** se a chave faltar (critério do `DB_HOST`).
-- `app/schemas/auth.py` — `LoginEntrada`, `RefreshEntrada`, `TokenResposta` prontos e revisados,
-  não comitados.
+- `app/security.py` — **pronto e provado** (assina e decodifica no mesmo comando:
+  `{'sub': '1', 'exp': 17..., 'privilegio_usuario': 'admin'}`). Funções puras, sem sessão,
+  compartilhadas por service e dependência (a dependência do item 4 não vai ao banco e não pode
+  carregar um service): constantes `ACCESS_MINUTOS = 15`, `REFRESH_DIAS = 7`,
+  `JWT_ALGORITMO = "HS256"`, `JWT_SEGREDO = os.environ[...]` (obrigatória, sem fallback),
+  `hasher`; `criar_access_token(id_usuario: int, privilegio_usuario: str, agora: datetime) -> str`,
+  `gerar_refresh_token() -> str`, `hash_refresh_token(refresh_token: str) -> str`. Fatos que não
+  são deriváveis: `sub` **tem de ser `str`** (PyJWT ≥ 2.10 recusa numérico na decodificação, longe
+  do lugar do erro); `exp` aceita `datetime` desde que consciente de fuso — o `agora` de quem chama
+  garante; `secrets`, não `random`; `.encode()` porque hash é de bytes. A `decodificar_access_token`
+  entra aqui no item 4.
+- **`load_dotenv` mora em `app/__init__.py`**, não mais em `db.py`. O `__init__` do pacote roda
+  antes de qualquer `app.x`, então `security.py` e `db.py` leem `os.environ` no nível do módulo e
+  falham no **startup** se a chave faltar (critério do `DB_HOST`). Custou duas rodadas: primeiro
+  só a metade "tirar do `db.py`" foi feita (ninguém carregava o `.env`, o `app` inteiro quebrado);
+  depois as linhas foram para `app/repositories/__init__.py` — que só roda quando alguém importa
+  `app.repositories`, e de onde os três `.parent` param em `backend/`, não na raiz (`load_dotenv`
+  apontado para arquivo inexistente falha calado). O `__init__` que dá a garantia é o do **`app`**.
+- `app/schemas/auth.py` — `LoginEntrada`, `RefreshEntrada`, `TokenResposta`, prontos.
 - `CredenciaisInvalidas(ErroDeDominio)` → `401`, para login e refresh — a escrever em `excecoes.py`.
 - `AuthService(sessao)` com dois repositories: `login(LoginEntrada) -> TokenResposta`,
   `renovar(RefreshEntrada) -> TokenResposta`, `logout(RefreshEntrada) -> None`,
@@ -717,9 +720,8 @@ comitado). O que a sessão ensinou, e não está no código:
   por ela). O `create_savepoint` da fixture faz esse commit liberar só o savepoint — o ADR 0011
   sobrevive. Alternativas descartadas: `return JSONResponse(401)` no router; sessão independente.
 
-**Próximo passo, na ordem:** `load_dotenv` → `__init__` · corpos do `security.py` ·
-`CredenciaisInvalidas` · `AuthService` (confirmar a opção do `commit()` antes do `renovar`) ·
-revisão. Depois: `UsuarioService` → `obter_usuario_atual`/`exigir_admin` (a `decodificar_access_token`
+**Próximo passo, na ordem:** `CredenciaisInvalidas` em `excecoes.py` · decisão do `commit()` no
+ramo de reuso (emenda ao ADR 0010, escrita por ela) · `AuthService` · revisão. Depois: `UsuarioService` → `obter_usuario_atual`/`exigir_admin` (a `decodificar_access_token`
 entra no `security.py` aí) → routers de `/auth` e `/usuarios`. Débito da fatia: comando
 `criar_admin`. O `test_auth.py` fica verde quando a cadeia fechar.
 

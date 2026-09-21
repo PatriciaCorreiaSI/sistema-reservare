@@ -210,7 +210,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
-| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; fase Tentar aberta em 2026-09-18: teste do critério de pronto, tabela `refresh_token` e PyJWT prontos; faltam repository, services, dependências e routers |
+| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; fase Tentar aberta em 2026-09-18: teste do critério de pronto, tabela `refresh_token`, PyJWT, os dois repositories, os schemas de `/auth` e o `security.py` prontos; faltam services, dependências e routers |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
@@ -353,11 +353,18 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 > pelo CSRF (que `SameSite` mitiga), mas porque Vite e API são origens diferentes em
 > desenvolvimento. O desenho está em [`api.md`](api.md): rotas de `/auth` (login, refresh com
 > rotação, logout idempotente) e `POST /usuarios` só para admin; schemas por direção; o payload
-> do JWT (`sub`, `exp`, `privilegio` — nunca senha, hash ou e-mail); e as duas dependências
-> encadeadas, `obter_usuario_atual` (`401`) e `exigir_admin` (`403`). Construído até agora: o
-> teste do critério de pronto, escrito antes das rotas e falhando como deve; a tabela
-> `refresh_token` (modelo + migration); `PyJWT` instalado e a chave `JWT_SEGREDO` no ambiente.
-> Faltam repository, services, dependências e routers.
+> do JWT (`sub`, `exp`, `privilegio_usuario` — nunca senha, hash ou e-mail); e as duas
+> dependências encadeadas, `obter_usuario_atual` (`401`) e `exigir_admin` (`403`). Construído até
+> agora, de baixo para cima: o teste do critério de pronto, escrito antes das rotas e falhando
+> como deve; a tabela `refresh_token` (modelo + migration); `PyJWT` e a chave `JWT_SEGREDO`; os
+> repositories `RefreshTokenRepository` (grava, busca por hash — devolvendo também revogados, que
+> é o que a detecção de reuso precisa ver —, revoga um e revoga a família num `UPDATE` só) e
+> `UsuarioRepository` (busca por e-mail e por id, grava; senha **não** é chave de busca, porque
+> Argon2 tem salt); os schemas de `/auth`; e `security.py`, funções puras sem sessão — assina o
+> access (`sub` como texto, `exp` com fuso), gera o refresh com `secrets` e calcula o SHA-256 —
+> compartilhadas pelo service e pela dependência. Faltam services, dependências e routers. Decisão
+> aberta para o `AuthService`: no reuso de refresh, o `UPDATE` da família precisa sobreviver ao
+> `401`, que hoje desfaz a transação (ADR 0010) — a emenda é o próximo passo.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
