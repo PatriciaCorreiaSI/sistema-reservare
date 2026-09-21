@@ -1,12 +1,8 @@
 import os
 from collections.abc import Iterator
-from pathlib import Path
 
-from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session, sessionmaker
-
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 def url_do_ambiente() -> URL:

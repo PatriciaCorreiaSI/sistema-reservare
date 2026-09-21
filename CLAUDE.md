@@ -656,14 +656,76 @@ tutorial do FastAPI usa desde 2024 — `python-jose` está parado e teve CVEs em
 No código ela será `os.environ["JWT_SEGREDO"]`, **obrigatória, sem fallback** — critério do
 `DB_HOST`.
 
-**Próximo passo: `RefreshTokenRepository`**, assinaturas primeiro, molde `RecursoRepository`
-(nenhum `if`; escrita faz `flush`, nunca `commit`). Depois, na ordem das camadas: `AuthService` e
-`UsuarioService` → `obter_usuario_atual`/`exigir_admin` → routers de `/auth` e `/usuarios`.
-Débito da fatia: comando `criar_admin`. O `test_auth.py` fica verde quando a cadeia fechar.
+**Sessão de 2026-09-21 — os dois repositories fecharam** (`RefreshTokenRepository`, commit
+`21032a9`; `UsuarioRepository`, commit `be33f5b` + `buscar_por_id` acrescentado depois, ainda não
+comitado). O que a sessão ensinou, e não está no código:
+
+- **Repository deriva do uso, e o uso tem de ser listado inteiro.** Os métodos saíram de passar
+  rota a rota do `api.md` marcando cada ida ao banco. `buscar_por_id` de `usuario` foi esquecido na
+  primeira lista porque o **refresh** não foi percorrido: o JWT novo precisa de `privilegio_usuario`,
+  e a linha de `refresh_token` só tem `id_usuario`. A mesma busca é o que faz o usuário desativado
+  cair no próximo refresh (sinal de erro do ADR 0012).
+- **`buscar_por_hash` devolve também revogados e expirados**, de propósito: a detecção de reuso
+  exige enxergar o token revogado. "Válido" é regra do service (`modelo.md`: serviço garante).
+- **`revogar_familia` é o primeiro método fora do molde**: `update(...).where(...).values(...)` +
+  `execute`, um comando para N linhas, sem objeto. O segundo `where` (`revogado_em.is_(None)`)
+  preserva o instante original — timestamp de evento se escreve uma vez.
+- **Senha não se busca por hash.** Argon2 tem salt: mesma senha → hashes diferentes, o `WHERE`
+  nunca bate. O salt vai dentro do hash guardado; `hasher.verify(senha, hash)` refaz com ele. Por
+  isso `UsuarioRepository.buscar_por_email` recebe só o e-mail, e a verificação é do service. É o
+  contrário do refresh, cujo SHA-256 é determinístico e por isso serve de chave de busca.
+- **Classe × objeto**: `Classe.campo == x` dentro do `where` é pergunta ao banco; `objeto.campo = x`
+  fora dele é ordem ao objeto. `add`, `return` e atribuição recebem o objeto (o parâmetro), nunca a
+  classe. Uma linha solta com `==` é Python válido que não faz nada — nenhuma ferramenta reclama.
+- **`import` é a quarta verificação**: `ruff` e `mypy` leem, o `import` executa. Typo em nome que
+  ninguém importa ainda (`Repositoriy`, `criar_acess_token`) passa pelos dois e só estoura no
+  `from ... import` de quem usar. `uv run python -c "from app.x import Y"` antecipa isso.
+- **Nomes de módulo**: convenção registrada em Convenções (infra em inglês, domínio em português).
+  O `privilegio` do `api.md`/`modelo.md` virou `privilegio_usuario` em tudo (commit `bd5859e`) — um
+  nome só de ponta a ponta, inclusive no payload do JWT e no `UsuarioAtual`.
+
+**Item 2 (`AuthService`) desenhado, em andamento.** Assinaturas fechadas e explicadas na sessão:
+
+- `app/security.py` — funções puras, sem sessão, compartilhadas por service e dependência (a
+  dependência do item 4 não vai ao banco e não pode carregar um service): constantes
+  `ACCESS_MINUTOS = 15`, `REFRESH_DIAS = 7`, `JWT_ALGORITMO = "HS256"`,
+  `JWT_SEGREDO = os.environ[...]`, `hasher`; `criar_access_token(id_usuario: int,
+  privilegio_usuario: str, agora: datetime) -> str`, `gerar_refresh_token() -> str`,
+  `hash_refresh_token(refresh_token: str) -> str`. **Estado: assinaturas prontas, corpos `pass`,
+  arquivo não comitado e falhando nas quatro verificações** (F401, E501, empty-body, e `KeyError:
+  JWT_SEGREDO` no import — ver o próximo item). Fatos para os corpos: `sub` **tem de ser `str`**
+  (PyJWT ≥ 2.10 recusa numérico na decodificação); `exp` aceita `datetime` consciente de fuso;
+  `jwt.encode(payload, JWT_SEGREDO, algorithm=...)`, `secrets.token_urlsafe(32)`,
+  `sha256(x.encode()).hexdigest()`; `uuid` **não** é usado aqui (a família nasce no service).
+- **`load_dotenv` precisa migrar de `app/db.py` para `app/__init__.py`** — ainda não feito. Hoje
+  `import app.security` sozinho estoura porque quem carrega o `.env` é o `db.py`; funciona só se
+  ele for importado antes, por acaso da ordem. No `__init__` do pacote, roda antes de qualquer
+  `app.x`, e os dois módulos falham no **startup** se a chave faltar (critério do `DB_HOST`).
+- `app/schemas/auth.py` — `LoginEntrada`, `RefreshEntrada`, `TokenResposta` prontos e revisados,
+  não comitados.
+- `CredenciaisInvalidas(ErroDeDominio)` → `401`, para login e refresh — a escrever em `excecoes.py`.
+- `AuthService(sessao)` com dois repositories: `login(LoginEntrada) -> TokenResposta`,
+  `renovar(RefreshEntrada) -> TokenResposta`, `logout(RefreshEntrada) -> None`,
+  `_emitir_tokens(usuario, familia_token, agora) -> TokenResposta`. Os corpos em palavras foram
+  dados na sessão (login: e-mail → inativo/None/`verify` falso = uma resposta só; renovar: hash →
+  None / revogado = reuso → expirado → usuário inativo, depois `revogar` + emitir com a **mesma**
+  família; logout: nunca levanta).
+- **Decisão pendente, dela:** no ramo de reuso, o `UPDATE` da família é desfeito pelo `rollback` do
+  `obter_sessao` quando `CredenciaisInvalidas` atravessa o `yield` — a detecção viraria teatro e um
+  teste que só confere `401` passaria. Recomendação dada: `self._sessao.commit()` explícito logo
+  após `revogar_familia`, antes do `raise`, como **exceção nomeada ao ADR 0010** (emenda, escrita
+  por ela). O `create_savepoint` da fixture faz esse commit liberar só o savepoint — o ADR 0011
+  sobrevive. Alternativas descartadas: `return JSONResponse(401)` no router; sessão independente.
+
+**Próximo passo, na ordem:** `load_dotenv` → `__init__` · corpos do `security.py` ·
+`CredenciaisInvalidas` · `AuthService` (confirmar a opção do `commit()` antes do `renovar`) ·
+revisão. Depois: `UsuarioService` → `obter_usuario_atual`/`exigir_admin` (a `decodificar_access_token`
+entra no `security.py` aí) → routers de `/auth` e `/usuarios`. Débito da fatia: comando
+`criar_admin`. O `test_auth.py` fica verde quando a cadeia fechar.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `11 passed` antes de mexer em
-qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `1 failed, 11 passed` antes
+de mexer em qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.
@@ -694,6 +756,11 @@ motivo novo. Em particular: **não** SQLModel (funde modelo e schema), **não**
 - **Schemas Pydantic separados dos modelos** e separados por direção
   (`RecursoCriar`, `RecursoAtualizar`, `RecursoResposta`). Nunca devolver o
   modelo de tabela na resposta.
+- **Nomes de módulo (decidido em 2026-09-21):** infraestrutura — o que existiria em qualquer
+  projeto FastAPI — em inglês, com o nome que o ecossistema usa (`main.py`, `db.py`, `base.py`,
+  `health.py`, `security.py`); domínio — o que é do Reservare — em português (`recurso.py`,
+  `usuario.py`, `reserva.py`, `refresh_token.py`). Identificadores dentro de qualquer módulo são em
+  português (`obter_sessao`, `criar_access_token`). `excecoes.py` é a exceção histórica; não renomear.
 - **Todo timestamp em UTC.** Fuso é assunto de apresentação, não de armazenamento.
 - **Intervalo semiaberto `[início, fim)`:** reserva que termina às 10h **não**
   conflita com a que começa às 10h. "Não sobrepõe" ≠ "não encosta".

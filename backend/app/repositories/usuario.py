@@ -12,6 +12,10 @@ class UsuarioRepository:
         consulta = select(Usuario).where(Usuario.email_usuario == email_usuario)
         return self._sessao.scalar(consulta)
 
+    def buscar_por_id(self, id_usuario: int) -> Usuario | None:
+        consulta = select(Usuario).where(Usuario.id_usuario == id_usuario)
+        return self._sessao.scalar(consulta)
+
     def criar(self, usuario: Usuario) -> Usuario:
         self._sessao.add(usuario)
         self._sessao.flush()
