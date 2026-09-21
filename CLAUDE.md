@@ -713,17 +713,47 @@ o estado correto. O que a sessão ensinou, e não está no código:
   dados na sessão (login: e-mail → inativo/None/`verify` falso = uma resposta só; renovar: hash →
   None / revogado = reuso → expirado → usuário inativo, depois `revogar` + emitir com a **mesma**
   família; logout: nunca levanta).
-- **Decisão pendente, dela:** no ramo de reuso, o `UPDATE` da família é desfeito pelo `rollback` do
-  `obter_sessao` quando `CredenciaisInvalidas` atravessa o `yield` — a detecção viraria teatro e um
-  teste que só confere `401` passaria. Recomendação dada: `self._sessao.commit()` explícito logo
-  após `revogar_familia`, antes do `raise`, como **exceção nomeada ao ADR 0010** (emenda, escrita
-  por ela). O `create_savepoint` da fixture faz esse commit liberar só o savepoint — o ADR 0011
-  sobrevive. Alternativas descartadas: `return JSONResponse(401)` no router; sessão independente.
+- **Decisão do ramo de reuso — fechada em 2026-09-21, emenda ao ADR 0010** (commit `c27dc69`):
+  o `UPDATE` da família seria desfeito pelo `rollback` do `obter_sessao` quando
+  `CredenciaisInvalidas` atravessa o `yield` — a detecção viraria teatro. A revogação não é parte
+  do que deu errado, é a *resposta* a ele, e precisa sobreviver. Decisão: `self._sessao.commit()`
+  logo após `revogar_familia`, antes do `raise` — **o único `commit()` fora do `obter_sessao`**,
+  nomeado na emenda e apontado na Decisão original. O `create_savepoint` da fixture faz esse
+  commit liberar só o savepoint — o ADR 0011 sobrevive. Descartadas: `JSONResponse(401)` no
+  router (regra no router; `401` nascendo em dois lugares); sessão independente (a fixture não a
+  enxerga, escreveria de verdade no banco de teste). Sinais de erro: um segundo `commit()` fora
+  do `obter_sessao`; teste de reuso que confere só o `401` sem olhar o banco.
+- **`excecoes.py` ganhou `CredenciaisInvalidas` (`401`, login e refresh — uma exceção só para os
+  cinco casos, docstring explica o porquê) e `EmailJaCadastrado` (`409`, `POST /usuarios`)**, no
+  mesmo commit.
+- **`app/services/auth.py` — `login` e `renovar` prontos e revisados** (2026-09-21); `logout` e
+  `_emitir_tokens` são *stubs* (`...` / `raise NotImplementedError`) para o `pre-commit` passar.
+  O hook `ruff --fix` apaga os imports ainda não usados (`timedelta`, `RefreshToken`,
+  `REFRESH_DIAS`, `criar_access_token`, `gerar_refresh_token`) — recolocar ao escrever o
+  `_emitir_tokens`. O que a revisão dos dois métodos ensinou, e as ferramentas não pegam:
+  - **`CredenciaisInvalidas` sozinha numa linha não faz nada** — sem `raise`, é uma expressão que
+    o Python avalia e descarta; nenhuma ferramenta reclama, e o refresh inválido *passaria*. Mesmo
+    fenômeno do `Classe.campo == x` solto. É `raise Classe()`, sempre com `()`.
+  - **`!= "ativo"`, não `== "inativo"`** — estado desconhecido bloqueia (critério do ADR 0007),
+    nos dois métodos.
+  - `||` não existe (`or`); `->` só existe no `def`; `if` sem parênteses salvo para quebrar linha;
+    `=` atribui, `==` compara; o `return` do caminho feliz fica **depois** do `if`, não dentro.
+  - O `mypy` faz *narrowing*: depois de `if usuario is None: raise`, ele sabe que `usuario` não é
+    `None` — por isso o `is None` precisa estar no mesmo `if` do `raise`.
+  - Padrão do método: *guard clauses* — cada pergunta do `api.md` é um `if` que sai cedo; quem
+    chega ao `return` passou por todas. `agora = datetime.now(UTC)` uma vez por método público.
+  - Import "não usado" e variável "não usada" no meio da escrita são promessa, não erro — as
+    ferramentas veem o arquivo como está. **Não** rodar `ruff --fix` num arquivo pela metade.
 
-**Próximo passo, na ordem:** `CredenciaisInvalidas` em `excecoes.py` · decisão do `commit()` no
-ramo de reuso (emenda ao ADR 0010, escrita por ela) · `AuthService` · revisão. Depois: `UsuarioService` → `obter_usuario_atual`/`exigir_admin` (a `decodificar_access_token`
-entra no `security.py` aí) → routers de `/auth` e `/usuarios`. Débito da fatia: comando
-`criar_admin`. O `test_auth.py` fica verde quando a cadeia fechar.
+**Próximo passo, na ordem:** `logout` (hash → `buscar_por_hash` → `if token is not None and
+token.revogado_em is None: revogar`; nunca levanta) e `_emitir_tokens` (`criar_access_token` →
+`gerar_refresh_token` → `criar(RefreshToken(id_usuario, hash_token=hash_refresh_token(refresh),
+familia_token, expira_em=agora + timedelta(days=REFRESH_DIAS)))` → `TokenResposta(access_token,
+refresh_token)`; o token cru só sai na resposta) · revisão dos quatro juntos · commit. Depois:
+`UsuarioService` → `obter_usuario_atual`/`exigir_admin` (a `decodificar_access_token` entra no
+`security.py` aí) → routers de `/auth` e `/usuarios` → handlers de `CredenciaisInvalidas` (`401`)
+e `EmailJaCadastrado` (`409`) no `main.py`. Débito da fatia: comando `criar_admin`. O
+`test_auth.py` fica verde quando a cadeia fechar.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `1 failed, 11 passed` antes

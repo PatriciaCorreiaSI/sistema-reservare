@@ -343,7 +343,8 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **🔨 Em andamento — fases Decidir e Desenhar fechadas; fase Tentar aberta em 2026-09-18.**
+> **🔨 Em andamento — fases Decidir e Desenhar fechadas; fase Tentar aberta em 2026-09-18, nos
+> services desde 2026-09-21.**
 > Duas decisões em ADR. [0012](adr/0012-jwt-curto-com-refresh-no-banco.md): access token JWT de
 > 15 minutos + refresh token opaco guardado no banco, que é o que o logout revoga. A sessão opaca
 > (invalidação no instante, menos código) foi pesada de verdade e descartada com o motivo
@@ -362,9 +363,14 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 > `UsuarioRepository` (busca por e-mail e por id, grava; senha **não** é chave de busca, porque
 > Argon2 tem salt); os schemas de `/auth`; e `security.py`, funções puras sem sessão — assina o
 > access (`sub` como texto, `exp` com fuso), gera o refresh com `secrets` e calcula o SHA-256 —
-> compartilhadas pelo service e pela dependência. Faltam services, dependências e routers. Decisão
-> aberta para o `AuthService`: no reuso de refresh, o `UPDATE` da família precisa sobreviver ao
-> `401`, que hoje desfaz a transação (ADR 0010) — a emenda é o próximo passo.
+> compartilhadas pelo service e pela dependência; as exceções de domínio `CredenciaisInvalidas`
+> (`401`, uma só para os cinco casos de recusa) e `EmailJaCadastrado` (`409`); e o `AuthService`
+> pela metade — `login` e `renovar` prontos e revisados, `logout` e `_emitir_tokens` ainda stubs.
+> A decisão que o `renovar` exigiu virou emenda ao
+> [ADR 0010](adr/0010-requisicao-e-transacao.md): no reuso de refresh, a revogação da família é
+> a *resposta* ao erro, não parte dele, e precisa sobreviver ao `rollback` que o `401` provoca —
+> por isso o service faz `commit()` explícito antes do `raise`, o único fora do `obter_sessao`.
+> Faltam `UsuarioService`, as duas dependências e os routers.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
