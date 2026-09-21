@@ -69,7 +69,7 @@ TokenResposta
 - **Payload do JWT:** só entra no payload o que se mostraria ao próprio usuário na tela. O padrão tem dois obrigatórios: 
     - `sub` (*subject*, quem é: `id_usuario`): para identifica a quem pertence;
     - `exp`(*expiration*, instante em que este access deixa de valer, em UTC). O refresh não é JWT; o vencimento dele é `espira_em` no banco.
-    - `privilegio`: entra, para a dependência autorizar (`403`) validando só a assinatura, sem ir ao banco. O custo: rebaixado continua admin por até 15 minutos. É o mesmo aceito no ADR 0012 para desativação.
+    - `privilegio_usuario`: entra, para a dependência autorizar (`403`) validando só a assinatura, sem ir ao banco. O custo: rebaixado continua admin por até 15 minutos. É o mesmo aceito no ADR 0012 para desativação.
     - Não entra: senha, hash, e-mail (o `sub` já identifica), nome.
 
 
@@ -87,7 +87,7 @@ TokenResposta
 ```
 UsuarioAtual
     id_usuario: int
-    privilegio: str
+    privilegio_usuario: str
 ```
 
 ```
@@ -97,7 +97,7 @@ levanta: 401 quando o cabeçalho falta, não é `Bearer`, a assinatura não conf
 
 ```
 exigir_admin(usuario:UsuarioAtual=Depends(obter_usuario_atual)) → UsuarioAtual
-levanta: 403 quando `usuario.privilegio != "admin"`
+levanta: 403 quando `usuario.privilegio_usuario != "admin"`
 ```
 
 
@@ -110,7 +110,7 @@ UsuarioCriar
     nome_usuario: str
     email_usuario: str
     senha: str
-    privilegio: str
+    privilegio_usuario: str
 ```
 
 ```
@@ -118,7 +118,7 @@ UsuarioResposta
     id_usuario: int
     nome_usuario: str
     email_usuario: str
-    privilegio: str
+    privilegio_usuario: str
     status_usuario: str
 ```
 

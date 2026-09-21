@@ -98,3 +98,4 @@
 |⚛️ **Argon2**| Algoritmo de hash, lento de propósito para custar caro ataques de força bruta. Usado em senhas que são feitas por humanos e são previsíveis e curtas e cabem em dicionários para testar. Usa salt aleatório. Mesma entrada (senha) gera hashes diferentes a cada vez|
 |⛓️ **SHA-256**| Algoritmo de hash, rápido e determinístico. Usado para entrada aleatória e longa, onde não há candidatos a testar. Mesma entrada → mesmo hash, e por isso serve para busca no banco que precisa de hash igual para entrada igual. É o que o servidor precisa para fazer `WHERE hash_token =...`|
 |🔐 **Dependência como guarda** | Função de `Depends` que levanta exceção para impedir o handler de rodar. Barra na porta antes de deixar entrar. |
+|📚 **Quando usar `classe` × `objeto(instância)`:** | Na **assinatura** (nome da função + parâmetros com tipos + retorno) e no `select`, se usa a classe; no `add`, `return` e na **atribuição**, se usa o objeto instanciado. |

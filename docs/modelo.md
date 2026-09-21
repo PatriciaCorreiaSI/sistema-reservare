@@ -28,7 +28,7 @@
 | coluna       | tipo | restrições | descrição |
 |--------------|------|------------| ----------|
 | id_usuario   | INT  | PRIMARY KEY,  NOT NULL,  GENERATED ALWAYS AS IDENTITY | Identificador |
-| privilegio | VARCHAR(15)  | NOT NULL, CHECK | admin, usuario|
+| privilegio_usuario | VARCHAR(15)  | NOT NULL, CHECK | admin, usuario|
 | nome_usuario | VARCHAR(30)  | NOT NULL | Nome de exibição |
 | email_usuario | VARCHAR(50)  | NOT NULL, UNIQUE | login |
 | senha_usuario_hash | VARCHAR(100)  | HASH,  NOT NULL | Hash Argon 2 |
