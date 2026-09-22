@@ -13,9 +13,10 @@ class RecursoEmUso(ErroDeDominio):
 class CredenciaisInvalidas(ErroDeDominio):
     """Login ou refresh recusado.
 
-    Uma exceção só para e-mail inexistente, senha errada, usuário inativo e
-    refresh inválido, expirado ou reutilizado para a resposta não revelar
-    qual dos casos aconteceu (api.md: a API não serve de lista de quem existe).
+    Uma exceção só para e-mail inexistente; senha errada; usuário inativo;
+    refresh inválido, expirado ou reutilizado; access ausente, malformado
+    ou expirado para a resposta não revelar qual dos casos aconteceu
+    (api.md: a API não serve de lista de quem existe).
     """
 
 
@@ -25,4 +26,11 @@ class EmailJaCadastrado(ErroDeDominio):
     Vem do UNIQUE de usuario.email_usuario, que recusa a linha no flush;
     o UsuarioService traduz o IntegrityError nesta exceção e o main.py a
     devolve como 409.
+    """
+
+
+class PrivilegioInsuficiente(ErroDeDominio):
+    """Privilégio insuficiente.
+
+    Nasce no `exigir_admin` e vira `403`.
     """
