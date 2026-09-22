@@ -210,7 +210,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
-| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; fase Tentar aberta em 2026-09-18: teste do critério de pronto, tabela `refresh_token`, PyJWT, os dois repositories, os schemas, o `security.py`, os services de `auth` e de `usuario` e as duas dependências prontos; faltam os routers e os handlers de exceção |
+| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; a cadeia vertical fechou em 2026-09-22, com as sete rotas no ar e a suíte em `12 passed` — o teste "refresh após logout devolve `401`", escrito antes das rotas, ficou verde. Faltam os testes do `403` e do `409`, o comando `criar_admin`, e a metade do critério de pronto que depende de `reserva` existir |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
@@ -343,27 +343,25 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **🔨 Em andamento — fases Decidir e Desenhar fechadas; fase Tentar aberta em 2026-09-18.**
-> Duas decisões em ADR: [0012](adr/0012-jwt-curto-com-refresh-no-banco.md), access JWT de 15
-> minutos + refresh opaco no banco, que é o que o logout revoga — a sessão opaca foi pesada e
-> descartada com o motivo escrito; e
-> [0013](adr/0013-transportar-token-no-cabecalho-authorization.md), o token no cabeçalho
-> `Authorization: Bearer`, guardado só em memória pelo frontend. Uma terceira virou emenda ao
-> [ADR 0010](adr/0010-requisicao-e-transacao.md): no reuso de refresh, a revogação da família é a
-> *resposta* ao erro, não parte dele, e precisa sobreviver ao `rollback` que o `401` provoca —
-> daí o único `commit()` fora do `obter_sessao`. O desenho está em [`api.md`](api.md): rotas de
-> `/auth`, `POST /usuarios` só para admin, schemas por direção, payload do JWT e as duas
-> dependências encadeadas.
+> **🔨 Em andamento.** Decisões nos ADRs
+> [0012](adr/0012-jwt-curto-com-refresh-no-banco.md) (access JWT de 15 minutos + refresh opaco no
+> banco, que é o que o logout revoga) e
+> [0013](adr/0013-transportar-token-no-cabecalho-authorization.md) (token no cabeçalho
+> `Authorization`, em memória no frontend), mais uma emenda ao
+> [0010](adr/0010-requisicao-e-transacao.md): a revogação da família é a *resposta* ao reuso de
+> refresh, não parte dele, e sobrevive ao `401` no único `commit()` fora do `obter_sessao`. O
+> desenho está em [`api.md`](api.md).
 >
-> Construído de baixo para cima, com a suíte em `1 failed, 11 passed` de propósito — o teste do
-> critério de pronto foi escrito antes das rotas e falha até elas existirem: a tabela
-> `refresh_token`, os dois repositories, os schemas, `security.py` (funções puras, sem sessão),
-> as exceções de domínio, o `AuthService` (login, rotação com detecção de reuso, logout
-> idempotente), o `UsuarioService` e as dependências `obter_usuario_atual` (`401`) e
-> `exigir_admin` (`403`). O que cada peça ensinou e não está no código está em `CLAUDE.md`.
+> A cadeia está no ar desde 2026-09-22, com **12 testes verdes**: login, `/auth/refresh` com
+> rotação e detecção de reuso, logout idempotente e `POST /usuarios` restrito a admin pela
+> dependência `exigir_admin`. O `401` nasce num handler só, com `WWW-Authenticate: Bearer`. O
+> teste do critério de pronto foi escrito quatro sessões antes das rotas e ficou verde sem ser
+> tocado — a suíte passou o caminho inteiro em `1 failed, 11 passed`, de propósito. O que cada
+> peça ensinou e não está no código está em `CLAUDE.md`.
 >
-> Faltam os routers de `/auth` e `/usuarios` e os handlers de exceção no `main.py`; o critério de
-> pronto fecha quando essa última camada entrar.
+> Faltam os testes do `403` do não-admin e do `409` do e-mail duplicado, e o comando
+> `criar_admin`. **O critério de pronto tem duas metades e só a primeira fechou:** a segunda
+> (IDOR) depende de `reserva` ter rotas — decidir na Etapa 4 se migra para lá.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 

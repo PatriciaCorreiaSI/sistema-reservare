@@ -84,8 +84,10 @@ Antes de escrever implementação, verifique em que fase ela está:
   camadas e o primeiro `pytest`: 11 testes verdes, isolados por transação (ADR 0011), inclusive o
   `409` do `DELETE`. As três pendências pequenas fecharam em 2026-09-16 (ver o fim da seção).
 - **Etapa 3 (autenticação e autorização): em andamento** — Decidir (ADRs 0012 e 0013) e Desenhar
-  (`docs/api.md`) fechadas; Tentar aberta em 2026-09-18 com o teste do critério de pronto, a
-  tabela `refresh_token` e o PyJWT prontos. Detalhes no fim da seção.
+  (`docs/api.md`) fechadas; Tentar aberta em 2026-09-18. **A cadeia vertical fechou em 2026-09-22**:
+  as sete rotas estão registradas e a suíte está em `12 passed`, com o
+  `test_refresh_apos_logout_devolve_401` verde. Faltam os testes do `403` e do `409` e o comando
+  `criar_admin`. Detalhes no fim da seção.
 
 ### Já feito
 
@@ -796,17 +798,73 @@ routers. O que a sessão ensinou, e não está no código:
   (some quando aquele módulo parar de usá-lo); e nome de módulo com typo (`depedencies.py`) não dá
   erro, só falha longe.
 
-**Próximo passo, na ordem:** routers de `/auth` (`login`, `refresh`, `logout` — nenhuma declara
-dependência) e de `/usuarios` (`POST` com `Depends(exigir_admin)`) · os três handlers no `main.py`
-(`CredenciaisInvalidas` → `401` com `WWW-Authenticate: Bearer`, `PrivilegioInsuficiente` → `403`,
-`EmailJaCadastrado` → `409`) · incluir os dois routers no `app` · `test_auth.py` fica verde aí, e
-a fixture `usuario` do `conftest.py` é quem prova a cadeia. Depois: testes das rotas de `/auth` e
-`/usuarios` (o `403` do não-admin e o `409` do e-mail duplicado ainda não têm teste). Débito da
-fatia: comando `criar_admin`.
+**Sessão de 2026-09-22 (segunda do dia) — a fatia de autenticação atravessa de ponta a ponta.**
+Dois commits: `routers/auth.py` + `routers/usuario.py`, e o `main.py` ligando tudo. A suíte foi de
+`1 failed, 11 passed` para **`12 passed`** — o `test_refresh_apos_logout_devolve_401`, escrito em
+2026-09-18 antes das rotas, ficou verde sem ser tocado. As sete rotas registradas: `/health`,
+`/recursos` (4), `/auth/login`, `/auth/refresh`, `/auth/logout`, `POST /usuarios`. O que a sessão
+ensinou, e não é derivável do código:
+
+- **O `prefix` do `APIRouter` é concatenado cru.** `"/auth" + "login"` (sem a barra) é
+  `"/authlogin"` — rota que existe, aparece no `/docs` e nunca é chamada. `ruff`, `mypy` e o
+  import passam; o sintoma seria `404` em `POST /auth/login`, longe da causa. Mesma família do
+  `ndex=True` e do `Repositoriy`: **erro dentro de string não tem quem verifique**. A verificação
+  que falta virou rotina para todo router novo:
+  `uv run python -c "from app.routers.X import router; [print(r.path) for r in router.routes]"`.
+  No `app` inteiro esse truque **não** funciona: o FastAPI 0.141 guarda `_IncludedRouter` preguiçoso
+  em `app.routes`, e os caminhos só aparecem em `app.openapi()["paths"]`.
+- **O FastAPI decide de onde vem cada parâmetro pela anotação**: nome que está entre chaves no
+  caminho → path; tipo simples (`str`, `int`) → **query string**; modelo Pydantic → **corpo JSON**;
+  `Depends(...)` → dependências. Escrever `email_usuario: str` num `POST` põe o dado na URL — que
+  vai para log de servidor, de proxy e histórico do navegador. É `dados: LoginEntrada`, e o `422`
+  vem de graça.
+- **`model_validate` só onde há fronteira.** A regra é olhar o que o service devolve: `AuthService`
+  devolve `TokenResposta`, que já é schema → o handler devolve direto; `UsuarioService.criar`
+  devolve `Usuario`, modelo SQLAlchemy → `UsuarioResposta.model_validate(...)`, senão o hash da
+  senha viajaria na resposta. O `mypy` pega este caso (`got "Usuario", expected "UsuarioResposta"`),
+  e é a única das quatro ferramentas que pega.
+- **Autorização pergunta sobre quem chama, nunca sobre o corpo.** A primeira versão do
+  `POST /usuarios` tinha `if dados.privilegio_usuario != "admin": raise CredenciaisInvalidas` —
+  isso lê o privilégio do usuário **sendo criado**, então proibia cadastrar usuário comum e liberava
+  criar admin para qualquer um, sem token. Quem chama vem do JWT no cabeçalho, que o cliente não
+  consegue forjar. São dois campos de mesmo nome na mesma rota: o do corpo é guardado pelo
+  `Literal` (`422`); o do token, pelo `exigir_admin` (`403`).
+- **Guarda que não entrega valor vai no decorador.** `dependencies=[Depends(exigir_admin)]` em vez
+  de um parâmetro que ninguém lê — o `ruff` com `select = ["E","F","I"]` não avisa sobre argumento
+  não usado, e a guarda fica visível na linha da rota. A forma com parâmetro
+  (`admin: UsuarioAtual = Depends(exigir_admin)`) é para quando o handler **usa** quem chamou —
+  será o caso de `POST /reservas` na Etapa 4.
+- **`WWW-Authenticate: Bearer` é obrigatório em todo `401`** (RFC 7235): o `401` não diz "vá
+  embora", diz "autentique-se, e o esquema é este". O `403` **não** leva o cabeçalho — ali o
+  servidor já sabe quem é quem chama e não há nada a negociar. Nada no projeto verifica isso; entra
+  no `JSONResponse` pelo argumento `headers=`. Como só o handler produz `401`, os de login e refresh
+  ganharam o cabeçalho de carona — era o critério da emenda ao ADR 0010.
+- **`F401` pode ser o defeito, não o ruído.** `from app.routers import auth, usuario` sem os
+  `include_router` correspondentes é "importado e não usado" — e aqui importar e usar são a mesma
+  tarefa em duas linhas. **Não rodar `ruff check --fix`**: ele apagaria os imports, o erro sumiria
+  do terminal e o defeito ficaria sem pista. A ferramenta sabe que há inconsistência, nunca qual
+  dos dois lados consertar.
+- Miudezas: `ruff format` junta parâmetros quebrados quando cabem em 88 — a **vírgula mágica**
+  depois do último é o que manda manter explodido (diferente da vírgula do `__table_args__`, que
+  *cria* a tupla); `ruff format` não quebra **import** longo, que se quebra com parênteses, como os
+  `CHECK` longos da migration se quebraram com aspas triplas; arquivo sem `\n` final faz o git
+  marcar a última linha como alterada no próximo diff; e `git commit -a` não pega arquivo novo,
+  só o que já é rastreado (`??` × `M`).
+
+**Próximo passo, na ordem:** testes das rotas novas — o `403` do não-admin em `POST /usuarios`, o
+`409` do e-mail duplicado, e o caminho feliz de `/auth/login` e `/auth/refresh` (rotação: o refresh
+devolvido é diferente do apresentado, e o antigo deixa de valer). A fixture `usuario` já existe; um
+admin será preciso, gravado pelo modelo como o `api.md` previu · comando `criar_admin` (débito da
+fatia, senha vinda de variável de ambiente).
+
+**Atenção ao critério de pronto da Etapa 3:** ele tem duas metades, e só a primeira fechou. "Após o
+logout o refresh não funciona mais" está provado; "um usuário não lê nem cancela a reserva de
+outro" (IDOR) depende de `reserva` ter rotas, o que é Etapa 4. Decidir, quando chegar a hora, se
+essa metade migra para a Etapa 4 ou se a Etapa 3 fica aberta até lá.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `1 failed, 11 passed` antes
-de mexer em qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `12 passed` antes de mexer em
+qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.
