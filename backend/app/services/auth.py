@@ -1,15 +1,18 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.db import obter_sessao
-from app.models import Usuario
+from app.models import RefreshToken, Usuario
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.usuario import UsuarioRepository
 from app.schemas.auth import LoginEntrada, RefreshEntrada, TokenResposta
 from app.security import (
+    REFRESH_DIAS,
+    criar_access_token,
+    gerar_refresh_token,
     hash_refresh_token,
     hasher,
 )
@@ -53,9 +56,26 @@ class AuthService:
         return self._emitir_tokens(usuario, token.familia_token, agora)
 
     def logout(self, dados: RefreshEntrada) -> None:
-        raise NotImplementedError
+        agora = datetime.now(UTC)
+        hash_token = hash_refresh_token(dados.refresh_token)
+        token = self._refresh_tokens.buscar_por_hash(hash_token)
+        if token is not None and token.revogado_em is None:
+            self._refresh_tokens.revogar(token, agora)
 
     def _emitir_tokens(
         self, usuario: Usuario, familia_token: uuid.UUID, agora: datetime
     ) -> TokenResposta:
-        raise NotImplementedError
+        access = criar_access_token(
+            usuario.id_usuario, usuario.privilegio_usuario, agora
+        )
+        refresh = gerar_refresh_token()
+        self._refresh_tokens.criar(
+            RefreshToken(
+                id_usuario=usuario.id_usuario,
+                hash_token=hash_refresh_token(refresh),
+                familia_token=familia_token,
+                criado_em=agora,
+                expira_em=agora + timedelta(days=REFRESH_DIAS),
+            )
+        )
+        return TokenResposta(access_token=access, refresh_token=refresh)
