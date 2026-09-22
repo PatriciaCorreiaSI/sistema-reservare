@@ -745,15 +745,64 @@ o estado correto. O que a sessão ensinou, e não está no código:
   - Import "não usado" e variável "não usada" no meio da escrita são promessa, não erro — as
     ferramentas veem o arquivo como está. **Não** rodar `ruff --fix` num arquivo pela metade.
 
-**Próximo passo, na ordem:** `logout` (hash → `buscar_por_hash` → `if token is not None and
-token.revogado_em is None: revogar`; nunca levanta) e `_emitir_tokens` (`criar_access_token` →
-`gerar_refresh_token` → `criar(RefreshToken(id_usuario, hash_token=hash_refresh_token(refresh),
-familia_token, expira_em=agora + timedelta(days=REFRESH_DIAS)))` → `TokenResposta(access_token,
-refresh_token)`; o token cru só sai na resposta) · revisão dos quatro juntos · commit. Depois:
-`UsuarioService` → `obter_usuario_atual`/`exigir_admin` (a `decodificar_access_token` entra no
-`security.py` aí) → routers de `/auth` e `/usuarios` → handlers de `CredenciaisInvalidas` (`401`)
-e `EmailJaCadastrado` (`409`) no `main.py`. Débito da fatia: comando `criar_admin`. O
-`test_auth.py` fica verde quando a cadeia fechar.
+**Sessão de 2026-09-22 — a cadeia da Etapa 3 fechou até as dependências.** Três commits:
+`AuthService` completo (`logout` e `_emitir_tokens`), schemas e service de `usuario`, e as duas
+dependências. Suíte em `1 failed, 11 passed`, o estado correto — o `test_auth.py` só fecha com os
+routers. O que a sessão ensinou, e não está no código:
+
+- **Decisão: o `401` e o `403` nascem como exceção de domínio, tratadas no `main.py`** (opção B,
+  contra levantar `HTTPException` na própria dependência). Critério: o mesmo que descartou o
+  `JSONResponse(401)` no router na emenda ao ADR 0010 — código de status nascendo em dois lugares
+  é um lugar a mais para esquecer. Consequência: o `WWW-Authenticate: Bearer` que a RFC 7235 exige
+  em todo `401` passa a ser responsabilidade do handler, e de carona corrige os `401` de login e
+  refresh. Nasceu `PrivilegioInsuficiente` (`403`); a docstring de `CredenciaisInvalidas` cresceu
+  para admitir o access ausente, malformado ou expirado. Nota, não ADR.
+- **O `HTTPBearer` do FastAPI 0.141.1 devolve `401`**, com `WWW-Authenticate` junto, quando o
+  cabeçalho falta ou não é `Bearer`. Muito tutorial ainda diz `403` — era verdade em versões
+  antigas. Não é preciso `auto_error=False`.
+- **`UsuarioAtual` mora em `dependencies.py`, não em `schemas/`**: ele nunca viaja em JSON, é valor
+  interno que uma dependência entrega à outra. Manter `schemas/` só com contratos de fio preserva o
+  significado da pasta. Módulo em inglês pela convenção (infra), como `security.py` e `db.py`.
+- **`Literal` só na entrada.** `UsuarioCriar.privilegio_usuario` leva `Literal["admin", "usuario"]`
+  (opção A, escolhida contra deixar cair no `IntegrityError`): sem ele, `"chefe"` morreria no
+  `CHECK` e sairia como `409 e-mail duplicado`, mentindo. Custo aceito: a lista existe em dois
+  lugares. **Não** leva na `UsuarioResposta` nem no `UsuarioAtual` — guarda-se o que atravessa a
+  fronteira vindo de fora, e a assinatura do JWT já é essa guarda; além disso o `!= "admin"` do
+  `exigir_admin` já falha do lado seguro (ADR 0007).
+- **A divergência `senha` × `senha_usuario_hash` é proteção, não atrito.** Se os nomes batessem,
+  `Usuario(**dados.model_dump())` funcionaria e gravaria a senha em texto puro, em silêncio. O
+  `TypeError: 'senha' is an invalid keyword argument` é a única barreira automática entre o texto
+  da senha e o disco — nenhuma ferramenta do projeto pega isso. Nomes batem quando os **valores**
+  são os mesmos; é por isso que em `recurso` o `**model_dump()` cabe e aqui não.
+- **`decodificar_access_token` não captura nada** — devolve o payload e deixa o
+  `jwt.InvalidTokenError` subir; quem traduz erro em resposta é a dependência. O `algorithms=[...]`
+  é obrigatório e é lista: sem ele o PyJWT aceitaria o algoritmo que o próprio token declara
+  (`alg: none`). O `sub` volta `str` e a conversão para `int` é de quem monta o `UsuarioAtual`.
+- **Classe × objeto reapareceu no `raise` e no `return`.** `UsuarioAtual.privilegio_usuario` dentro
+  do `if` compara o campo da **classe**: o `mypy` pega o `return` (`got "type[UsuarioAtual]"`) mas
+  **não** pega o `if`, porque o plugin do Pydantic o resolve como `str`. A comparação seria sempre
+  falsa e **todo usuário viraria admin**. Mesmo fenômeno do `Classe.campo == x` nos repositories.
+- **`raise X from Y` só dentro de um `except`**, e só sobre a variável capturada ali. Fora disso
+  inventa uma causa que nunca aconteceu.
+- **O `try` tem o tamanho do risco:** envolve a chamada que fala com o banco ou decodifica, nunca a
+  construção do objeto nem o `return`.
+- **Pytest que não imprime veredito é infraestrutura, não teste.** `collected N items` seguido de
+  silêncio = o driver pendurado esperando um Postgres que não responde (aqui, Docker Desktop
+  pausado). Sem `connect_timeout` o `psycopg` espera para sempre. Primeiro lugar a olhar:
+  `docker compose ps`.
+- Miudezas: a **vírgula mágica** no fim de parâmetro quebrado em linhas é lida pelo `ruff format`
+  como ordem de manter explodido, além de deixar o diff limpo — diferente da vírgula do
+  `__table_args__`, que **cria** a tupla; importar `jwt` de `app.security` funciona e é armadilha
+  (some quando aquele módulo parar de usá-lo); e nome de módulo com typo (`depedencies.py`) não dá
+  erro, só falha longe.
+
+**Próximo passo, na ordem:** routers de `/auth` (`login`, `refresh`, `logout` — nenhuma declara
+dependência) e de `/usuarios` (`POST` com `Depends(exigir_admin)`) · os três handlers no `main.py`
+(`CredenciaisInvalidas` → `401` com `WWW-Authenticate: Bearer`, `PrivilegioInsuficiente` → `403`,
+`EmailJaCadastrado` → `409`) · incluir os dois routers no `app` · `test_auth.py` fica verde aí, e
+a fixture `usuario` do `conftest.py` é quem prova a cadeia. Depois: testes das rotas de `/auth` e
+`/usuarios` (o `403` do não-admin e o `409` do e-mail duplicado ainda não têm teste). Débito da
+fatia: comando `criar_admin`.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `1 failed, 11 passed` antes

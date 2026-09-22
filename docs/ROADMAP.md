@@ -210,7 +210,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
-| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; fase Tentar aberta em 2026-09-18: teste do critério de pronto, tabela `refresh_token`, PyJWT, os dois repositories, os schemas de `/auth` e o `security.py` prontos; faltam services, dependências e routers |
+| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; fase Tentar aberta em 2026-09-18: teste do critério de pronto, tabela `refresh_token`, PyJWT, os dois repositories, os schemas, o `security.py`, os services de `auth` e de `usuario` e as duas dependências prontos; faltam os routers e os handlers de exceção |
 | 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
@@ -343,34 +343,27 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **🔨 Em andamento — fases Decidir e Desenhar fechadas; fase Tentar aberta em 2026-09-18, nos
-> services desde 2026-09-21.**
-> Duas decisões em ADR. [0012](adr/0012-jwt-curto-com-refresh-no-banco.md): access token JWT de
-> 15 minutos + refresh token opaco guardado no banco, que é o que o logout revoga. A sessão opaca
-> (invalidação no instante, menos código) foi pesada de verdade e descartada com o motivo
-> escrito: exercitar o padrão do mercado sabendo quando ele é e quando não é a resposta.
-> [0013](adr/0013-transportar-token-no-cabecalho-authorization.md): o token viaja no cabeçalho
-> `Authorization: Bearer`, guardado só em memória pelo frontend. O cookie `httpOnly` perdeu não
-> pelo CSRF (que `SameSite` mitiga), mas porque Vite e API são origens diferentes em
-> desenvolvimento. O desenho está em [`api.md`](api.md): rotas de `/auth` (login, refresh com
-> rotação, logout idempotente) e `POST /usuarios` só para admin; schemas por direção; o payload
-> do JWT (`sub`, `exp`, `privilegio_usuario` — nunca senha, hash ou e-mail); e as duas
-> dependências encadeadas, `obter_usuario_atual` (`401`) e `exigir_admin` (`403`). Construído até
-> agora, de baixo para cima: o teste do critério de pronto, escrito antes das rotas e falhando
-> como deve; a tabela `refresh_token` (modelo + migration); `PyJWT` e a chave `JWT_SEGREDO`; os
-> repositories `RefreshTokenRepository` (grava, busca por hash — devolvendo também revogados, que
-> é o que a detecção de reuso precisa ver —, revoga um e revoga a família num `UPDATE` só) e
-> `UsuarioRepository` (busca por e-mail e por id, grava; senha **não** é chave de busca, porque
-> Argon2 tem salt); os schemas de `/auth`; e `security.py`, funções puras sem sessão — assina o
-> access (`sub` como texto, `exp` com fuso), gera o refresh com `secrets` e calcula o SHA-256 —
-> compartilhadas pelo service e pela dependência; as exceções de domínio `CredenciaisInvalidas`
-> (`401`, uma só para os cinco casos de recusa) e `EmailJaCadastrado` (`409`); e o `AuthService`
-> pela metade — `login` e `renovar` prontos e revisados, `logout` e `_emitir_tokens` ainda stubs.
-> A decisão que o `renovar` exigiu virou emenda ao
-> [ADR 0010](adr/0010-requisicao-e-transacao.md): no reuso de refresh, a revogação da família é
-> a *resposta* ao erro, não parte dele, e precisa sobreviver ao `rollback` que o `401` provoca —
-> por isso o service faz `commit()` explícito antes do `raise`, o único fora do `obter_sessao`.
-> Faltam `UsuarioService`, as duas dependências e os routers.
+> **🔨 Em andamento — fases Decidir e Desenhar fechadas; fase Tentar aberta em 2026-09-18.**
+> Duas decisões em ADR: [0012](adr/0012-jwt-curto-com-refresh-no-banco.md), access JWT de 15
+> minutos + refresh opaco no banco, que é o que o logout revoga — a sessão opaca foi pesada e
+> descartada com o motivo escrito; e
+> [0013](adr/0013-transportar-token-no-cabecalho-authorization.md), o token no cabeçalho
+> `Authorization: Bearer`, guardado só em memória pelo frontend. Uma terceira virou emenda ao
+> [ADR 0010](adr/0010-requisicao-e-transacao.md): no reuso de refresh, a revogação da família é a
+> *resposta* ao erro, não parte dele, e precisa sobreviver ao `rollback` que o `401` provoca —
+> daí o único `commit()` fora do `obter_sessao`. O desenho está em [`api.md`](api.md): rotas de
+> `/auth`, `POST /usuarios` só para admin, schemas por direção, payload do JWT e as duas
+> dependências encadeadas.
+>
+> Construído de baixo para cima, com a suíte em `1 failed, 11 passed` de propósito — o teste do
+> critério de pronto foi escrito antes das rotas e falha até elas existirem: a tabela
+> `refresh_token`, os dois repositories, os schemas, `security.py` (funções puras, sem sessão),
+> as exceções de domínio, o `AuthService` (login, rotação com detecção de reuso, logout
+> idempotente), o `UsuarioService` e as dependências `obter_usuario_atual` (`401`) e
+> `exigir_admin` (`403`). O que cada peça ensinou e não está no código está em `CLAUDE.md`.
+>
+> Faltam os routers de `/auth` e `/usuarios` e os handlers de exceção no `main.py`; o critério de
+> pronto fecha quando essa última camada entrar.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 

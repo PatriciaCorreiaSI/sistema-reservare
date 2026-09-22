@@ -6,9 +6,9 @@ Sistema de reserva de recursos compartilhados — salas, equipamentos e estaçõ
 > Fase atual: **Etapa 3 — autenticação e autorização**, em construção: contrato desenhado em
 > `docs/api.md`, tabela `refresh_token` migrada, o teste do critério de pronto escrito antes das
 > rotas, e as camadas subindo de baixo para cima — repositories de `usuario` e `refresh_token`,
-> o módulo `security.py` (JWT, refresh e SHA-256) e as exceções de domínio prontos; o
-> `AuthService` pela metade (login e refresh com rotação e detecção de reuso); dependências e
-> rotas a seguir.
+> o módulo `security.py` (JWT, refresh e SHA-256), as exceções de domínio, os services de
+> autenticação e de usuário e as dependências `obter_usuario_atual` e `exigir_admin` prontos;
+> faltam os routers e os handlers de exceção.
 > Fundação, modelagem, migrations e a primeira fatia vertical concluídas: CRUD de `recurso` em
 > camadas, com 11 testes isolados por transação num banco de teste próprio.
 
@@ -60,7 +60,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Fundação: ambiente, container, lint | ✅ concluída |
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
-| Autenticação e autorização | 🔨 em andamento — decidido (ADR 0012: JWT curto + refresh token no banco; ADR 0013: token no cabeçalho `Authorization`) e desenhado (`docs/api.md`: rotas, schemas, payload do JWT, dependências); construídos a tabela `refresh_token`, o teste "refresh após logout devolve `401`" (que falha até as rotas existirem), os repositories de `usuario` e `refresh_token`, os schemas de `/auth`, o `security.py` (assina o JWT, gera o refresh e calcula o SHA-256), as exceções `CredenciaisInvalidas` e `EmailJaCadastrado`, e o `AuthService` pela metade — `login` e `renovar` prontos (rotação de refresh e detecção de reuso, com a emenda ao ADR 0010 que faz a revogação da família sobreviver ao `401`). Faltam `logout`, `_emitir_tokens`, `UsuarioService`, dependências e rotas |
+| Autenticação e autorização | 🔨 em andamento — decidido (ADR 0012: JWT curto + refresh token no banco; ADR 0013: token no cabeçalho `Authorization`) e desenhado (`docs/api.md`: rotas, schemas, payload do JWT, dependências); construídos a tabela `refresh_token`, o teste "refresh após logout devolve `401`" (que falha até as rotas existirem), os repositories de `usuario` e `refresh_token`, os schemas de `/auth` e de `usuario`, o `security.py` (assina e valida o JWT, gera o refresh e calcula o SHA-256), as exceções de domínio, o `AuthService` completo (login, rotação de refresh com detecção de reuso — com a emenda ao ADR 0010 que faz a revogação da família sobreviver ao `401` — e logout idempotente), o `UsuarioService` e as dependências `obter_usuario_atual` (`401`) e `exigir_admin` (`403`). Faltam os routers de `/auth` e `/usuarios` e os handlers de exceção no `main.py` |
 | Reservas, concorrência e estados | ⏳ |
 | Testes e integração contínua | ⏳ |
 | Front-end | ⏳ |
