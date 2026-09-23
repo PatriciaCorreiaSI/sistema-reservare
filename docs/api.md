@@ -107,10 +107,10 @@ levanta: 403 quando `usuario.privilegio_usuario != "admin"`
 
 ```
 UsuarioCriar
-    nome_usuario: str
-    email_usuario: str
-    senha: str
-    privilegio_usuario: str
+    nome_usuario: str = Field(min_length=1)
+    email_usuario: EmailStr
+    senha: str = Field(min_length=8)
+    privilegio_usuario: Literal["admin", "usuario"]
 ```
 
 ```
@@ -130,7 +130,7 @@ UsuarioResposta
 
 | **Rota**  |  **Sucesso** |  **Erros** | **Porquê** |
 |-----------|--------------|------------|------------|
-|`POST /usuarios`| `201` + `UsuarioResposta` | `401` · `403` · `409`  | Sem acesso válido devolve `401`. Se um usuário comum tentar cadastrar sem privilégio de admin recebe `403`: só admin pode cadastrar. Devolve `409` em tentativa de cadastrar e-mail duplicado: e-mail é `UNIQUE`. `UsuarioResposta` nunca inclui senha nem hash. |
+|`POST /usuarios`| `201` + `UsuarioResposta` | `401` · `403` · `422` · `409`  | Sem acesso válido devolve `401`. Se um usuário comum tentar cadastrar sem privilégio de admin recebe `403`: só admin pode cadastrar. Recusa nome vazio, e-mail inválido e senha curta devolvendo `422`. Devolve `409` em tentativa de cadastrar e-mail duplicado: e-mail é `UNIQUE`. `UsuarioResposta` nunca inclui senha nem hash. |
 
 
-- **Primeiro admin** é criado fora da API por um comando (`criar_admin`, senha vinda de variavel de ambiente), porque o banco nasce vazio e só admin cadastra. A escrever na fase de implementação. Nos testes, a fixture grava o admin direto pelo modelo.
+- **Primeiro admin** é criado fora da API por um comando (`criar_admin`, senha vinda de variável de ambiente), porque o banco nasce vazio e só admin cadastra. Rodar com `uv run python -m app.comandos.criar_admin` de dentro de `backend/`, lendo `ADMIN_NOME`, `ADMIN_EMAIL` e `ADMIN_SENHA` do `.env` e saindo com código `1` se o e-mail já existir. Nos testes, a fixture grava o admin direto pelo modelo.
