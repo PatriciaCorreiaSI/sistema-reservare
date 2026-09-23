@@ -106,3 +106,5 @@
 |👮‍♂️ **Você pode?**| Autorização, erro dá `403`. |
 |⚒️ **O pedido está bem formado?**| Validação, erro dá `422` ou `400`. |
 |🚨 **Ele conflita com o estado atual?**| Regra de negócio, erro dá `409`. |
+|🔄️ **Override**| É como o FastAPI chama a troca de uma dependência por outra função durante o teste (`app.dependency_overrides[original] = substituta`). O código que pede a dependência não percebe a troca. Serve para qualquer dependência (sessão do banco, usuário logado, cliente de e-mail, etc). |
+|👯‍♀️ **Test double**| Termo geral usado para designar qualquer peça falsa que ocupa o lugar da verdadeira durante um teste. Podem ser de 5 tipos, do mais simples ao mais elaborado: *dummy, stub, spy, mock e fake*. A que usamos neste projeto (`obter_sessao_de_teste`) é do tipo *fake*, porque funciona de verdade, mas por um caminho mais simples. |
