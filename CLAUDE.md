@@ -924,6 +924,21 @@ máquina de estados da reserva; e `403` × `404` para a reserva de outra pessoa 
 `404`, para não revelar que existe). Backlog pequeno: `str_strip_whitespace` para o nome feito só de
 espaços; `httpx2` no lugar de `httpx`.
 
+**Backlog da comparação com o mercado ao fechar a Etapa 3 (2026-09-23)** — nenhum é v1; ficam
+registrados para decisão futura:
+
+- **Limite de tentativas no `/auth/login`** (*rate limiting*) — o furo mais concreto: nada impede
+  mil tentativas de senha por minuto, e o Argon2, caro de propósito, vira também vetor de negação
+  de serviço. O mercado limita por IP e por conta, com bloqueio progressivo.
+- **Mínimo de senha: 8 × 15.** O `min_length=8` saiu da revisão de 2017 do NIST SP 800-63B; a
+  revisão 4 (2025) exige **15** quando a senha é o único fator — o caso do Reservare — e 8 só com
+  segundo fator. Pede também recusar senhas de listas vazadas, e desaconselha regras de composição
+  e troca periódica forçada. Mudar para 15 exige trocar `"senha456"` nos testes e a senha do admin
+  de desenvolvimento.
+- **Padrão BFF com cookie `httpOnly`** — a recomendação atual do IETF para aplicações de navegador
+  (*OAuth 2.0 for Browser-Based Applications*); já previsto como evolução no ADR 0013. Rever na
+  Etapa 7.
+
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed` antes de mexer em
 qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
