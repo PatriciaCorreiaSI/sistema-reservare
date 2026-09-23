@@ -75,3 +75,17 @@ def usuario(sessao):
     sessao.add(usuario)
     sessao.flush()
     return usuario
+
+
+@pytest.fixture
+def admin(sessao):
+    admin = Usuario(
+        privilegio_usuario="admin",
+        nome_usuario="João",
+        email_usuario="joao@teste.com",
+        senha_usuario_hash=SENHA_HASH,
+        status_usuario="ativo",
+    )
+    sessao.add(admin)
+    sessao.flush()
+    return admin
