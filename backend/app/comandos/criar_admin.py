@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.models import Usuario
+from app.schemas.usuario import UsuarioCriar
+from app.services.usuario import UsuarioService
 
 
 def criar_admin(sessao: Session, nome: str, email: str, senha: str) -> Usuario:
@@ -8,7 +10,15 @@ def criar_admin(sessao: Session, nome: str, email: str, senha: str) -> Usuario:
     e delega ao UsuarioService. Não lê ambiente, não abre sessão,
     não comita.
     """
-    raise NotImplementedError
+    dados = UsuarioCriar(
+        nome_usuario=nome,
+        email_usuario=email,
+        senha=senha,
+        privilegio_usuario="admin",
+    )
+
+    servico = UsuarioService(sessao)
+    return servico.criar(dados)
 
 
 def main() -> None:
