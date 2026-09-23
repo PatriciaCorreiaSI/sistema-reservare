@@ -55,8 +55,8 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Fundação: ambiente, container, lint | ✅ concluída |
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
-| Autenticação e autorização | 🔨 em andamento — login, `/auth/refresh` com rotação e detecção de reuso, logout que revoga de verdade e `POST /usuarios` só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)); 12 testes verdes. Faltam os testes do `403` e do `409`, o comando que cria o primeiro admin, e a metade do critério de pronto que depende de `reserva` ter rotas |
-| Reservas, concorrência e estados | ⏳ |
+| Autenticação e autorização | ✅ concluída — login, `/auth/refresh` com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin e com validação de nome, e-mail e senha, e um comando que cria o primeiro admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)); 22 testes verdes. O teste de IDOR passou para a etapa de reservas, junto com as rotas que ele protege |
+| Reservas, concorrência e estados | 🔨 próxima — inclui o teste de IDOR herdado da etapa anterior |
 | Testes e integração contínua | ⏳ |
 | Front-end | ⏳ |
 | Deploy | ⏳ |

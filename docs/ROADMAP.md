@@ -210,8 +210,8 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 1      | Etapa 0             | ✅ **concluída** — `docker compose up` sobe API e Postgres; `/health` responde 200 |
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
-| 5–6    | Etapa 3             | 🔨 **é aqui que estamos** — cadastro, login, logout que invalida de verdade, autorização por papel. Decidido (ADR 0012, JWT curto + refresh no banco; ADR 0013, token no cabeçalho `Authorization`) e desenhado em `api.md`; a cadeia vertical fechou em 2026-09-22, com as sete rotas no ar e a suíte em `12 passed` — o teste "refresh após logout devolve `401`", escrito antes das rotas, ficou verde. Faltam os testes do `403` e do `409`, o comando `criar_admin`, e a metade do critério de pronto que depende de `reserva` existir |
-| 7–8    | **Etapa 4**         | O invariante sob concorrência + o teste que prova                         |
+| 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
+| 7–8    | **Etapa 4**         | 🔨 **é aqui que estamos** — o invariante sob concorrência + o teste que prova; e o IDOR herdado da Etapa 3 |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
@@ -343,7 +343,7 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **🔨 Em andamento.** Decisões nos ADRs
+> **✅ Etapa concluída em 2026-09-23.** Decisões nos ADRs
 > [0012](adr/0012-jwt-curto-com-refresh-no-banco.md) (access JWT de 15 minutos + refresh opaco no
 > banco, que é o que o logout revoga) e
 > [0013](adr/0013-transportar-token-no-cabecalho-authorization.md) (token no cabeçalho
@@ -352,16 +352,22 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 > refresh, não parte dele, e sobrevive ao `401` no único `commit()` fora do `obter_sessao`. O
 > desenho está em [`api.md`](api.md).
 >
-> A cadeia está no ar desde 2026-09-22, com **12 testes verdes**: login, `/auth/refresh` com
-> rotação e detecção de reuso, logout idempotente e `POST /usuarios` restrito a admin pela
-> dependência `exigir_admin`. O `401` nasce num handler só, com `WWW-Authenticate: Bearer`. O
-> teste do critério de pronto foi escrito quatro sessões antes das rotas e ficou verde sem ser
-> tocado — a suíte passou o caminho inteiro em `1 failed, 11 passed`, de propósito. O que cada
-> peça ensinou e não está no código está em `CLAUDE.md`.
+> A cadeia entrou no ar em 2026-09-22: login, `/auth/refresh` com rotação e detecção de reuso,
+> logout idempotente e `POST /usuarios` restrito a admin pela dependência `exigir_admin`. O `401`
+> nasce num handler só, com `WWW-Authenticate: Bearer`. O teste do critério de pronto foi escrito
+> quatro sessões antes das rotas e ficou verde sem ser tocado. Em 2026-09-23 fecharam os testes
+> do `403`, do `409`, do `422`, do login, da rotação e do reuso (este conferindo que a família
+> inteira cai), e o comando `criar_admin` (`python -m app.comandos.criar_admin`), que cria o
+> primeiro admin a partir do `.env`. **22 testes verdes.** Uma emenda ao
+> [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md) fez a função substituta de
+> `obter_sessao` repetir o ciclo de `commit`/`rollback` — sem isso, o teste de reuso passava mesmo
+> com o `commit()` da emenda ao 0010 apagado. O que cada peça ensinou e não está no código está em
+> `CLAUDE.md`.
 >
-> Faltam os testes do `403` do não-admin e do `409` do e-mail duplicado, e o comando
-> `criar_admin`. **O critério de pronto tem duas metades e só a primeira fechou:** a segunda
-> (IDOR) depende de `reserva` ter rotas — decidir na Etapa 4 se migra para lá.
+> **A segunda metade do critério de pronto (IDOR) passou para a Etapa 4**, decidido em
+> 2026-09-23: ela é critério de aceite das rotas de `reserva`, que ainda não existem. O que a
+> Etapa 3 devia entregar para ela — o `UsuarioAtual` com o `id_usuario` vindo do JWT — está
+> pronto.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
@@ -378,6 +384,8 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 **Critério de pronto**
 Existe teste provando que **após o logout o refresh token não funciona mais**, e teste provando que um usuário não lê nem cancela a reserva de outro.
+
+_(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-09-23.)_
 
 **Armadilhas** — dado sensível no payload do JWT · mensagem de erro que revela se o e-mail existe
 
@@ -405,6 +413,8 @@ Existe teste provando que **após o logout o refresh token não funciona mais**,
 
 **Critério de pronto**
 Existe teste que dispara **duas requisições concorrentes para o mesmo recurso no mesmo horário** e comprova que exatamente uma retorna `201` e a outra `409`.
+
+E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem cancela a reserva de outro** (IDOR — _Broken Object Level Authorization_, o primeiro da OWASP API Top 10 de 2023). A escolha entre `403` e `404` para esse caso é decisão da fase Decidir desta etapa.
 
 > Esse teste é, sozinho, o item de maior valor do seu portfólio inteiro.
 

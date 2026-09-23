@@ -83,11 +83,12 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 2 (primeira fatia vertical): concluída em 2026-09-15** — CRUD de `recurso` nas quatro
   camadas e o primeiro `pytest`: 11 testes verdes, isolados por transação (ADR 0011), inclusive o
   `409` do `DELETE`. As três pendências pequenas fecharam em 2026-09-16 (ver o fim da seção).
-- **Etapa 3 (autenticação e autorização): em andamento** — Decidir (ADRs 0012 e 0013) e Desenhar
-  (`docs/api.md`) fechadas; Tentar aberta em 2026-09-18. **A cadeia vertical fechou em 2026-09-22**:
-  as sete rotas estão registradas e a suíte está em `12 passed`, com o
-  `test_refresh_apos_logout_devolve_401` verde. Faltam os testes do `403` e do `409` e o comando
-  `criar_admin`. Detalhes no fim da seção.
+- **Etapa 3 (autenticação e autorização): concluída em 2026-09-23** — ADRs 0012 e 0013, emendas
+  aos 0010 e 0011, desenho em `docs/api.md`. Sete rotas, o comando `criar_admin`, e a suíte em
+  `22 passed`. A metade IDOR do critério de pronto **passou para a Etapa 4** (decidido em
+  2026-09-23): é critério de aceite das rotas de `reserva`, que ainda não existem.
+- **Etapa 4 (reservas, concorrência e estados): próxima**, começando pela fase Decidir. Detalhes
+  no fim da seção.
 
 ### Já feito
 
@@ -855,19 +856,76 @@ ensinou, e não é derivável do código:
   marcar a última linha como alterada no próximo diff; e `git commit -a` não pega arquivo novo,
   só o que já é rastreado (`??` × `M`).
 
-**Próximo passo, na ordem:** testes das rotas novas — o `403` do não-admin em `POST /usuarios`, o
-`409` do e-mail duplicado, e o caminho feliz de `/auth/login` e `/auth/refresh` (rotação: o refresh
-devolvido é diferente do apresentado, e o antigo deixa de valer). A fixture `usuario` já existe; um
-admin será preciso, gravado pelo modelo como o `api.md` previu · comando `criar_admin` (débito da
-fatia, senha vinda de variável de ambiente).
+**Sessão de 2026-09-23 — a Etapa 3 fechou.** Testes do `403`, do `409`, do login, da rotação e do
+reuso; a função substituta corrigida; o comando `criar_admin`; e um bug achado de passagem,
+reproduzido por teste e corrigido. Suíte de `12 passed` para **`22 passed`**. O que a sessão
+ensinou, e não está no código:
 
-**Atenção ao critério de pronto da Etapa 3:** ele tem duas metades, e só a primeira fechou. "Após o
-logout o refresh não funciona mais" está provado; "um usuário não lê nem cancela a reserva de
-outro" (IDOR) depende de `reserva` ter rotas, o que é Etapa 4. Decidir, quando chegar a hora, se
-essa metade migra para a Etapa 4 ou se a Etapa 3 fica aberta até lá.
+- **No FastAPI as dependências rodam antes do `422` do corpo.** Um corpo inválido com token de
+  não-admin devolveu `403`, não `422` — a ordem real é `401` → `403` → `422` → `409` (a nota da
+  fase Desenhar, mais acima, foi corrigida). Consequência para teste: **a entrada precisa passar em
+  todas as verificações menos a testada**, ou o resultado depende da ordem interna do servidor e o
+  teste passa pelo motivo errado. Mais tarde no mesmo dia, um `"Barer"` digitado errado fez os três
+  casos do `422` voltarem `401` — a mesma lição vista do outro lado.
+- **O teste de reuso confere que o R2 morreu, pela interface.** A preparação deixa o R2 **vivo**
+  (login → um refresh); o ato é reapresentar o R1; o conferir é `401` no R1 **e** `401` no R2. A
+  primeira versão gastava o R2 na preparação, e aí a morte dele não provaria nada. Pela interface,
+  não pela coluna `revogado_em`: testar comportamento, não implementação.
+- **Emenda ao ADR 0011 — a função substituta repete o ciclo do `obter_sessao`.** Provado por
+  experimento (plugin no scratchpad que anula só o `commit()` do `AuthService`): com a substituta
+  antiga, que só fazia `yield sessao`, o teste de reuso passava **sem** o `commit()` da emenda ao
+  0010 — nada desfazia o `UPDATE`. Agora ela faz `commit()` depois do `yield` e `rollback()` +
+  `raise` na exceção, sem `close()`; com o `create_savepoint`, os dois agem só sobre o savepoint. O
+  mesmo experimento agora falha com `200` no R2. Primeira versão do experimento anulou **todos** os
+  `commit()` e passou pelo motivo errado — um teste, um motivo, vale para experimento também.
+- **Contra-teste virou rotina:** depois de cada teste verde, estragar o ato (tirar o `headers=`,
+  comentar a linha do reuso, trocar o e-mail repetido por um novo) e ver o teste falhar com o
+  número certo. Teste que continua verde sem o ato não prova nada.
+- **Teste com `pass` é verde.** Enquanto um teste não está escrito, `@pytest.mark.skip(reason=...)`;
+  o `s` aparece em toda rodada.
+- **`criar_admin` — três decisões (nota, não ADR):** módulo Python em `app/comandos/criar_admin.py`,
+  rodado com `uv run python -m app.comandos.criar_admin` (o `-m` garante que o `app/__init__.py`
+  roda e carrega o `.env`); nome, e-mail e senha por `ADMIN_NOME`/`ADMIN_EMAIL`/`ADMIN_SENHA`,
+  obrigatórias; e **falhar alto** na segunda execução — stderr e `sys.exit(1)`. Duas funções:
+  `criar_admin(sessao, nome, email, senha)` é a lógica, testável com a sessão da fixture, e
+  delega ao `UsuarioService` (o `Depends` do `__init__` é só valor padrão; fora do FastAPI basta
+  `UsuarioService(sessao)`); `main()` é a casca que toca o mundo. O comando é **ponto de entrada**
+  com a própria unidade de trabalho — `with FabricaDeSessao() as sessao, sessao.begin():` — não
+  uma camada chamando `commit()`. O `try` fica **em volta** do `with`, para a exceção atravessar o
+  `begin()` (rollback) antes de ser tratada; o `id` é lido dentro do bloco (depois do `close()` o
+  objeto está desligado da sessão) e impresso fora (só depois do `commit()` é verdade que existe).
+- **Bug achado rodando o comando: admin com nome, e-mail e senha vazios.** As três chaves estavam
+  no `.env` sem valor — `os.environ[...]` protege contra chave ausente, não contra chave vazia (o
+  limite registrado em 2026-09-10, visto acontecer pela primeira vez). E o furo não era do comando:
+  `POST /usuarios` também aceitava. Correção **no schema**, a porta comum às duas entradas:
+  `nome_usuario: str = Field(min_length=1)`, `email_usuario: EmailStr` (dependência nova,
+  `email-validator` — o Pydantic a chama por baixo, sem `import` no projeto), `senha:
+  str = Field(min_length=8)` (piso do NIST). Teste primeiro, com `@pytest.mark.parametrize` — um
+  campo estragado por rodada, o resto válido; foi ele que apontou o `nome_usuario` esquecido na
+  primeira versão do schema. Banco de desenvolvimento limpo à mão; `ADMIN_SENHA` fica comentada no
+  `.env` depois de usada — ausente, ela falha na primeira linha com `KeyError`; vazia, só no schema.
+- **Uma sequência do Postgres nunca volta atrás**, nem com `rollback`: o admin nasceu com `id=5`
+  porque tentativas anteriores gastaram 3 e 4. Buraco na numeração não é sinal de erro.
+- Miudezas: argumento **posicional** preenche parâmetros na ordem da assinatura — com vários `str`
+  seguidos, nomeados (`email=...`); `for` sobre uma `str` percorre letras; `resposta = corpo[campo]
+  = valor` é atribuição encadeada; `with` é gerenciador de contexto (entrada, bloco, saída
+  garantida — a mesma ideia do `yield` da fixture); `pytest.raises` engole só o tipo pedido e deve
+  envolver só a chamada que deve falhar; código de saída `0` = sucesso, `≠ 0` = falha, e
+  `$LASTEXITCODE` o mostra no PowerShell; `MAIÚSCULAS` é para constante de módulo, não variável
+  local.
+
+**Próximo passo: a fase Decidir da Etapa 4.** O critério de pronto tem agora duas partes: o teste
+de concorrência (duas requisições simultâneas para o mesmo recurso e horário → exatamente um `201` e
+um `409`) e o de IDOR herdado da Etapa 3. Decisões que a fase precisa abrir, antes de qualquer
+código: como o teste de concorrência roda de verdade (a exceção nomeada no ADR 0011 — transação
+real, `TRUNCATE` depois, marcador próprio do `pytest`); como traduzir a violação da `EXCLUDE` em
+`409` distinguindo **qual** constraint falhou (a dívida de `criar`/`atualizar` da Etapa 2); a
+máquina de estados da reserva; e `403` × `404` para a reserva de outra pessoa (o mercado tende ao
+`404`, para não revelar que existe). Backlog pequeno: `str_strip_whitespace` para o nome feito só de
+espaços; `httpx2` no lugar de `httpx`.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `12 passed` antes de mexer em
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed` antes de mexer em
 qualquer coisa. Sem o banco no ar o `pytest` **pendura** em vez de falhar.
 
 > Atualize esta seção ao fechar cada etapa. O README tem a tabela de status
