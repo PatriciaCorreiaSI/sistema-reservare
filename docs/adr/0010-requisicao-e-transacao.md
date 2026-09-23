@@ -29,7 +29,7 @@ A regra geral ("exceção desfaz tudo") pressupõe que a escrita é parte do que
 ### **Decisão:** 
 O `AuthService` chama `self._sessao.commit()` logo depois de `revogar_familia`, antes de levantar `CredenciaisInvalidas`. Quando o `rollback` do `obter_sessao` chega, a revogação já é definitiva. É o único `commit()` fora do `obter_sessao`, e fica nomeado aqui por isso
 
-### **Alternativa descartada:**
+### **Alternativas descartadas:**
 - **Não levantar exceção:** o service devolve `None` e o router responde `401` com JSONResponse; sem exceção, o `obter_sessao` comita normalmente. Custo: o router passa a ter regra ("se veio `None`, é `401`"), o que viola a convenção de camadas.  E o `401` passa a nascer em dois lugares diferentes (handler global para login e router para refresh).
 
 - **Sessão independente** só para o `UPDATE` da família: abre uma segunda `Session` do zero, faz o `UPDATE`, comita e fecha. A da requisição é desfeita pelo `rollback` como sempre. Custo: duas conexões por requisição, código de infraestrutura dentro do service, a fixture de teste não enxerga essa segunda sessão. Ela escreveria de verdade no banco de teste, quebrando o isolamento do [ADR 0011](0011-isolar-teste-em-transacao-desfeita-no-fim.md).
