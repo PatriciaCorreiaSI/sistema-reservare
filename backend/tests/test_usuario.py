@@ -1,3 +1,5 @@
+import pytest
+
 SENHA = "senha123"  # a mesma que gerou SENHA_HASH no conftest
 
 
@@ -51,3 +53,40 @@ def test_criar_usuario_com_email_existente_devolve_409(client, admin, usuario):
 
     # Conferir
     assert resposta.status_code == 409
+
+
+@pytest.mark.parametrize(
+    ("campo", "valor"),
+    [
+        ("nome_usuario", ""),
+        ("email_usuario", ""),
+        ("senha", "1234567"),
+    ],
+)
+def test_criar_usuario_com_campo_invalido_devolve_422(client, admin, campo, valor):
+    # Preparar: o admin entra; só ele passa do 403 e chega à validação
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": admin.email_usuario, "senha": SENHA},
+    )
+    access_token = resposta.json()["access_token"]
+
+    # Preparar: um corpo válido, e só o campo desta rodada estragado.
+    # Um motivo para falhar por rodada. O parametrize repete o resto.
+    corpo = {
+        "nome_usuario": "Felipe",
+        "email_usuario": "felipe@teste.com",
+        "senha": "senha456",
+        "privilegio_usuario": "usuario",
+    }
+    corpo[campo] = valor
+
+    # Agir
+    resposta = client.post(
+        "/usuarios",
+        json=corpo,
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    # Conferir
+    assert resposta.status_code == 422
