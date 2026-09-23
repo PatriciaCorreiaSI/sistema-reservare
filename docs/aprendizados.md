@@ -99,3 +99,10 @@
 |⛓️ **SHA-256**| Algoritmo de hash, rápido e determinístico. Usado para entrada aleatória e longa, onde não há candidatos a testar. Mesma entrada → mesmo hash, e por isso serve para busca no banco que precisa de hash igual para entrada igual. É o que o servidor precisa para fazer `WHERE hash_token =...`|
 |🔐 **Dependência como guarda** | Função de `Depends` que levanta exceção para impedir o handler de rodar. Barra na porta antes de deixar entrar. |
 |📚 **Quando usar `classe` × `objeto(instância)`:** | Na **assinatura** (nome da função + parâmetros com tipos + retorno) e no `select`, se usa a classe; no `add`, `return` e na **atribuição**, se usa o objeto instanciado. |
+|🧐 **A ordem das verificações:**| A ordem das verificações é uma questão de segurança. Todo servidor responde a uma requisição fazendo uma sequência de perguntas. A primeira que falha é a que o cliente vê. Identidade vem antes de conteúdo. A ordem importa: quem é → você pode → está bem formado → conflita. |
+|💂 **A ordem dos `4xx` no FastAPI:**| As dependências rodam antes de o corpo ser validado, então `401` e `403` vêm antes do `422`. Quem não pode entrar não descobre o formato que a rota espera. Cada framework define a ordem do seu jeito, e só um teste isolado mostra qual é.|
+|🧾 **Um teste → um motivo para falhar:** | Para testar uma verificação, a entrada precisa passar em todas as outras. Só aquilo que está sendo testado pode estar errado. Se duas coisas estiverem erradas ao mesmo tempo, o resultado depende da ordem interna do servidor e o teste pode passar pelo motivo errado ou falhar apontando a causa errada. |
+|🪪 **Quem é você?**| Autenticação, erro dá `401`. |
+|👮‍♂️ **Você pode?**| Autorização, erro dá `403`. |
+|⚒️ **O pedido está bem formado?**| Validação, erro dá `422` ou `400`. |
+|🚨 **Ele conflita com o estado atual?**| Regra de negócio, erro dá `409`. |

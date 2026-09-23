@@ -613,8 +613,12 @@ Conceitos que custaram rodadas, agora no `aprendizados.md` ou aprendidos na sess
 é tabela** (o schema descreve o que viaja no JSON; `hash_token`, `expira_em`, `revogado_em` são
 calculados ou consultados pelo servidor e nunca entram numa entrada — tudo que o cliente manda ele
 pode mentir; `UsuarioCriar` leva `senha` em texto, o Argon2 é do servidor); os códigos `4xx` como
-perguntas distintas (`422` bem formada? → `401` quem é? → `403` pode? → `409` conflita?), na ordem
-em que o servidor consegue verificar; **dependência como guarda**; e o que é uma **assinatura**.
+perguntas distintas (`401` quem é? → `403` pode? → `422` bem formada? → `409` conflita?) —
+*(corrigido em 2026-09-23: a primeira versão punha o `422` na frente; o teste do `403` provou o
+contrário — corpo inválido com token de não-admin devolve `403`. No FastAPI as dependências rodam
+antes de o erro de validação do corpo ser levantado, e identidade antes de conteúdo é o lado
+seguro: quem não pode entrar não descobre o formato esperado)*; **dependência como guarda**; e o
+que é uma **assinatura**.
 
 **Item 5 foi rebaixado de propósito**: o teste do critério de pronto não vai em prosa no
 `api.md` — o mercado escreve o teste direto em Python, e ela já tem onze. Ele vira o primeiro
