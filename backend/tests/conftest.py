@@ -44,8 +44,17 @@ def sessao(engine_de_teste):
 
 @pytest.fixture
 def client(sessao):
+    # Substituta de obter_sessao (ADR 0011, emenda de 2026-09-23): repete o
+    # ciclo de pp/db.py: commit se deu certo, rollback se uma exceção atravessou.
+    # Com o create_savepoint, ambos agem só sobre o savepoint.
+    # Sem criar nem fechar a sessão: isso é da fixture `sessao`.
     def obter_sessao_de_teste():
-        yield sessao
+        try:
+            yield sessao
+            sessao.commit()
+        except Exception:
+            sessao.rollback()
+            raise
 
     app.dependency_overrides[obter_sessao] = obter_sessao_de_teste
     yield TestClient(app)
