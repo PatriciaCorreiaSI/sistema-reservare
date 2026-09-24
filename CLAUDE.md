@@ -83,7 +83,8 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 3 (autenticação e autorização): concluída em 2026-09-23** — ADRs 0012 e 0013, emendas aos
   0010 e 0011; sete rotas, o comando `criar_admin`, suíte em `22 passed`. A metade IDOR do critério
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
-- **Etapa 4 (reservas, concorrência e estados): próxima**, começando pela fase Decidir.
+- **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
+  2026-09-24 (ADRs 0014–0017); próxima, a fase Desenhar.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -216,13 +217,15 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**A fase Decidir da Etapa 4.** O critério de pronto tem duas partes: o teste de concorrência (duas
+**A fase Desenhar da Etapa 4.** O critério de pronto tem duas partes: o teste de concorrência (duas
 requisições simultâneas para o mesmo recurso e horário → exatamente um `201` e um `409`) e o de IDOR
-herdado da Etapa 3. Já decididos em 2026-09-24: a tradução da violação pelo nome da constraint, no
-repository (ADR 0014); o teste de concorrência com threads e barreira, pela API (ADR 0015); e a
-máquina de estados, com cancelamento por `POST /reservas/{id}/cancelar` e `UPDATE` condicional
-(ADR 0016). Falta, antes de qualquer código: `403` × `404` para a reserva de outra pessoa (o
-mercado tende ao `404`, para não revelar que existe).
+herdado da Etapa 3. A fase Decidir fechou em 2026-09-24 com quatro ADRs: a tradução da violação
+pelo nome da constraint, no repository (0014); o teste de concorrência com threads e barreira, pela
+API (0015); a máquina de estados, com cancelamento por `POST /reservas/{id}/cancelar` e `UPDATE`
+condicional (0016); e `404` para a reserva alheia, com `garantir_acesso` no service, lida antes do
+`UPDATE` (0017). Desenhar, sem corpo: o contrato das rotas de `reserva` no `docs/api.md`, os
+schemas por direção, as assinaturas de repository e service (com o relógio injetado) e os testes
+que deveriam passar.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed` antes de mexer em

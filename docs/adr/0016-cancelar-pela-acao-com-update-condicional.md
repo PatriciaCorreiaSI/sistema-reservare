@@ -23,7 +23,7 @@ Concluída e cancelada são finais. Com isso, só sobra uma transição que algu
 
 Cancela-se enquanto a reserva ainda não terminou, ou seja, ela ainda é "confirmada". "Concluída" sai de uma função de domínio no service, que recebe o agora como parâmetro, para ser testável com um horário fixo. A rota é `POST /reservas/{id}/cancelar`, com `409` para a transição inválida: o pedido conflita com o estado atual da reserva.
 
-O cancelamento é um `UPDATE` condicional que verifica e grava no mesmo comando: `WHERE id_reserva = :id AND cancelada_em IS NULL AND upper(periodo) > :agora`, com o mesmo agora recebido pelo service. Se 0 linhas forem afetadas, nada mudou, e o service lê a reserva depois só para escolher entre `404` (não existe) e `409` (já cancelada ou já terminada). Essa leitura não decide nada, então não abre janela de corrida.
+O cancelamento é um `UPDATE` condicional que verifica e grava no mesmo comando: `WHERE id_reserva = :id AND cancelada_em IS NULL AND upper(periodo) > :agora`, com o mesmo agora recebido pelo service. Antes dele, o service lê a reserva e confere o acesso ([ADR 0017](0017-404-a-quem-nao-pode-acessar-a-reserva.md)): se ela não existe ou não é de quem pede, `404`. Por isso, se o `UPDATE` afetar 0 linhas, a reserva já foi cancelada ou já terminou, e a resposta é `409`.
 
 ## Alternativas consideradas
 
@@ -46,7 +46,7 @@ O cancelamento é um `UPDATE` condicional que verifica e grava no mesmo comando:
 
 ## Consequências
 
-O ganho: nenhuma regra nova além da máquina, e nenhuma janela de corrida no cancelamento. Os custos: a reserva usada pela metade fica como "cancelada", filtrar por "concluída" exigiria levar a regra para o SQL. O `UPDATE` com 0 linhas pede leitura extra.
+O ganho: nenhuma regra nova além da máquina, e nenhuma janela de corrida no cancelamento. Os custos: a reserva usada pela metade fica como "cancelada", filtrar por "concluída" exigiria levar a regra para o SQL. 
 
 ## Como eu saberia que errei
 
