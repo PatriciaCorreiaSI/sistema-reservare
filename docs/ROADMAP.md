@@ -395,6 +395,15 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 
 ### ⚙️ Etapa 4 — O coração: reservas, concorrência e estados
 
+> **🔨 Em andamento.** A fase Decidir fechou em 2026-09-24 com quatro ADRs:
+> [0014](adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) (a violação é traduzida pelo nome
+> da constraint, no repository), [0015](adr/0015-concorrencia-com-threads-e-barreira-pela-api.md)
+> (o teste de concorrência usa threads liberadas por uma barreira, pela API),
+> [0016](adr/0016-cancelar-pela-acao-com-update-condicional.md) (cancelamento por
+> `POST /reservas/{id}/cancelar`, com `UPDATE` condicional) e
+> [0017](adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md) (`404` para a reserva alheia). Próxima,
+> a fase Desenhar.
+
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 
 **Conceitos novos**
@@ -414,7 +423,7 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 **Critério de pronto**
 Existe teste que dispara **duas requisições concorrentes para o mesmo recurso no mesmo horário** e comprova que exatamente uma retorna `201` e a outra `409`.
 
-E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem cancela a reserva de outro** (IDOR — _Broken Object Level Authorization_, o primeiro da OWASP API Top 10 de 2023). A escolha entre `403` e `404` para esse caso é decisão da fase Decidir desta etapa.
+E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem cancela a reserva de outro** (IDOR — _Broken Object Level Authorization_, o primeiro da OWASP API Top 10, edição de 2023, a vigente). Para esse caso, a resposta é `404`, e não `403`, para não revelar que a reserva existe (ADR 0017).
 
 > Esse teste é, sozinho, o item de maior valor do seu portfólio inteiro.
 

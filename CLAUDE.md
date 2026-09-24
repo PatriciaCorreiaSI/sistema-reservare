@@ -137,7 +137,8 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **Ordem real das verificações no FastAPI:** `401` → `403` → `422` → `409` — as dependências rodam
   antes de o erro de validação do corpo ser levantado.
 - **Dívida da Etapa 2:** `criar` e `atualizar` de recurso deixam `IntegrityError` subir → `500`
-  (o `TestClient` o mostra como traceback). A Etapa 4 trata, distinguindo **qual** constraint falhou.
+  (o `TestClient` o mostra como traceback). A Etapa 4 paga pelo ADR 0014: tradução pelo nome da
+  constraint, no repository, e `CHECK` que dispara é validação faltando no schema.
 - **Validação só na entrada:** `UsuarioCriar` leva `nome_usuario` com `min_length=1`, `EmailStr`
   (exige `email-validator`) e `senha` com `min_length=8`, e `privilegio_usuario:
   Literal["admin", "usuario"]`. `UsuarioResposta` e `UsuarioAtual` não repetem — o que sai do banco
