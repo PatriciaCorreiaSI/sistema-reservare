@@ -66,7 +66,11 @@
 | Logout e rotação marcam `revogado_em`, não apagam | Serviço garante |
 | Refresh já `revogado` sendo reapresentado revoga a família inteira | Serviço garante |
 | `expira_em > criado_em` | Banco garante |
-| Usuário apagado, token é apagado por `CASCADE`; token não é histórico | banco garante |
+| Usuário apagado, token é apagado por `CASCADE`; token não é histórico | Banco garante |
+| A reserva nasce `confirmada`| Serviço garante |
+| Só se cancela reserva `confirmada` que ainda não terminou; `concluída` e `cancelada` são finais| Serviço garante, com `UPDATE` condicional [ADR 0016](./adr/0016-cancelar-pela-acao-com-update-condicional.md) |
+| Só o dono ou um admin lê e cancela a reserva | Serviço garante, com `garantir_acesso` [ADR 0017](./adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md) |
+| `Convidados > 0` e período semiaberto `[inicio, fim)` não vazio | Banco garante (`CHECK`); o schema recusa antes, com `422`| 
 
 
 

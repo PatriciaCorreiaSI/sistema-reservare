@@ -66,6 +66,7 @@ TokenResposta
     token_type: str = "bearer"
 ```
 
+
 - **Payload do JWT:** só entra no payload o que se mostraria ao próprio usuário na tela. O padrão tem dois obrigatórios: 
     - `sub` (*subject*, quem é: `id_usuario`): para identifica a quem pertence;
     - `exp`(*expiration*, instante em que este access deixa de valer, em UTC). O refresh não é JWT; o vencimento dele é `espira_em` no banco.
@@ -134,3 +135,48 @@ UsuarioResposta
 
 
 - **Primeiro admin** é criado fora da API por um comando (`criar_admin`, senha vinda de variável de ambiente), porque o banco nasce vazio e só admin cadastra. Rodar com `uv run python -m app.comandos.criar_admin` de dentro de `backend/`, lendo `ADMIN_NOME`, `ADMIN_EMAIL` e `ADMIN_SENHA` do `.env` e saindo com código `1` se o e-mail já existir. Nos testes, a fixture grava o admin direto pelo modelo.
+
+
+## Reserva
+
+### Schemas
+
+```
+ReservaCriar
+    id_recurso: int
+    convidados: int = Field(gt=0)
+    inicio: AwareDatetime
+    fim: AwareDatetime
+    valida: inicio < fim (model_validator) → 422
+```
+
+```
+ReservaResposta
+    id_reserva: int
+    id_usuario: int
+    id_recurso: int
+    convidados: int
+    inicio: datetime
+    fim: datetime
+    status_reserva: str         confirmada | cancelada | concluida
+    cancelada_por_id_usuario: int | None
+    cancelada_em: datetime | None
+```
+
+
+- **O `periodo` não viaja no JSON.** O `tstzrange` é um tipo do Postgres, e o JSON não tem nada parecido. O cliente manda `inicio` e `fim`, e o service monta o intervalo semiaberto `[inicio, fim)`. A resposta devolve os dois de volta.
+
+- **Horário sem fuso é recusado.** `AwareDatetime` exige o deslocamento (`2026-10-01T09:00-03:00`); sem ele (`2026-10-01T09:00`), o horário é ambíguo e a resposta é `422`. O banco guarda o instante, e fuso é assunto de apresentação.
+
+- **O cliente não manda quem reserva, nem o status.** `id_usuario` vem do token: quem reserva é quem chama, e aceitar do corpo deixaria reservar em nome de outra pessoa. A reserva nasce `confirmada`, e as colunas de cancelamento só mudam pela rota de cancelar.
+
+- **O schema valida só o que o JSON sabe sozinho** (`convidados > 0`, `inicio < fim`). O que depende do relógio (não reservar no passado) ou do recurso no banco (ativo, horário de funcionamento, `convidados <= ocupacao`) é regra do service.
+
+- **`status_reserva` na resposta é o status efetivo**, não a coluna: uma reserva confirmada cujo fim já passou aparece como `concluida` ([ADR 0004](./adr/0004-status-reserva-concluida.md)). Por isso, e porque `inicio` e `fim` não existem na tabela, `ReservaResposta` não é montada direto do modelo com `from_attributes`.
+
+
+### Rotas de `/reservas`
+
+| **Rota**  |  **Sucesso** |  **Erros** | **Porquê** |
+|-----------|--------------|------------|------------|
+| | | | |
