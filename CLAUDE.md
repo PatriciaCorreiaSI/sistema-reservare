@@ -219,9 +219,10 @@ compromissos sobre código que ainda não existe, e armadilhas.
 **A fase Decidir da Etapa 4.** O critério de pronto tem duas partes: o teste de concorrência (duas
 requisições simultâneas para o mesmo recurso e horário → exatamente um `201` e um `409`) e o de IDOR
 herdado da Etapa 3. Já decididos em 2026-09-24: a tradução da violação pelo nome da constraint, no
-repository (ADR 0014), e o teste de concorrência com threads e barreira, pela API (ADR 0015).
-Faltam, antes de qualquer código: a máquina de estados da reserva; e `403` × `404` para a reserva
-de outra pessoa (o mercado tende ao `404`, para não revelar que existe).
+repository (ADR 0014); o teste de concorrência com threads e barreira, pela API (ADR 0015); e a
+máquina de estados, com cancelamento por `POST /reservas/{id}/cancelar` e `UPDATE` condicional
+(ADR 0016). Falta, antes de qualquer código: `403` × `404` para a reserva de outra pessoa (o
+mercado tende ao `404`, para não revelar que existe).
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed` antes de mexer em
@@ -239,6 +240,9 @@ qualquer coisa.
 - **Teste de concorrência determinístico, direto no banco** (ADR 0015) — duas conexões sem HTTP: a 1
   insere sem comitar, a 2 fica bloqueada, a 1 comita, a 2 recebe `23P01`. Prova a espera toda vez;
   adiado porque testa comportamento do Postgres, e o teste pela API já exercita o que é do projeto.
+- **Encerrar a reserva mais cedo** (ADR 0016) — o "check-out" dos sistemas comerciais: encurta o
+  `periodo` e libera só o resto do horário. Na v1, cancelar em andamento libera o período inteiro e
+  a reserva usada pela metade fica como "cancelada".
 - `str_strip_whitespace` para o nome feito só de espaços; `httpx2` no lugar de `httpx`
   (`uv remove httpx` + `uv add --dev httpx2`).
 
