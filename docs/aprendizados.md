@@ -108,3 +108,10 @@
 |🚨 **Ele conflita com o estado atual?**| Regra de negócio, erro dá `409`. |
 |🔄️ **Override**| É como o FastAPI chama a troca de uma dependência por outra função durante o teste (`app.dependency_overrides[original] = substituta`). O código que pede a dependência não percebe a troca. Serve para qualquer dependência (sessão do banco, usuário logado, cliente de e-mail, etc). |
 |👯‍♀️ **Test double**| Termo geral usado para designar qualquer peça falsa que ocupa o lugar da verdadeira durante um teste. Podem ser de 5 tipos, do mais simples ao mais elaborado: *dummy, stub, spy, mock e fake*. A que usamos neste projeto (`obter_sessao_de_teste`) é do tipo *fake*, porque funciona de verdade, mas por um caminho mais simples. |
+
+
+### ⚙️ Etapa 4 — O coração: reservas, concorrência e estados
+
+| **Conceitos** | **Novo aprendizado** |
+|---------------|----------------------|
+|🎲 **`SQLSTATE`**| Quando o postgres recusa uma linha, ele devolve uma mensagem de texto e dois dados estruturaros: o `SQLSTATE` e o nome da constraint. O `SQLSTATE` é um código SQL de 5 caracteres padronizado (Ex: `23P01`) que identifica o tipo de erro. Os dois primeiros dígitos são a classe e é dentro dela que cada tipo de constraint tem seu código (Exe: `23` é violação de integridade). |
