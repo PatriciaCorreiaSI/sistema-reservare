@@ -224,9 +224,19 @@ herdado da Etapa 3. A fase Decidir fechou em 2026-09-24 com quatro ADRs: a tradu
 pelo nome da constraint, no repository (0014); o teste de concorrência com threads e barreira, pela
 API (0015); a máquina de estados, com cancelamento por `POST /reservas/{id}/cancelar` e `UPDATE`
 condicional (0016); e `404` para a reserva alheia, com `garantir_acesso` no service, lida antes do
-`UPDATE` (0017). Desenhar, sem corpo: o contrato das rotas de `reserva` no `docs/api.md`, os
-schemas por direção, as assinaturas de repository e service (com o relógio injetado) e os testes
-que deveriam passar.
+`UPDATE` (0017). Da fase Desenhar, feitos em 2026-09-24: schemas e rotas de `reserva` no
+`docs/api.md`; e o esqueleto em código, com corpos em `raise NotImplementedError` (corpo vazio `...`
+o `mypy` recusa como `empty-body`): `obter_agora` em `dependencies.py` (o relógio injetado; o teste
+o troca por `dependency_overrides`), as exceções novas em `excecoes.py` (os três `422` como filhas
+de `RegraDeReservaViolada`, que carregam a mensagem em `detalhe` — um handler só, para a mãe),
+`schemas/reserva.py`, `repositories/reserva.py` (`cancelar` devolve `bool`; sem `atualizar` nem
+`remover`: reserva é histórico) e `services/reserva.py` (`status_efetivo` e `garantir_acesso` como
+funções puras fora da classe).
+
+**Retomar por:** explicar o `services/reserva.py` método a método — ela pediu, antes de seguir.
+Depois, a última peça do Desenhar: os testes que deveriam passar, com `@pytest.mark.skip`. Armadilha
+já anunciada para a fase Tentar: após o `UPDATE` do `cancelar`, o objeto lido antes pode seguir com
+o status antigo na sessão.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed` antes de mexer em

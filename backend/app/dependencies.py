@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -29,3 +31,7 @@ def exigir_admin(usuario: UsuarioAtual = Depends(obter_usuario_atual)) -> Usuari
     if usuario.privilegio_usuario != "admin":
         raise PrivilegioInsuficiente
     return usuario
+
+
+def obter_agora() -> datetime:
+    return datetime.now(UTC)
