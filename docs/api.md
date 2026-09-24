@@ -179,4 +179,7 @@ ReservaResposta
 
 | **Rota**  |  **Sucesso** |  **Erros** | **Porquê** |
 |-----------|--------------|------------|------------|
-| | | | |
+|`POST /reservas` | `201` + `ReservaResposta` | `401` · `422` · `404` · `409`  | `401`: sem token válido. `422`: quando o conteúdo viola uma regra, e quem pede precisa mudar o pedido: no schema (horário sem fuso, `inicio >= fim`, `convidados <= 0`) ou no service (no passado, fora do horário de funcionamento, mais convidados que a ocupação). `404`: quando o recurso não existe. `409`: quando o pedido está certo, mas conflita com o estado atual: o horário já está ocupado por outra reserva (a `EXCLUDE`) ou o recurso está inativo. `id_usuario` vem do token.  |
+|`GET /reservas?limite=&deslocamento=` | `200` + lista de `ReservaResposta` | `401` · `422` | `401`: sem token válido. `422`: limite ou deslocamento inválidos. Filtra em vez de recusar: o usuário comum recebe só as suas reservas, o admin recebe todas. |
+|`GET /reservas/{id}`| `200` + `ReservaResposta`  | `401` · `404` | `401`: sem token válido. `404`: tanto para a reseva que não existe quanto para a de outra pessoa: a resposta não revela que ela existe ([ADR 0017](./adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md)). O admin lê qualquer uma. |
+|`POST /reservas/{id}/cancelar` | `200` + `ReservaResposta` | `401` · `404` · `409` |`401`: sem token válido. `404`: para a reserva inexistente ou de outra pessoa, como na leitura. `409`: quando a reserva já foi cancelada ou já terminou ([ADR 0016](./adr/0016-cancelar-pela-acao-com-update-condicional.md)). Devolve a reserva, e não `204`, porque ela continua existindo, agora cancelada, e o cliente vê o resultado sem outro `GET`.|
