@@ -13,7 +13,14 @@ from app.schemas.reserva import ReservaCriar, ReservaResposta
 
 
 def status_efetivo(reserva: Reserva, agora: datetime) -> str:
-    raise NotImplementedError
+    if reserva.status_reserva == "cancelada":
+        return "cancelada"
+    fim = reserva.periodo.upper
+    # O CHECK formato_semiaberto proíbe período sem fim; o assert conta isso ao mypy.
+    assert fim is not None
+    if fim <= agora:
+        return "concluida"
+    return "confirmada"
 
 
 def garantir_acesso(reserva: Reserva | None, usuario: UsuarioAtual) -> Reserva:

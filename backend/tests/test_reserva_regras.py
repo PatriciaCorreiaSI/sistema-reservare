@@ -16,7 +16,7 @@ AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 
 def test_status_efetivo_de_confirmada_com_fim_no_futuro_e_confirmada():
     # fim > agora → 'confirmada'
-    # Preparar: confirmada, da 13h às 14h; AGORA é 12h, então o fim está no futuro
+    # Preparar: confirmada, de 13h às 14h; AGORA é 12h, então o fim está no futuro
     reserva = Reserva(
         periodo=Range(
             datetime(2026, 10, 1, 13, 0, tzinfo=UTC),
@@ -31,14 +31,37 @@ def test_status_efetivo_de_confirmada_com_fim_no_futuro_e_confirmada():
     assert status == "confirmada"
 
 
-@pendente
 def test_status_efetivo_de_confirmada_com_fim_igual_a_agora_e_concluida():
-    """fim == agora → 'concluida': o intervalo é [inicio, fim), o fim não é ocupado."""
+    # fim == agora → 'concluida': o intervalo é [inicio, fim), o fim não é ocupado.
+    # Preparar: confirmada, de 11h às 12h; AGORA é 12h, então o fim está igual a agora
+    reserva = Reserva(
+        periodo=Range(
+            datetime(2026, 10, 1, 11, 0, tzinfo=UTC),
+            datetime(2026, 10, 1, 12, 0, 0, tzinfo=UTC),
+            bounds="[)",
+        ),
+        status_reserva="confirmada",
+    )
+    # Agir
+    status = status_efetivo(reserva, AGORA)
+    # Conferir
+    assert status == "concluida"
 
 
-@pendente
 def test_status_efetivo_de_cancelada_com_fim_no_passado_continua_cancelada():
-    """Cancelada é final: não vira 'concluida' quando o fim passa."""
+    # Cancelada é final: não vira 'concluida' quando o fim passa.
+    reserva = Reserva(
+        periodo=Range(
+            datetime(2026, 10, 1, 10, 0, tzinfo=UTC),
+            datetime(2026, 10, 1, 11, 0, 0, tzinfo=UTC),
+            bounds="[)",
+        ),
+        status_reserva="cancelada",
+    )
+    # Agir
+    status = status_efetivo(reserva, AGORA)
+    # Conferir
+    assert status == "cancelada"
 
 
 # garantir_acesso (ADR 0017)
