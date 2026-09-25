@@ -1,16 +1,18 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy.dialects.postgresql import Range
 
 from app.dependencies import UsuarioAtual
-from app.models import Reserva
+from app.models import Recurso, Reserva
 from app.services.excecoes import ReservaNaoEncontrada
-from app.services.reserva import garantir_acesso, status_efetivo
+from app.services.reserva import cabe_no_horario, garantir_acesso, status_efetivo
 
 pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
 
 AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+FUSO = ZoneInfo("America/Sao_Paulo")
 
 
 # status_efetivo (ADR 0004 e 0016)
@@ -126,14 +128,25 @@ def test_garantir_acesso_recusa_reserva_inexistente():
 # cabe_no_horario (ADR 0018), recurso das 08:00 às 18:00, fuso America/Sao_Paulo
 
 
-@pendente
 def test_cabe_no_horario_le_o_horario_no_fuso_do_sistema():
-    """16:00-03:00 às 17:00-03:00 → True. Em UTC seria 19h às 20h, fora do horário:
-    só passa se a comparação for feita no fuso do sistema."""
+    # 16:00-03:00 às 17:00-03:00 → True. Em UTC seria 19h às 20h, fora do horário:
+    # só passa se a comparação for feita no fuso do sistema.
+    # Preparar: recurso das 8h às 18h (hora de relógio, sem fuso); a reserva é
+    # das 16h às 17h em Brasília, escrita em UTC (19h às 20h), como o frontend envia.
+    recurso = Recurso(
+        hora_func_inicio=time(8, 0),
+        hora_func_fim=time(18, 0),
+    )
+    inicio = datetime(2026, 10, 2, 19, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 2, 20, 0, tzinfo=UTC)
+    # Agir
+    cabe = cabe_no_horario(inicio, fim, recurso, FUSO)
+    # Conferir
+    assert cabe
 
 
 @pendente
-def test_cabe_no_horario_aceita_fim_exatamente_no_efchamento():
+def test_cabe_no_horario_aceita_fim_exatamente_no_fechamento():
     """17:00 às 18:00 local cabe: o fim não é ocupado."""
 
 
