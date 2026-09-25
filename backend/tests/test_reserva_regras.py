@@ -1,14 +1,34 @@
+from datetime import UTC, datetime
+
 import pytest
+from sqlalchemy.dialects.postgresql import Range
+
+from app.models import Reserva
+from app.services.reserva import status_efetivo
 
 pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
 
+AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 
-# status_eeftivo (ADR 0004 e 0016)
+
+# status_efetivo (ADR 0004 e 0016)
 
 
-@pendente
 def test_status_efetivo_de_confirmada_com_fim_no_futuro_e_confirmada():
-    """fim > agora → 'confirmada'."""
+    # fim > agora → 'confirmada'
+    # Preparar: confirmada, da 13h às 14h; AGORA é 12h, então o fim está no futuro
+    reserva = Reserva(
+        periodo=Range(
+            datetime(2026, 10, 1, 13, 0, tzinfo=UTC),
+            datetime(2026, 10, 1, 14, 0, 0, tzinfo=UTC),
+            bounds="[)",
+        ),
+        status_reserva="confirmada",
+    )
+    # Agir
+    status = status_efetivo(reserva, AGORA)
+    # Conferir
+    assert status == "confirmada"
 
 
 @pendente
@@ -21,7 +41,7 @@ def test_status_efetivo_de_cancelada_com_fim_no_passado_continua_cancelada():
     """Cancelada é final: não vira 'concluida' quando o fim passa."""
 
 
-# garantir_acerro (ADR 0017)
+# garantir_acesso (ADR 0017)
 
 
 @pendente

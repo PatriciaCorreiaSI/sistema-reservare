@@ -115,3 +115,7 @@
 | **Conceitos** | **Novo aprendizado** |
 |---------------|----------------------|
 |🎲 **`SQLSTATE`**| Quando o postgres recusa uma linha, ele devolve uma mensagem de texto e dois dados estruturaros: o `SQLSTATE` e o nome da constraint. O `SQLSTATE` é um código SQL de 5 caracteres padronizado (Ex: `23P01`) que identifica o tipo de erro. Os dois primeiros dígitos são a classe e é dentro dela que cada tipo de constraint tem seu código (Exe: `23` é violação de integridade). |
+|🐍 **Python: `SyntaxError`:** | O Python lê o arquivo inteiro antes de executar a primeira linha; se um trecho não forma código válido, nada do arquivo roda. A mensagem aponta o começo da expressão que ele não conseguiu completar, não necessariamente o ponto exato do erro: procure dali para baixo, e leia a dica do fim (ex: *"Perhaps you forgot a comma?"*).|
+|📒 **Pytest: `ERROR collecting`:** | O Python nem conseguiu carregar o arquivo, então nenhum teste dele roda, nem os com `skip` (ex: um `import` de algo que não existe). |
+|🖥️ **Pytest: `ERROR at setup`:** |  Um `ERROR` significa que o problema está antes do teste, na preparação. O arquivo carregou, mas a preparação do teste quebrou antes dele começar (ex: uma fixture que não existe ou que levanta exceção).|
+|☢️ **Pytest: `FAILED`:**| Um `FAILED` significa que o problema está no teste. O teste rodou, mas algo nele falhou. O `FAILED` não depende de um `assert`: qualquer exceção levantada dentro do teste, inclusive pela função testada, o produz. |
