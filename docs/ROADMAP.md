@@ -401,8 +401,12 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > (o teste de concorrência usa threads liberadas por uma barreira, pela API),
 > [0016](adr/0016-cancelar-pela-acao-com-update-condicional.md) (cancelamento por
 > `POST /reservas/{id}/cancelar`, com `UPDATE` condicional) e
-> [0017](adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md) (`404` para a reserva alheia). Próxima,
-> a fase Desenhar.
+> [0017](adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md) (`404` para a reserva alheia). A fase
+> Desenhar fechou em 2026-09-25 com mais um ADR,
+> [0018](adr/0018-fuso-unico-do-sistema.md) (o horário de funcionamento é lido num fuso único do
+> sistema); schemas e rotas no `api.md`; o esqueleto em código com os corpos em
+> `NotImplementedError`; e 37 testes com `skip` em três arquivos: regras puras, API e concorrência.
+> Próxima, a fase Tentar.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

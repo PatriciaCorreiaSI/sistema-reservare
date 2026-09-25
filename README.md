@@ -4,7 +4,8 @@ Sistema de reserva de recursos compartilhados — salas, equipamentos e estaçõ
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
 > Fase atual: **Etapa 4 — reservas, concorrência e estados**, em andamento — as decisões estão
-> registradas em ADRs e o código ainda não começou. Fundação, modelagem, migrations, a primeira
+> registradas em ADRs, e o esqueleto e os testes esperados estão desenhados, sem implementação
+> ainda. Fundação, modelagem, migrations, a primeira
 > fatia vertical e autenticação concluídas, com 22 testes verdes.
 
 ---

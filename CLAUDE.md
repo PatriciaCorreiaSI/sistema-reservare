@@ -84,7 +84,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   0010 e 0011; sete rotas, o comando `criar_admin`, suíte em `22 passed`. A metade IDOR do critério
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
 - **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
-  2026-09-24 (ADRs 0014–0017); próxima, a fase Desenhar.
+  2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
+  testes com `skip`); próxima, a fase Tentar.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -136,6 +137,13 @@ compromissos sobre código que ainda não existe, e armadilhas.
   7235/9110) e `403` (sem o cabeçalho). Router sem `try` e sem `JSONResponse` de erro.
 - **Ordem real das verificações no FastAPI:** `401` → `403` → `422` → `409` — as dependências rodam
   antes de o erro de validação do corpo ser levantado.
+- **Fuso injetado (ADR 0018):** `obter_fuso()` em `dependencies.py` devolve o `ZoneInfo` de
+  `FUSO_FUNCIONAMENTO`, e o `ReservaService` o recebe por `Depends`, como o `obter_agora`; a regra
+  mora em `cabe_no_horario(inicio, fim, recurso, fuso)`, função pura. Em `test_reserva.py`,
+  `agora_fixo` e `fuso_fixo` são `autouse` porque as dependências rodam antes da validação do
+  corpo: até o teste de `422` do schema constrói o service. Toda variável nova que o app lê
+  entra também no `environment:` do `api` no `docker-compose.yml` — o container não vê o `.env`
+  (o `JWT_SEGREDO` faltou lá da Etapa 3 até 2026-09-25).
 - **Dívida da Etapa 2:** `criar` e `atualizar` de recurso deixam `IntegrityError` subir → `500`
   (o `TestClient` o mostra como traceback). A Etapa 4 paga pelo ADR 0014: tradução pelo nome da
   constraint, no repository, e `CHECK` que dispara é validação faltando no schema.
@@ -218,29 +226,34 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**A fase Desenhar da Etapa 4.** O critério de pronto tem duas partes: o teste de concorrência (duas
+**A fase Tentar da Etapa 4.** O critério de pronto tem duas partes: o teste de concorrência (duas
 requisições simultâneas para o mesmo recurso e horário → exatamente um `201` e um `409`) e o de IDOR
-herdado da Etapa 3. A fase Decidir fechou em 2026-09-24 com quatro ADRs: a tradução da violação
-pelo nome da constraint, no repository (0014); o teste de concorrência com threads e barreira, pela
-API (0015); a máquina de estados, com cancelamento por `POST /reservas/{id}/cancelar` e `UPDATE`
-condicional (0016); e `404` para a reserva alheia, com `garantir_acesso` no service, lida antes do
-`UPDATE` (0017). Da fase Desenhar, feitos em 2026-09-24: schemas e rotas de `reserva` no
-`docs/api.md`; e o esqueleto em código, com corpos em `raise NotImplementedError` (corpo vazio `...`
-o `mypy` recusa como `empty-body`): `obter_agora` em `dependencies.py` (o relógio injetado; o teste
-o troca por `dependency_overrides`), as exceções novas em `excecoes.py` (os três `422` como filhas
-de `RegraDeReservaViolada`, que carregam a mensagem em `detalhe` — um handler só, para a mãe),
-`schemas/reserva.py`, `repositories/reserva.py` (`cancelar` devolve `bool`; sem `atualizar` nem
-`remover`: reserva é histórico) e `services/reserva.py` (`status_efetivo` e `garantir_acesso` como
-funções puras fora da classe).
+herdado da Etapa 3. As decisões estão nos ADRs 0014–0018. O esqueleto está em código, com corpos em
+`raise NotImplementedError` (corpo vazio `...` o `mypy` recusa como `empty-body`): `obter_agora` e
+`obter_fuso` em `dependencies.py`; as exceções novas em `excecoes.py` (os três `422` como filhas de
+`RegraDeReservaViolada`, que carregam a mensagem em `detalhe` — um handler só, para a mãe);
+`schemas/reserva.py`; `repositories/reserva.py` (`cancelar` devolve `bool`; sem `atualizar` nem
+`remover`: reserva é histórico); e `services/reserva.py` (`status_efetivo`, `garantir_acesso` e
+`cabe_no_horario` como funções puras fora da classe; `_para_resposta` monta a resposta, porque o
+status efetivo e o `periodo` → `inicio`/`fim` impedem o `from_attributes`).
 
-**Retomar por:** explicar o `services/reserva.py` método a método — ela pediu, antes de seguir.
-Depois, a última peça do Desenhar: os testes que deveriam passar, com `@pytest.mark.skip`. Armadilha
-já anunciada para a fase Tentar: após o `UPDATE` do `cancelar`, o objeto lido antes pode seguir com
-o status antigo na sessão.
+Os testes esperados estão em três arquivos, com `@pendente` (o `skip`) e a docstring dizendo o que
+conferem: `test_reserva_regras.py` (funções puras, rodam sem o banco), `test_reserva.py` (API) e
+`test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no `pyproject.toml`). As
+fixtures novas (`outra_usuaria` e `cabecalho_de` no `conftest.py`; `agora_fixo`, `fuso_fixo` e
+`reserva_da_ana` no `test_reserva.py`) levam `raise NotImplementedError`: tirar o `skip` de um teste
+sem escrever a fixture dá `ERROR`, não `FAILED`. As fixtures que comitam de verdade para o teste de
+concorrência ainda não estão desenhadas.
+
+**Retomar por:** as funções puras, uma de cada vez — tirar o `@pendente`, ver falhar, escrever o
+corpo, ver passar, contra-teste. Depois `_para_resposta`, `buscar_por_id`, `criar`, `listar` e
+`cancelar`, com as fixtures e as rotas que cada teste pedir. Armadilha já anunciada: após o `UPDATE`
+do `cancelar`, o objeto lido antes segue com o status antigo na sessão (identity map) —
+`test_cancelar_reserva_da_dona_devolve_200_cancelada` é quem pega.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed` antes de mexer em
-qualquer coisa.
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed, 37 skipped` (e o
+aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Backlog** (regra 7 — nenhum é v1):
 

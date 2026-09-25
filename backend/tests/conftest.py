@@ -98,3 +98,20 @@ def admin(sessao):
     sessao.add(admin)
     sessao.flush()
     return admin
+
+
+@pytest.fixture
+def outra_usuaria(sessao):
+    """Segunda usuária comum, para o IDOR: sem privilégio e não é a Ana."""
+    raise NotImplementedError
+
+
+@pytest.fixture
+def cabecalho_de(client):
+    """Devolve uma função: recebe um Usuario, faz o login e devolve
+    {"Authorization": "Bearer <access_token>"}."""
+
+    def _cabecalho(usuario: Usuario) -> dict[str, str]:
+        raise NotImplementedError
+
+    return _cabecalho

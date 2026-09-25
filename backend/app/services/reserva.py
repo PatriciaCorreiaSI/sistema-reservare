@@ -1,11 +1,12 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.db import obter_sessao
-from app.dependencies import UsuarioAtual, obter_agora
-from app.models import Reserva
+from app.dependencies import UsuarioAtual, obter_agora, obter_fuso
+from app.models import Recurso, Reserva
 from app.repositories.recurso import RecursoRepository
 from app.repositories.reserva import ReservaRepository
 from app.schemas.reserva import ReservaCriar, ReservaResposta
@@ -20,13 +21,21 @@ def garantir_acesso(reserva: Reserva | None, usuario: UsuarioAtual) -> Reserva:
     raise NotImplementedError
 
 
+def cabe_no_horario(
+    inicio: datetime, fim: datetime, recurso: Recurso, fuso: ZoneInfo
+) -> bool:
+    raise NotImplementedError
+
+
 class ReservaService:
     def __init__(
         self,
         sessao: Session = Depends(obter_sessao),
         agora: datetime = Depends(obter_agora),
+        fuso: ZoneInfo = Depends(obter_fuso),
     ) -> None:
         self._agora = agora
+        self._fuso = fuso
         self._reservas = ReservaRepository(sessao)
         self._recursos = RecursoRepository(sessao)
 

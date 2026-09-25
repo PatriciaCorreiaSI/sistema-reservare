@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 import jwt
 from fastapi import Depends
@@ -35,3 +36,7 @@ def exigir_admin(usuario: UsuarioAtual = Depends(obter_usuario_atual)) -> Usuari
 
 def obter_agora() -> datetime:
     return datetime.now(UTC)
+
+
+def obter_fuso() -> ZoneInfo:
+    raise NotImplementedError

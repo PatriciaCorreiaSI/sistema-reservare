@@ -1,0 +1,74 @@
+import pytest
+
+pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
+
+
+# status_eeftivo (ADR 0004 e 0016)
+
+
+@pendente
+def test_status_efetivo_de_confirmada_com_fim_no_futuro_e_confirmada():
+    """fim > agora → 'confirmada'."""
+
+
+@pendente
+def test_status_efetivo_de_confirmada_com_fim_igual_a_agora_e_concluida():
+    """fim == agora → 'concluida': o intervalo é [inicio, fim), o fim não é ocupado."""
+
+
+@pendente
+def test_status_efetivo_de_cancelada_com_fim_no_passado_continua_cancelada():
+    """Cancelada é final: não vira 'concluida' quando o fim passa."""
+
+
+# garantir_acerro (ADR 0017)
+
+
+@pendente
+def test_garantir_acesso_devolve_a_reserva_a_dona():
+    """Dona (id_usuario igual ao do token) → devolve a própria reserva."""
+
+
+@pendente
+def test_garantir_acesso_devolve_a_reserva_ao_admin():
+    """Admin, de outra pessoa → devolve a reserva."""
+
+
+@pendente
+def test_garantir_acesso_recusa_outra_usuario():
+    """Usuária comum, reserva alheia → ReservaNaoEncontrada."""
+
+
+@pendente
+def test_garantir_acesso_recusa_reserva_inexistente():
+    """None → ReservaNaoEncontrada, a mesma exceção do caso anterior."""
+
+
+# cabe_no_horario (ADR 0018), recurso das 08:00 às 18:00, fuso America/Sao_Paulo
+
+
+@pendente
+def test_cabe_no_horario_le_o_horario_no_fuso_do_sistema():
+    """16:00-03:00 às 17:00-03:00 → True. Em UTC seria 19h às 20h, fora do horário:
+    só passa se a comparação for feita no fuso do sistema."""
+
+
+@pendente
+def test_cabe_no_horario_aceita_fim_exatamente_no_efchamento():
+    """17:00 às 18:00 local cabe: o fim não é ocupado."""
+
+
+@pendente
+def test_cabe_no_horario_recusa_inicio_antes_da_abertura():
+    """07:59 às 09:00 local → False."""
+
+
+@pendente
+def test_cabe_no_horario_recusa_fim_depois_do_fechamento():
+    """17:00 às 18:01 → False."""
+
+
+@pendente
+def test_cabe_no_horario_recusa_reserva_que_atravessa_a_meia_noite():
+    """Das 17:00 de um dia às 09:00 do dia seguinte → False,
+    mesmo com as duas pontas dentro do horário."""
