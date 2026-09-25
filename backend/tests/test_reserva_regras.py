@@ -15,6 +15,15 @@ AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 FUSO = ZoneInfo("America/Sao_Paulo")
 
 
+@pytest.fixture
+def recurso_das_8_as_18():
+    # O recurso funciona das 8h às 18h (hora de relógio, sem fuso)
+    return Recurso(
+        hora_func_inicio=time(8, 0),
+        hora_func_fim=time(18, 0),
+    )
+
+
 # status_efetivo (ADR 0004 e 0016)
 
 
@@ -128,39 +137,68 @@ def test_garantir_acesso_recusa_reserva_inexistente():
 # cabe_no_horario (ADR 0018), recurso das 08:00 às 18:00, fuso America/Sao_Paulo
 
 
-def test_cabe_no_horario_le_o_horario_no_fuso_do_sistema():
+def test_cabe_no_horario_le_o_horario_no_fuso_do_sistema(recurso_das_8_as_18):
     # 16:00-03:00 às 17:00-03:00 → True. Em UTC seria 19h às 20h, fora do horário:
     # só passa se a comparação for feita no fuso do sistema.
-    # Preparar: recurso das 8h às 18h (hora de relógio, sem fuso); a reserva é
-    # das 16h às 17h em Brasília, escrita em UTC (19h às 20h), como o frontend envia.
-    recurso = Recurso(
-        hora_func_inicio=time(8, 0),
-        hora_func_fim=time(18, 0),
-    )
+    # Preparar: a reserva é das 16h às 17h em Brasília, escrita em UTC (19h às 20h),
+    # como o frontend envia.
     inicio = datetime(2026, 10, 2, 19, 0, tzinfo=UTC)
     fim = datetime(2026, 10, 2, 20, 0, tzinfo=UTC)
     # Agir
-    cabe = cabe_no_horario(inicio, fim, recurso, FUSO)
+    cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
     # Conferir
     assert cabe
 
 
-@pendente
-def test_cabe_no_horario_aceita_fim_exatamente_no_fechamento():
-    """17:00 às 18:00 local cabe: o fim não é ocupado."""
+def test_cabe_no_horario_aceita_fim_exatamente_no_fechamento(recurso_das_8_as_18):
+    # 17:00 às 18:00 local cabe: o fim não é ocupado.
+    # Preparar: a reserva é das 17h às 18h em Brasília, escrita em UTC (20h às 21h),
+    # como o frontend envia.
+    inicio = datetime(2026, 10, 2, 20, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 2, 21, 0, tzinfo=UTC)
+    # Agir
+    cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
+    # Conferir
+    assert cabe
+
+
+def test_cabe_no_horario_recusa_inicio_antes_da_abertura(recurso_das_8_as_18):
+    # 07:59 às 09:00 local → False.
+    # Preparar: a reserva é das 7h59 às 9h em Brasília, escrita em UTC (10h59 às 12h),
+    # como o frontend envia.
+    inicio = datetime(2026, 10, 2, 10, 59, tzinfo=UTC)
+    fim = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
+    # Agir
+    cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
+    # Conferir
+    assert not cabe
+
+
+def test_cabe_no_horario_aceita_inicio_exatamente_na_abertura(recurso_das_8_as_18):
+    # 8:00 às 9:00 local cabe: a abertura já pertence ao horário.
+    # Preparar: a reserva é das 8h às 9h em Brasília, escrita em UTC (11h às 12h),
+    # como o frontend envia.
+    inicio = datetime(2026, 10, 2, 11, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
+    # Agir
+    cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
+    # Conferir
+    assert cabe
+
+
+def test_cabe_no_horario_recusa_fim_depois_do_fechamento(recurso_das_8_as_18):
+    # 17:00 às 18:01 → False.
+    # Preparar: a reserva é das 17h às 18h01 em Brasília, escrita em UTC (20h às 21h01),
+    # como o frontend envia.
+    inicio = datetime(2026, 10, 2, 20, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 2, 21, 1, tzinfo=UTC)
+    # Agir
+    cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
+    # Conferir
+    assert not cabe
 
 
 @pendente
-def test_cabe_no_horario_recusa_inicio_antes_da_abertura():
-    """07:59 às 09:00 local → False."""
-
-
-@pendente
-def test_cabe_no_horario_recusa_fim_depois_do_fechamento():
-    """17:00 às 18:01 → False."""
-
-
-@pendente
-def test_cabe_no_horario_recusa_reserva_que_atravessa_a_meia_noite():
+def test_cabe_no_horario_recusa_reserva_que_atravessa_a_meia_noite(recurso_das_8_as_18):
     """Das 17:00 de um dia às 09:00 do dia seguinte → False,
     mesmo com as duas pontas dentro do horário."""
