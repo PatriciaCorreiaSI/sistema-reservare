@@ -3,8 +3,10 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.dialects.postgresql import Range
 
+from app.dependencies import UsuarioAtual
 from app.models import Reserva
-from app.services.reserva import status_efetivo
+from app.services.excecoes import ReservaNaoEncontrada
+from app.services.reserva import garantir_acesso, status_efetivo
 
 pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
 
@@ -50,6 +52,7 @@ def test_status_efetivo_de_confirmada_com_fim_igual_a_agora_e_concluida():
 
 def test_status_efetivo_de_cancelada_com_fim_no_passado_continua_cancelada():
     # Cancelada é final: não vira 'concluida' quando o fim passa.
+    # Preparar: cancelada, de 10h às 11h; AGORA é 12h, então o fim está no passado.
     reserva = Reserva(
         periodo=Range(
             datetime(2026, 10, 1, 10, 0, tzinfo=UTC),
@@ -67,24 +70,57 @@ def test_status_efetivo_de_cancelada_com_fim_no_passado_continua_cancelada():
 # garantir_acesso (ADR 0017)
 
 
-@pendente
 def test_garantir_acesso_devolve_a_reserva_a_dona():
-    """Dona (id_usuario igual ao do token) → devolve a própria reserva."""
+    # Dona (id_usuario igual ao do token) → devolve a própria reserva.
+    # Preparar: a reserva é da usuaria 1, e quem pede é a usuária 1
+    usuario = UsuarioAtual(
+        id_usuario=1,
+        privilegio_usuario="usuario",
+    )
+    reserva = Reserva(id_usuario=1)
+    # Agir
+    devolvida = garantir_acesso(reserva, usuario)
+    # Conferir
+    assert devolvida is reserva
 
 
-@pendente
 def test_garantir_acesso_devolve_a_reserva_ao_admin():
-    """Admin, de outra pessoa → devolve a reserva."""
+    # Admin, de outra pessoa → devolve a reserva.
+    # Preparar: a reserva é da usuária 2, e quem pede é o admin, com privilégio
+    usuario = UsuarioAtual(
+        id_usuario=1,
+        privilegio_usuario="admin",
+    )
+    reserva = Reserva(id_usuario=2)
+    # Agir
+    devolvida = garantir_acesso(reserva, usuario)
+    # Conferir
+    assert devolvida is reserva
 
 
-@pendente
-def test_garantir_acesso_recusa_outra_usuario():
-    """Usuária comum, reserva alheia → ReservaNaoEncontrada."""
+def test_garantir_acesso_recusa_outra_usuaria():
+    # Usuária comum, reserva alheia → ReservaNaoEncontrada.
+    # Preparar: a reserva é da usuária 2, e quem pede é a usuária 1, sem privilégio
+    usuario = UsuarioAtual(
+        id_usuario=1,
+        privilegio_usuario="usuario",
+    )
+    reserva = Reserva(id_usuario=2)
+    # Agir e conferir
+    with pytest.raises(ReservaNaoEncontrada):
+        garantir_acesso(reserva, usuario)
 
 
-@pendente
 def test_garantir_acesso_recusa_reserva_inexistente():
-    """None → ReservaNaoEncontrada, a mesma exceção do caso anterior."""
+    # None → ReservaNaoEncontrada, a mesma exceção do caso anterior.
+    # Preparar: quem pede é uma usuária comum; a reserva não existe (None)
+    usuario = UsuarioAtual(
+        id_usuario=1,
+        privilegio_usuario="usuario",
+    )
+    # Agir e conferir
+    with pytest.raises(ReservaNaoEncontrada):
+        garantir_acesso(None, usuario)
 
 
 # cabe_no_horario (ADR 0018), recurso das 08:00 às 18:00, fuso America/Sao_Paulo

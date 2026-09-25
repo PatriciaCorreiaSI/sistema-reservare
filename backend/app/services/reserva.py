@@ -10,6 +10,7 @@ from app.models import Recurso, Reserva
 from app.repositories.recurso import RecursoRepository
 from app.repositories.reserva import ReservaRepository
 from app.schemas.reserva import ReservaCriar, ReservaResposta
+from app.services.excecoes import ReservaNaoEncontrada
 
 
 def status_efetivo(reserva: Reserva, agora: datetime) -> str:
@@ -25,7 +26,10 @@ def status_efetivo(reserva: Reserva, agora: datetime) -> str:
 
 def garantir_acesso(reserva: Reserva | None, usuario: UsuarioAtual) -> Reserva:
     # levanta: ReservaNaoEncontrada (ADR 0017)
-    raise NotImplementedError
+    eh_admin = usuario.privilegio_usuario == "admin"
+    if reserva is None or not (eh_admin or reserva.id_usuario == usuario.id_usuario):
+        raise ReservaNaoEncontrada
+    return reserva
 
 
 def cabe_no_horario(
