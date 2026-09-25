@@ -54,7 +54,7 @@
 | regra | Como será garantida? |
 |-------|----------------------|
 | Duas reservas `ativas` não podem se sobrepor no mesmo recurso. | Banco garante |
-| A reserva deve caber no `horário de funcionamento` do recurso. | Serviço garante |
+| A reserva deve caber no `horário de funcionamento` do recurso, lido no fuso `FUSO_FUNCIONAMENTO`. | Serviço garante [ADR 0018](./adr/0018-fuso-unico-do-sistema.md) |
 | Não se reserva recurso `inativo`. | Serviço garante |
 | `Convidados <= Ocupação` | Serviço garante |
 | Reservas só podem ser feitas do período presente em diante, jamais no passado | Serviço garante |
