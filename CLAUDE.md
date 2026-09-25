@@ -85,7 +85,7 @@ Antes de escrever implementação, verifique em que fase ela está:
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
 - **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
   2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
-  testes com `skip`); próxima, a fase Tentar.
+  testes com `skip`); fase Tentar em andamento — as três funções puras prontas em 2026-09-25.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -237,22 +237,35 @@ herdado da Etapa 3. As decisões estão nos ADRs 0014–0018. O esqueleto está 
 `cabe_no_horario` como funções puras fora da classe; `_para_resposta` monta a resposta, porque o
 status efetivo e o `periodo` → `inicio`/`fim` impedem o `from_attributes`).
 
-Os testes esperados estão em três arquivos, com `@pendente` (o `skip`) e a docstring dizendo o que
-conferem: `test_reserva_regras.py` (funções puras, rodam sem o banco), `test_reserva.py` (API) e
+**Feito na fase Tentar (2026-09-25):** as três funções puras, com 13 testes em
+`test_reserva_regras.py`, que rodam sem o banco — `status_efetivo` (a cancelada é conferida antes
+do fim; `fim <= agora` é concluída; `assert fim is not None` estreita o `Range.upper`, que o `CHECK
+formato_semiaberto` garante), `garantir_acesso` (uma condição e um `raise` só, com `reserva is None`
+primeiro pelo curto-circuito) e `cabe_no_horario` (converte `inicio` e `fim` para o fuso uma vez e
+tira deles a data e a hora; `mesmo_dia` resolve a meia-noite; devolve `bool` — quem levanta
+`ForaDoHorario` é o `criar`). Nos testes: instantes de entrada sempre em UTC, para pegar a função
+que esquece de converter; cada fronteira com a dupla "em cima" e "um minuto fora" (valor-limite).
+
+Os demais testes esperados, com `@pendente` (o `skip`) e a docstring dizendo o que conferem:
+`test_reserva.py` (API) e
 `test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no `pyproject.toml`). As
 fixtures novas (`outra_usuaria` e `cabecalho_de` no `conftest.py`; `agora_fixo`, `fuso_fixo` e
 `reserva_da_ana` no `test_reserva.py`) levam `raise NotImplementedError`: tirar o `skip` de um teste
 sem escrever a fixture dá `ERROR`, não `FAILED`. As fixtures que comitam de verdade para o teste de
 concorrência ainda não estão desenhadas.
 
-**Retomar por:** as funções puras, uma de cada vez — tirar o `@pendente`, ver falhar, escrever o
-corpo, ver passar, contra-teste. Depois `_para_resposta`, `buscar_por_id`, `criar`, `listar` e
-`cancelar`, com as fixtures e as rotas que cada teste pedir. Armadilha já anunciada: após o `UPDATE`
+**Retomar por:** os testes pela API, começando por `test_buscar_reserva_da_dona_devolve_200` — o
+caminho mais curto (router → service → repository, cujo `buscar_por_id` já existe), que pede de uma
+vez as peças novas: o corpo do `obter_fuso`; as fixtures `agora_fixo`, `fuso_fixo`,
+`reserva_da_ana` e `cabecalho_de`; o router `routers/reserva.py` e o `include_router` no `main.py`;
+e `_para_resposta` e `buscar_por_id` no service. Depois `criar`, `listar` e `cancelar`, com o que
+cada teste pedir. O mesmo ciclo: tirar o `@pendente`, ver falhar, escrever, ver passar,
+contra-teste. Armadilha já anunciada: após o `UPDATE`
 do `cancelar`, o objeto lido antes segue com o status antigo na sessão (identity map) —
 `test_cancelar_reserva_da_dona_devolve_200_cancelada` é quem pega.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `22 passed, 37 skipped` (e o
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `35 passed, 25 skipped` (e o
 aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Backlog** (regra 7 — nenhum é v1):

@@ -4,9 +4,9 @@ Sistema de reserva de recursos compartilhados — salas, equipamentos e estaçõ
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
 > Fase atual: **Etapa 4 — reservas, concorrência e estados**, em andamento — as decisões estão
-> registradas em ADRs, e o esqueleto e os testes esperados estão desenhados, sem implementação
-> ainda. Fundação, modelagem, migrations, a primeira
-> fatia vertical e autenticação concluídas, com 22 testes verdes.
+> registradas em ADRs, e as regras de negócio da reserva já estão implementadas e testadas; as
+> rotas ainda não. Fundação, modelagem, migrations, a primeira fatia vertical e autenticação
+> concluídas. Ao todo, 35 testes verdes.
 
 ---
 
@@ -57,7 +57,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
 | Autenticação e autorização | ✅ concluída — login, `/auth/refresh` com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin e com validação de nome, e-mail e senha, e um comando que cria o primeiro admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)); 22 testes verdes. O teste de IDOR passou para a etapa de reservas, junto com as rotas que ele protege |
-| Reservas, concorrência e estados | 🔨 em andamento — decisões registradas: tradução da violação de constraint em `409` ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md)), teste de concorrência pela API ([ADR 0015](docs/adr/0015-concorrencia-com-threads-e-barreira-pela-api.md)), cancelamento sem janela de corrida ([ADR 0016](docs/adr/0016-cancelar-pela-acao-com-update-condicional.md)) e `404` para a reserva de outra pessoa ([ADR 0017](docs/adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md)). Rotas e testes ainda não escritos |
+| Reservas, concorrência e estados | 🔨 em andamento — decisões registradas: tradução da violação de constraint em `409` ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md)), teste de concorrência pela API ([ADR 0015](docs/adr/0015-concorrencia-com-threads-e-barreira-pela-api.md)), cancelamento sem janela de corrida ([ADR 0016](docs/adr/0016-cancelar-pela-acao-com-update-condicional.md)), `404` para a reserva de outra pessoa ([ADR 0017](docs/adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md)) e horário de funcionamento lido num fuso único do sistema ([ADR 0018](docs/adr/0018-fuso-unico-do-sistema.md)). Implementadas e testadas as regras de status efetivo, acesso à reserva e horário de funcionamento (13 testes); rotas, os testes pela API e o de concorrência ainda não |
 | Testes e integração contínua | ⏳ |
 | Front-end | ⏳ |
 | Deploy | ⏳ |

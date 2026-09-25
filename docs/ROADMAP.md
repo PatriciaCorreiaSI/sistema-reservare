@@ -406,7 +406,8 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > [0018](adr/0018-fuso-unico-do-sistema.md) (o horário de funcionamento é lido num fuso único do
 > sistema); schemas e rotas no `api.md`; o esqueleto em código com os corpos em
 > `NotImplementedError`; e 37 testes com `skip` em três arquivos: regras puras, API e concorrência.
-> Próxima, a fase Tentar.
+> A fase Tentar começou no mesmo dia pelas três funções puras do service (status efetivo, acesso
+> à reserva e horário de funcionamento no fuso), com 13 testes; seguem as rotas pela API.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 
