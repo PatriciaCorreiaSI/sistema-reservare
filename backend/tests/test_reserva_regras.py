@@ -198,7 +198,14 @@ def test_cabe_no_horario_recusa_fim_depois_do_fechamento(recurso_das_8_as_18):
     assert not cabe
 
 
-@pendente
 def test_cabe_no_horario_recusa_reserva_que_atravessa_a_meia_noite(recurso_das_8_as_18):
-    """Das 17:00 de um dia às 09:00 do dia seguinte → False,
-    mesmo com as duas pontas dentro do horário."""
+    # Das 17:00 de um dia às 09:00 do dia seguinte → False,
+    # mesmo com as duas pontas dentro do horário.
+    # Preparar: a reserva é das 17h de um dia às 9h do dia seguinte em
+    # Brasília, escrita em UTC (20h | 12h).
+    inicio = datetime(2026, 10, 2, 20, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 3, 12, 0, tzinfo=UTC)
+    # Agir
+    cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
+    # Conferir
+    assert not cabe

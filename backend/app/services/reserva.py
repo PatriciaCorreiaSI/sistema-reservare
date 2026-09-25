@@ -35,11 +35,12 @@ def garantir_acesso(reserva: Reserva | None, usuario: UsuarioAtual) -> Reserva:
 def cabe_no_horario(
     inicio: datetime, fim: datetime, recurso: Recurso, fuso: ZoneInfo
 ) -> bool:
-    hora_inicio = inicio.astimezone(fuso).time()
-    hora_fim = fim.astimezone(fuso).time()
-    abre_antes = recurso.hora_func_inicio <= hora_inicio
-    fecha_depois = recurso.hora_func_fim >= hora_fim
-    return abre_antes and fecha_depois
+    local_inicio = inicio.astimezone(fuso)
+    local_fim = fim.astimezone(fuso)
+    mesmo_dia = local_inicio.date() == local_fim.date()
+    abre_antes = recurso.hora_func_inicio <= local_inicio.time()
+    fecha_depois = recurso.hora_func_fim >= local_fim.time()
+    return mesmo_dia and abre_antes and fecha_depois
 
 
 class ReservaService:
