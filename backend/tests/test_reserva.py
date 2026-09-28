@@ -63,6 +63,7 @@ def test_criar_reserva_devolve_201_confirmada_em_nome_de_quem_chama(
 ):
     # 201, status_reserva 'confirmada'; id_usuario é o Ana, vindo do token.
     # Preparar: o corpo do pedido, no formato do ReservaCriar. Sem id_usuario:
+    # quem é a dona o app descobre pelo token
     reserva = {
         "id_recurso": recurso_criado["id_recurso"],
         "convidados": 4,
@@ -80,23 +81,59 @@ def test_criar_reserva_devolve_201_confirmada_em_nome_de_quem_chama(
     assert corpo["id_usuario"] == usuario.id_usuario
 
 
-@pendente
 def test_criar_reserva_sem_token_devolve_401(client, recurso_criado):
-    """Corpo válido, sem o cabeçalho Authorization → 401."""
+    # Corpo válido, sem o cabeçalho Authorization → 401.
+    # Preparar: o corpo do pedido, no formato do ReservaCriar.
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+
+    # Agir: sem token
+    resposta = client.post("/reservas", json=reserva)
+
+    # Conferir
+    assert resposta.status_code == 401
 
 
-@pendente
 def test_criar_reserva_sem_fuso_devolve_422(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """inicio sem deslocamento ('2026-10-02T10:00') → 422, recusado no schema."""
+    # inicio sem deslocamento ('2026-10-02T10:00') → 422, recusado no schema.
+    # Preparar: o corpo do pedido, no formato do ReservaCriar.
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 422
 
 
-@pendente
 def test_criar_reserva_com_inicio_igual_ao_fim_devolve_422(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """inicio == fim → 422, recusado no model_validator do schema."""
+    # inicio == fim → 422, recusado no model_validator do schema.
+    # Preparar: o corpo do pedido, no formato do ReservaCriar. Sem id_usuario:
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T15:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 422
 
 
 @pendente
@@ -120,18 +157,46 @@ def test_criar_reserva_acima_da_ocupacao_devolve_422(
     """Ocupação 10, convidados 11 → 422 (ConvidadosAcimaDaOcupacao)."""
 
 
-@pendente
 def test_criar_reserva_em_recurso_inexistente_devolve_404(
     client, usuario, cabecalho_de
 ):
-    """id_recurso 999999 → 404."""
+    # id_recurso 999999 → 404.
+    # Preparar: o corpo do pedido, no formato do ReservaCriar. Sem id_usuario:
+    reserva = {
+        "id_recurso": 999999,
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 404
 
 
-@pendente
 def test_criar_reserva_em_recurso_inativo_devolve_409(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """Recurso inativo antes, pelo PATCH → 409 (RecursoInativo)."""
+    # Recurso inativo antes, pelo PATCH → 409 (RecursoInativo).
+    # Preparar: o corpo do pedido, no formato do ReservaCriar. Sem id_usuario:
+    client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}", json={"status_recurso": "inativo"}
+    )
+
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 409
 
 
 @pendente

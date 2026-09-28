@@ -7,6 +7,7 @@ from app.services.excecoes import (
     EmailJaCadastrado,
     PrivilegioInsuficiente,
     RecursoEmUso,
+    RecursoInativo,
     RecursoNaoEncontrado,
     ReservaNaoEncontrada,
 )
@@ -77,4 +78,12 @@ def traduzir_reserva_nao_encontrada(
     return JSONResponse(
         status_code=404,
         content={"detail": "Reserva não encontrada"},
+    )
+
+
+@app.exception_handler(RecursoInativo)
+def traduzir_recurso_inativo(request: Request, exc: RecursoInativo) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Recurso inativo não aceita reservas"},
     )

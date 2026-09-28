@@ -11,7 +11,11 @@ from app.models import Recurso, Reserva
 from app.repositories.recurso import RecursoRepository
 from app.repositories.reserva import ReservaRepository
 from app.schemas.reserva import ReservaCriar, ReservaResposta
-from app.services.excecoes import ReservaNaoEncontrada
+from app.services.excecoes import (
+    RecursoInativo,
+    RecursoNaoEncontrado,
+    ReservaNaoEncontrada,
+)
 
 
 def status_efetivo(reserva: Reserva, agora: datetime) -> str:
@@ -59,6 +63,12 @@ class ReservaService:
     def criar(self, dados: ReservaCriar, usuario: UsuarioAtual) -> ReservaResposta:
         # levanta: RecursoNaoEncontrado, RecursoInativo, ReservaNoPassado,
         # ForaDoHorario, ConvidadosAcimaDaOcupacao, HorarioOcupado
+        recurso = self._recursos.buscar_por_id(dados.id_recurso)
+        if recurso is None:
+            raise RecursoNaoEncontrado
+        if recurso.status_recurso != "ativo":
+            raise RecursoInativo
+
         reserva = Reserva(
             id_usuario=usuario.id_usuario,
             id_recurso=dados.id_recurso,
