@@ -203,19 +203,40 @@ def test_buscar_reserva_inexistente_devolve_404(client, usuario, cabecalho_de):
     assert resposta.status_code == 404
 
 
-@pendente
 def test_buscar_reserva_alheia_como_admin_devolve_200(
     client, admin, reserva_da_ana, cabecalho_de
 ):
-    """O admin busca a reserva da Ana → 200."""
+    # O admin busca a reserva da Ana → 200.
+    # Preparar: as fixtures já gravaram a Ana, o admin, o recurso e a reserva
+
+    # Agir
+    resposta = client.get(
+        f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(admin)
+    )
+
+    # Conferir
+    assert resposta.status_code == 200
 
 
-@pendente
 def test_buscar_reserva_terminada_devolve_status_concluida(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """Troca o relógio de novo, para depois do fim → status_reserva 'concluida',
-    embora a coluna diga 'confirmada' (status efetivo, ADR 0004)."""
+    # Troca o relógio de novo, para depois do fim → status_reserva 'concluida',
+    # embora a coluna diga 'confirmada' (status efetivo, ADR 0004).
+    # Preparar: o fim da reserva já está na fixture: reserva_da_ana.periodo.upper.
+    # Lendo dela, a data não pode divergir.
+    # A limpeza é da agora_fixo, que faz o popo no fim de todo teste.
+    app.dependency_overrides[obter_agora] = lambda: reserva_da_ana.periodo.upper
+
+    # Agir
+    resposta = client.get(
+        f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(usuario)
+    )
+
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["status_reserva"] == "concluida"
 
 
 # POST /reservas/{id}/cancelar
