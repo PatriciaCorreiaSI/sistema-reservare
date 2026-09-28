@@ -105,8 +105,17 @@ def admin(sessao):
 
 @pytest.fixture
 def outra_usuaria(sessao):
-    """Segunda usuária comum, para o IDOR: sem privilégio e não é a Ana."""
-    raise NotImplementedError
+    # Segunda usuária comum, para o IDOR: sem privilégio e não é a Ana.
+    outra_usuaria = Usuario(
+        privilegio_usuario="usuario",
+        nome_usuario="Maria",
+        email_usuario="maria@teste.com",
+        senha_usuario_hash=SENHA_HASH,
+        status_usuario="ativo",
+    )
+    sessao.add(outra_usuaria)
+    sessao.flush()
+    return outra_usuaria
 
 
 @pytest.fixture

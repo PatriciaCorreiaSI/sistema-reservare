@@ -176,11 +176,20 @@ def test_buscar_reserva_da_dona_devolve_200(
     assert datetime.fromisoformat(corpo["fim"]) == reserva_da_ana.periodo.upper
 
 
-@pendente
 def test_buscar_reserva_alheia_devolve_404(
     client, outra_usuaria, reserva_da_ana, cabecalho_de
 ):
-    """IDOR, critério de pronto: a outra usuária busca a reserva da Ana → 404."""
+    # IDOR, critério de pronto: a outra usuária busca a reserva da Ana → 404.
+    # Preparar: as fixtures já gravaram a Ana, a outra usuária, o recurso e a reserva
+
+    # Agir
+    resposta = client.get(
+        f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(outra_usuaria)
+    )
+
+    # Conferir
+    assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Reserva não encontrada"
 
 
 def test_buscar_reserva_inexistente_devolve_404(client, usuario, cabecalho_de):
