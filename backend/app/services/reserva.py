@@ -66,8 +66,10 @@ class ReservaService:
         raise NotImplementedError
 
     def buscar_por_id(self, id_reserva: int, usuario: UsuarioAtual) -> ReservaResposta:
+        reserva = self._reservas.buscar_por_id(id_reserva)
+        reserva = garantir_acesso(reserva, usuario)
         # levanta: ReservaNaoEncontrada
-        raise NotImplementedError
+        return self._para_resposta(reserva)
 
     def cancelar(self, id_reserva: int, usuario: UsuarioAtual) -> ReservaResposta:
         # levanta: ReservaNaoEncontrada, ReservaNaoCancelavel

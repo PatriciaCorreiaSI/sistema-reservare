@@ -157,11 +157,23 @@ def test_listar_reservas_devolve_todas_ao_admin(
 # GET /reservas/{id}
 
 
-@pendente
 def test_buscar_reserva_da_dona_devolve_200(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """A Ana busca a própria reserva → 200, com inicio e fim separados do periodo."""
+    # A Ana busca a própria reserva → 200, com inicio e fim separados do periodo.
+    # Preparar: as fixtures já gravaram a Ana, o recurso e a reserva.
+
+    # Agir
+    resposta = client.get(
+        f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(usuario)
+    )
+
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["id_reserva"] == reserva_da_ana.id_reserva
+    assert datetime.fromisoformat(corpo["inicio"]) == reserva_da_ana.periodo.lower
+    assert datetime.fromisoformat(corpo["fim"]) == reserva_da_ana.periodo.upper
 
 
 @pendente
@@ -171,9 +183,15 @@ def test_buscar_reserva_alheia_devolve_404(
     """IDOR, critério de pronto: a outra usuária busca a reserva da Ana → 404."""
 
 
-@pendente
 def test_buscar_reserva_inexistente_devolve_404(client, usuario, cabecalho_de):
-    """id 999999 → 404, a mesma resposta do teste anterior."""
+    # id 9999999 → 404, a mesma resposta do teste anterior.
+    # Preparar: uso de id inexistente
+
+    # Agir
+    resposta = client.get("/reservas/9999999", headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 404
 
 
 @pendente

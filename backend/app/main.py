@@ -8,6 +8,7 @@ from app.services.excecoes import (
     PrivilegioInsuficiente,
     RecursoEmUso,
     RecursoNaoEncontrado,
+    ReservaNaoEncontrada,
 )
 
 app = FastAPI()
@@ -66,4 +67,14 @@ def traduzir_email_ja_cadastrado(
     return JSONResponse(
         status_code=409,
         content={"detail": "E-mail já cadastrado"},
+    )
+
+
+@app.exception_handler(ReservaNaoEncontrada)
+def traduzir_reserva_nao_encontrada(
+    request: Request, exc: ReservaNaoEncontrada
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "Reserva não encontrada"},
     )
