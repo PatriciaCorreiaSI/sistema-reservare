@@ -86,7 +86,8 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
   2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
   testes com `skip`); fase Tentar em andamento — as três funções puras prontas em 2026-09-25;
-  fixtures, router do `GET /reservas/{id}` e `_para_resposta` em 2026-09-28.
+  em 2026-09-28, o `GET /reservas/{id}` completo (com o teste de IDOR verde) e o `POST /reservas`
+  até a verificação do recurso — suíte em `46 passed, 14 skipped`.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -187,6 +188,12 @@ compromissos sobre código que ainda não existe, e armadilhas.
   implementação; depois de verde, o **contra-teste** — estragar o ato e ver falhar com o número
   certo. Teste ainda não escrito leva `@pytest.mark.skip(reason=...)`, nunca `pass` (que é verde).
   Dados do teste ficam no teste, nunca no `.env`.
+- **Teste pela API:** o teste é o cliente — manda **dicionário** em `json=` (instantes como texto
+  ISO 8601 com fuso) e lê `resposta.json()`; não monta modelo, não importa exceção. No `POST`, o
+  corpo de referência é o do teste do `201`: copiar de um teste de erro traz o defeito dele junto
+  (`Z` faltando, `inicio == fim`), e o sintoma é `422` onde se esperava `404`/`409` — o pedido
+  barrado no schema antes de chegar à regra testada. Trocar o relógio dentro de um teste: só a
+  atribuição no `dependency_overrides`, sem `yield` (fixture only) e sem `pop` (é da `agora_fixo`).
 
 ### Armadilhas que as ferramentas não pegam
 
@@ -206,6 +213,9 @@ compromissos sobre código que ainda não existe, e armadilhas.
   sem `= Depends(...)` vira **corpo JSON**. `usuario: UsuarioAtual` sozinho num `GET` pula o token
   (sem `401`) e pede um corpo (`422`). Conferir no `/docs`: rota protegida tem cadeado e GET não
   tem `requestBody`. E `prefix` do `APIRouter` se soma à rota: `"/{id}"`, não `"/reservas/{id}"`.
+- **Exceção de domínio sem handler:** o `TestClient` **relança** a exceção no teste (aparece o nome,
+  `ReservaNaoEncontrada`, em vez de um número); em produção seria `500`. Toda exceção nova pede o
+  seu handler no `main.py` — o contra-teste é quem costuma revelar a falta.
 - **Nome que resolve para outra coisa:** um nome local que some faz o Python achar a fixture ou a
   função de mesmo nome no módulo (`sessao.add(usuario)` dentro da fixture `admin`). Renomear com
   `F2`, em todas as ocorrências.
@@ -260,28 +270,44 @@ pelo `criar_access_token` direto, com `datetime.now(UTC)` e **nunca `AGORA`** (q
 é o PyJWT, no relógio real — com `AGORA` a suíte quebraria sozinha a partir de 2026-10-01). Router
 `GET /reservas/{id_reserva}` com `Depends(obter_usuario_atual)` e devolvendo o que o service
 devolve, sem `model_validate`; `_para_resposta` com `assert` nas duas pontas do `Range`.
+`buscar_por_id` no service: ler → `garantir_acesso` (o retorno reatribuído a `reserva`) →
+`_para_resposta`; handler de `ReservaNaoEncontrada` → `404`. Cinco testes do `GET` verdes: dona,
+**IDOR** (confere também o `detail`, igual ao do inexistente — a resposta não revela que a reserva
+existe), inexistente, admin e terminada. **A metade IDOR do critério de pronto está coberta para a
+leitura**; falta a do cancelamento. `POST /reservas`: `validar_periodo` (`>=`, `ValueError` → `422`);
+`criar` lê o recurso primeiro (`None` → `RecursoNaoEncontrado` `404`; `!= "ativo"` →
+`RecursoInativo` `409`, handler novo), monta a `Reserva` com `id_usuario` do token e
+`Range(inicio, fim, "[)")`; repository `add` + `flush`. Seis testes do `POST` verdes: `201`, sem
+token (o `401` vem do próprio `HTTPBearer`, com `WWW-Authenticate`), sem fuso (só o `inicio`),
+`inicio == fim`, recurso inexistente e inativo (inativado pelo `PATCH`).
 
-Os demais testes esperados, com `@pendente` (o `skip`) e a docstring dizendo o que conferem:
-`test_reserva.py` (API) e
-`test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no `pyproject.toml`). A fixture
-`outra_usuaria` ainda leva `raise NotImplementedError`: tirar o `skip` de um teste sem escrever a
-fixture dá `ERROR`, não `FAILED`. As fixtures que comitam de verdade para o teste de concorrência
-ainda não estão desenhadas.
+Os demais testes esperados seguem com `@pendente` (o `skip`) e a docstring dizendo o que conferem,
+em `test_reserva.py` (API) e `test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no
+`pyproject.toml`). As fixtures que comitam de verdade para o teste de concorrência ainda não estão
+desenhadas.
 
-**Retomar por:** o `buscar_por_id` do `ReservaService` — ler pelo repository, autorizar com
-`garantir_acesso` (que já absorve o `None`; usar o valor que ela **devolve**, já sem `| None`) e
-traduzir com `_para_resposta`. Depois tirar o `@pendente` de
-`test_buscar_reserva_da_dona_devolve_200`, escrever o corpo (o JSON traz `inicio`/`fim` como texto
-ISO 8601: comparar formas iguais), ver passar e o contra-teste; em seguida os vizinhos do buscar
-(alheia, inexistente, admin, terminada — aqui entra a `outra_usuaria`). Depois `criar`, `listar` e
-`cancelar`, com o que cada teste pedir. O mesmo ciclo: tirar o `@pendente`, ver falhar, escrever,
-ver passar, contra-teste. Armadilha já anunciada: após o `UPDATE`
+**Retomar por:** as três regras do `criar` que respondem `422` — no passado (`inicio < agora`),
+fora do horário (`cabe_no_horario`, já pronta, com `self._fuso`) e acima da ocupação
+(`convidados > recurso.ocupacao`) —, cada uma um `if` + `raise` depois das verificações do recurso,
+e **um handler só** para `RegraDeReservaViolada`, que lê a mensagem de `exc.detalhe`. Depois a
+sobreposta (`409`) e a encostada (`201`): a tradução do ADR 0014 no `criar` do repository
+(`IntegrityError` → `orig.diag.constraint_name` comparado com constante: `EXCLUDE` →
+`HorarioOcupado`, FK → `RecursoNaoEncontrado`; o resto sobe) — lembrar que após o erro a
+transação fica abortada. Depois `listar` e `cancelar` (a outra metade do IDOR), e por fim a
+concorrência. O mesmo ciclo: tirar o `@pendente`, ver falhar, escrever, ver passar, contra-teste.
+Armadilha já anunciada: após o `UPDATE`
 do `cancelar`, o objeto lido antes segue com o status antigo na sessão (identity map) —
 `test_cancelar_reserva_da_dona_devolve_200_cancelada` é quem pega.
 
 Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `35 passed, 25 skipped` (e o
+`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `46 passed, 14 skipped` (e o
 aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+
+**Questão em aberto, a olhar depois do `POST`:** as rotas de `/recursos` não exigem token — o
+`PATCH` do teste do recurso inativo funciona sem cabeçalho, então qualquer pessoa cria, altera ou
+remove recurso. O `api.md` não diz nada sobre isso, e nenhum ADR decidiu. Descobrir se foi decisão
+ou esquecimento da Etapa 3 antes de mudar (mudar quebra os testes de `test_recurso.py`, que não
+mandam token).
 
 **Backlog** (regra 7 — nenhum é v1):
 

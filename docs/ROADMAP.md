@@ -407,7 +407,12 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > sistema); schemas e rotas no `api.md`; o esqueleto em código com os corpos em
 > `NotImplementedError`; e 37 testes com `skip` em três arquivos: regras puras, API e concorrência.
 > A fase Tentar começou no mesmo dia pelas três funções puras do service (status efetivo, acesso
-> à reserva e horário de funcionamento no fuso), com 13 testes; seguem as rotas pela API.
+> à reserva e horário de funcionamento no fuso), com 13 testes. Em 2026-09-28 vieram as primeiras
+> rotas pela API: `GET /reservas/{id}` completo — com o **teste de IDOR verde** para a leitura
+> (`404` com a mesma mensagem da reserva inexistente) — e `POST /reservas` até a verificação do
+> recurso (`201`, `401`, `422` do schema, `404` e `409` para recurso inexistente e inativo); 11
+> testes pela API. Seguem as regras de negócio da criação, a tradução da `EXCLUDE` em `409`, a
+> listagem, o cancelamento (a outra metade do IDOR) e o teste de concorrência.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 
