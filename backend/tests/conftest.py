@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -9,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db import obter_sessao, url_do_ambiente
 from app.main import app
 from app.models import Usuario
+from app.security import criar_access_token
 
 hasher = PasswordHash.recommended()
 SENHA_HASH = hasher.hash("senha123")
@@ -112,6 +115,9 @@ def cabecalho_de(client):
     # {"Authorization": "Bearer <access_token>"}.
 
     def _cabecalho(usuario: Usuario) -> dict[str, str]:
-        raise NotImplementedError
+        token = criar_access_token(
+            usuario.id_usuario, usuario.privilegio_usuario, datetime.now(UTC)
+        )
+        return {"Authorization": f"Bearer {token}"}
 
     return _cabecalho

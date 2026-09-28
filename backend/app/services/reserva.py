@@ -74,4 +74,19 @@ class ReservaService:
         raise NotImplementedError
 
     def _para_resposta(self, reserva: Reserva) -> ReservaResposta:
-        raise NotImplementedError
+        inicio = reserva.periodo.lower
+        fim = reserva.periodo.upper
+        # O CHECK format_semiabertp proíbe período sem uma das pontas.
+        # O assert conta isso ao mypy.
+        assert inicio is not None and fim is not None
+        return ReservaResposta(
+            id_reserva=reserva.id_reserva,
+            id_usuario=reserva.id_usuario,
+            id_recurso=reserva.id_recurso,
+            convidados=reserva.convidados,
+            inicio=inicio,
+            fim=fim,
+            status_reserva=status_efetivo(reserva, self._agora),
+            cancelada_por_id_usuario=reserva.cancelada_por_id_usuario,
+            cancelada_em=reserva.cancelada_em,
+        )

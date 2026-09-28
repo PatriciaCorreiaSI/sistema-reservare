@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.routers import auth, health, recurso, usuario
+from app.routers import auth, health, recurso, reserva, usuario
 from app.services.excecoes import (
     CredenciaisInvalidas,
     EmailJaCadastrado,
@@ -15,6 +15,7 @@ app.include_router(health.router)
 app.include_router(recurso.router)
 app.include_router(auth.router)
 app.include_router(usuario.router)
+app.include_router(reserva.router)
 
 
 @app.exception_handler(RecursoNaoEncontrado)

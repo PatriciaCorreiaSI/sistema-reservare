@@ -85,7 +85,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
 - **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
   2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
-  testes com `skip`); fase Tentar em andamento — as três funções puras prontas em 2026-09-25.
+  testes com `skip`); fase Tentar em andamento — as três funções puras prontas em 2026-09-25;
+  fixtures, router do `GET /reservas/{id}` e `_para_resposta` em 2026-09-28.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -201,6 +202,10 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **Classe × objeto:** `Classe.campo` dentro de `where` pergunta ao banco; `objeto.campo = x` ordena
   ao objeto. Num `if`, comparar o campo da classe é sempre falso — foi o que faria todo usuário
   virar admin.
+- **Parâmetro de handler sem `Depends`:** o FastAPI decide a origem pelo tipo — um `BaseModel`
+  sem `= Depends(...)` vira **corpo JSON**. `usuario: UsuarioAtual` sozinho num `GET` pula o token
+  (sem `401`) e pede um corpo (`422`). Conferir no `/docs`: rota protegida tem cadeado e GET não
+  tem `requestBody`. E `prefix` do `APIRouter` se soma à rota: `"/{id}"`, não `"/reservas/{id}"`.
 - **Nome que resolve para outra coisa:** um nome local que some faz o Python achar a fixture ou a
   função de mesmo nome no módulo (`sessao.add(usuario)` dentro da fixture `admin`). Renomear com
   `F2`, em todas as ocorrências.
@@ -246,21 +251,31 @@ tira deles a data e a hora; `mesmo_dia` resolve a meia-noite; devolve `bool` —
 `ForaDoHorario` é o `criar`). Nos testes: instantes de entrada sempre em UTC, para pegar a função
 que esquece de converter; cada fronteira com a dupla "em cima" e "um minuto fora" (valor-limite).
 
+**Feito na fase Tentar (2026-09-28):** `obter_fuso` lê `FUSO_FUNCIONAMENTO` no nível do módulo
+(`ZoneInfo(os.environ[...])` falha no startup também com valor vazio ou nome errado), e a variável
+entrou no compose. Fixtures: `agora_fixo` e `fuso_fixo` sem parâmetros, com `yield` e
+`dependency_overrides.pop(..., None)` — o `pop` tolerante porque o `clear()` da `client` desmonta
+antes; `reserva_da_ana` usa a `usuario` pronta e grava 13h–14h UTC; `cabecalho_de` sem `client`,
+pelo `criar_access_token` direto, com `datetime.now(UTC)` e **nunca `AGORA`** (quem confere o `exp`
+é o PyJWT, no relógio real — com `AGORA` a suíte quebraria sozinha a partir de 2026-10-01). Router
+`GET /reservas/{id_reserva}` com `Depends(obter_usuario_atual)` e devolvendo o que o service
+devolve, sem `model_validate`; `_para_resposta` com `assert` nas duas pontas do `Range`.
+
 Os demais testes esperados, com `@pendente` (o `skip`) e a docstring dizendo o que conferem:
 `test_reserva.py` (API) e
-`test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no `pyproject.toml`). As
-fixtures novas (`outra_usuaria` e `cabecalho_de` no `conftest.py`; `agora_fixo`, `fuso_fixo` e
-`reserva_da_ana` no `test_reserva.py`) levam `raise NotImplementedError`: tirar o `skip` de um teste
-sem escrever a fixture dá `ERROR`, não `FAILED`. As fixtures que comitam de verdade para o teste de
-concorrência ainda não estão desenhadas.
+`test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no `pyproject.toml`). A fixture
+`outra_usuaria` ainda leva `raise NotImplementedError`: tirar o `skip` de um teste sem escrever a
+fixture dá `ERROR`, não `FAILED`. As fixtures que comitam de verdade para o teste de concorrência
+ainda não estão desenhadas.
 
-**Retomar por:** os testes pela API, começando por `test_buscar_reserva_da_dona_devolve_200` — o
-caminho mais curto (router → service → repository, cujo `buscar_por_id` já existe), que pede de uma
-vez as peças novas: o corpo do `obter_fuso`; as fixtures `agora_fixo`, `fuso_fixo`,
-`reserva_da_ana` e `cabecalho_de`; o router `routers/reserva.py` e o `include_router` no `main.py`;
-e `_para_resposta` e `buscar_por_id` no service. Depois `criar`, `listar` e `cancelar`, com o que
-cada teste pedir. O mesmo ciclo: tirar o `@pendente`, ver falhar, escrever, ver passar,
-contra-teste. Armadilha já anunciada: após o `UPDATE`
+**Retomar por:** o `buscar_por_id` do `ReservaService` — ler pelo repository, autorizar com
+`garantir_acesso` (que já absorve o `None`; usar o valor que ela **devolve**, já sem `| None`) e
+traduzir com `_para_resposta`. Depois tirar o `@pendente` de
+`test_buscar_reserva_da_dona_devolve_200`, escrever o corpo (o JSON traz `inicio`/`fim` como texto
+ISO 8601: comparar formas iguais), ver passar e o contra-teste; em seguida os vizinhos do buscar
+(alheia, inexistente, admin, terminada — aqui entra a `outra_usuaria`). Depois `criar`, `listar` e
+`cancelar`, com o que cada teste pedir. O mesmo ciclo: tirar o `@pendente`, ver falhar, escrever,
+ver passar, contra-teste. Armadilha já anunciada: após o `UPDATE`
 do `cancelar`, o objeto lido antes segue com o status antigo na sessão (identity map) —
 `test_cancelar_reserva_da_dona_devolve_200_cancelada` é quem pega.
 
