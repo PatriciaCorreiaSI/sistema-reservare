@@ -12,7 +12,9 @@ class ReservaCriar(BaseModel):
 
     @model_validator(mode="after")
     def validar_periodo(self) -> Self:
-        raise NotImplementedError
+        if self.inicio >= self.fim:
+            raise ValueError("Período inválido: início precisa ser anterior ao fim.")
+        return self
 
 
 class ReservaResposta(BaseModel):

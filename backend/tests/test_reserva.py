@@ -58,11 +58,26 @@ def reserva_da_ana(sessao, usuario, recurso_criado):
 # POST /reservas
 
 
-@pendente
 def test_criar_reserva_devolve_201_confirmada_em_nome_de_quem_chama(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """201, status_reserva 'confirmada'; id_usuario é o Ana, vindo do token."""
+    # 201, status_reserva 'confirmada'; id_usuario é o Ana, vindo do token.
+    # Preparar: o corpo do pedido, no formato do ReservaCriar. Sem id_usuario:
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert corpo["status_reserva"] == "confirmada"
+    assert corpo["id_usuario"] == usuario.id_usuario
 
 
 @pendente

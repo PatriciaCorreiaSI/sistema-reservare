@@ -2,6 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends
+from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import Session
 
 from app.db import obter_sessao
@@ -58,7 +59,15 @@ class ReservaService:
     def criar(self, dados: ReservaCriar, usuario: UsuarioAtual) -> ReservaResposta:
         # levanta: RecursoNaoEncontrado, RecursoInativo, ReservaNoPassado,
         # ForaDoHorario, ConvidadosAcimaDaOcupacao, HorarioOcupado
-        raise NotImplementedError
+        reserva = Reserva(
+            id_usuario=usuario.id_usuario,
+            id_recurso=dados.id_recurso,
+            convidados=dados.convidados,
+            periodo=Range(dados.inicio, dados.fim, bounds="[)"),
+            status_reserva="confirmada",
+        )
+        reserva = self._reservas.criar(reserva)
+        return self._para_resposta(reserva)
 
     def listar(
         self, usuario: UsuarioAtual, limite: int, deslocamento: int

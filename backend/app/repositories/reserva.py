@@ -22,7 +22,9 @@ class ReservaRepository:
 
     def criar(self, reserva: Reserva) -> Reserva:
         # levanta: HorarioOcupado, RecursoNaoEncontrado (ADR 0014)
-        raise NotImplementedError
+        self._sessao.add(reserva)
+        self._sessao.flush()
+        return reserva
 
     def cancelar(self, id_reserva: int, cancelada_por_id: int, agora: datetime) -> bool:
         raise NotImplementedError
