@@ -27,6 +27,7 @@ services:
       POSTGRES_DB: $POSTGRES_DB
       DB_HOST: db
       JWT_SEGREDO: $JWT_SEGREDO
+      FUSO_FUNCIONAMENTO: $FUSO_FUNCIONAMENTO
     depends_on:
       db:
         condition: service_healthy

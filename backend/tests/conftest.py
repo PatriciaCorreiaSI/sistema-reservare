@@ -108,8 +108,8 @@ def outra_usuaria(sessao):
 
 @pytest.fixture
 def cabecalho_de(client):
-    """Devolve uma função: recebe um Usuario, faz o login e devolve
-    {"Authorization": "Bearer <access_token>"}."""
+    # Devolve uma função: recebe um Usuario, faz o login e devolve
+    # {"Authorization": "Bearer <access_token>"}.
 
     def _cabecalho(usuario: Usuario) -> dict[str, str]:
         raise NotImplementedError

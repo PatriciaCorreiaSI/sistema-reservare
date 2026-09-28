@@ -1,31 +1,58 @@
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 import pytest
+from sqlalchemy.dialects.postgresql import Range
+
+from app.dependencies import obter_agora, obter_fuso
+from app.main import app
+from app.models import Reserva
 
 pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
 
 AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+FUSO = ZoneInfo("America/Sao_Paulo")
 
 
 @pytest.fixture(autouse=True)
 def agora_fixo():
-    """Troca obter_agora por AGORA (dependency_overrides) em todo teste do arquivo,
-    e desfaz a troca no fim."""
-    raise NotImplementedError
+    # Troca obter_agora por AGORA (dependency_overrides) em todo teste do arquivo,
+    # e desfaz a troca no fim.
+    app.dependency_overrides[obter_agora] = lambda: AGORA
+    yield
+    app.dependency_overrides.pop(obter_agora, None)
 
 
 @pytest.fixture(autouse=True)
 def fuso_fixo():
-    """Troca obter_fuso por ZoneInfo("America/Sao_Paulo") em todo teste do arquivo,
-    e desfaz a troca no fim."""
-    raise NotImplementedError
+    # Troca obter_fuso por ZoneInfo("America/Sao_Paulo") em todo teste do arquivo,
+    # e desfaz a troca no fim.
+    app.dependency_overrides[obter_fuso] = lambda: FUSO
+    yield
+    app.dependency_overrides.pop(obter_fuso, None)
 
 
 @pytest.fixture
 def reserva_da_ana(sessao, usuario, recurso_criado):
-    """Grava pelo modelo, sem HTTP: confirmada, no dia seguinte a AGORA, das 10h às 11h
-    no horário de Brasília (13h às 14h UTC). Devolve o objeto Reserva."""
-    raise NotImplementedError
+    # Grava pelo modelo, sem HTTP: confirmada, no dia seguinte a AGORA, das 10h às 11h
+    # no horário de Brasília (13h às 14h UTC). Devolve o objeto Reserva.
+    # Prepara recurso, usuário e reserva
+    periodo = Range(
+        datetime(2026, 10, 2, 13, 0, tzinfo=UTC),
+        datetime(2026, 10, 2, 14, 0, tzinfo=UTC),
+        bounds="[)",
+    )
+
+    reserva = Reserva(
+        id_usuario=usuario.id_usuario,
+        id_recurso=recurso_criado["id_recurso"],
+        convidados=7,
+        periodo=periodo,
+        status_reserva="confirmada",
+    )
+    sessao.add(reserva)
+    sessao.flush()
+    return reserva
 
 
 # POST /reservas

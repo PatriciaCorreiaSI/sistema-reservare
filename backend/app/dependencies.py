@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 
 from app.security import decodificar_access_token
 from app.services.excecoes import CredenciaisInvalidas, PrivilegioInsuficiente
+
+FUSO_FUNCIONAMENTO = ZoneInfo(os.environ["FUSO_FUNCIONAMENTO"])
 
 
 class UsuarioAtual(BaseModel):
@@ -39,4 +42,4 @@ def obter_agora() -> datetime:
 
 
 def obter_fuso() -> ZoneInfo:
-    raise NotImplementedError
+    return FUSO_FUNCIONAMENTO
