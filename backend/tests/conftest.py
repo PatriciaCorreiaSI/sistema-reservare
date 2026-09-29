@@ -85,7 +85,9 @@ def usuario(sessao):
         status_usuario="ativo",
     )
     sessao.add(usuario)
-    sessao.flush()
+    # commit, e não flush: com o create_savepoint ele só confirma o savepoint.
+    # Assim uma requisição que falha e faz rollback não desfaz a preparação.
+    sessao.commit()
     return usuario
 
 
@@ -99,7 +101,7 @@ def admin(sessao):
         status_usuario="ativo",
     )
     sessao.add(admin)
-    sessao.flush()
+    sessao.commit()
     return admin
 
 
@@ -114,7 +116,7 @@ def outra_usuaria(sessao):
         status_usuario="ativo",
     )
     sessao.add(outra_usuaria)
-    sessao.flush()
+    sessao.commit()
     return outra_usuaria
 
 

@@ -51,7 +51,7 @@ def reserva_da_ana(sessao, usuario, recurso_criado):
         status_reserva="confirmada",
     )
     sessao.add(reserva)
-    sessao.flush()
+    sessao.commit()
     return reserva
 
 
@@ -450,27 +450,71 @@ def test_cancelar_reserva_alheia_devolve_404(
     leitura = client.get(
         f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(usuario)
     )
+    assert leitura.status_code == 200
     assert leitura.json()["status_reserva"] == "confirmada"
 
 
-@pendente
 def test_cancelar_reserva_ja_cancelada_devolve_409(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """Cancelar duas vezes → a segunda devolve 409 (ReservaNaoCancelavel)."""
+    # Cancelar duas vezes → a segunda devolve 409 (ReservaNaoCancelavel).
+    # Preparar: o primeiro cancelamento pela API
+    url = f"/reservas/{reserva_da_ana.id_reserva}/cancelar"
+    primeira = client.post(url, headers=cabecalho_de(usuario))
+    assert primeira.status_code == 200
+
+    # Agir: o segundo cancelamento
+    resposta = client.post(url, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 409
+    assert resposta.json()["detail"] == "A reserva já foi cancelada ou já terminou"
 
 
-@pendente
 def test_cancelar_reserva_terminada_devolve_409(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """Troca o relógio de novo, para depois do fim → 409: 'concluída' é final
-    (ADR 0016)."""
+    # Troca o relógio de novo, para depois do fim → 409: 'concluída' é final
+    # (ADR 0016).
+    # Preparar: o relógio exatamente no fim da reserva (a fronteira)
+    app.dependency_overrides[obter_agora] = lambda: reserva_da_ana.periodo.upper
+
+    # Agir
+    resposta = client.post(
+        f"/reservas/{reserva_da_ana.id_reserva}/cancelar", headers=cabecalho_de(usuario)
+    )
+
+    # Conferir: recusado, e a reserva segue concluída, não cancelada
+    assert resposta.status_code == 409
+    assert resposta.json()["detail"] == "A reserva já foi cancelada ou já terminou"
+    leitura = client.get(
+        f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(usuario)
+    )
+    assert leitura.status_code == 200
+    assert leitura.json()["status_reserva"] == "concluida"
 
 
-@pendente
 def test_cancelar_reserva_libera_o_horario(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """Depois de cancelar, cria uma reserva nova no mesmo período → 201: a EXCLUDE só
-    olha reservas com 'cancelada_em' nulo."""
+    # Depois de cancelar, cria uma reserva nova no mesmo período → 201: a EXCLUDE só
+    # olha reservas com 'cancelada_em' nulo.
+    # Preparar: a Ana cancela a reserva das 10h às 11h (13h às 14h UTC)
+    cancelamento = client.post(
+        f"/reservas/{reserva_da_ana.id_reserva}/cancelar", headers=cabecalho_de(usuario)
+    )
+    assert cancelamento.status_code == 200
+
+    # Agir: uma reserva nova exatamente no mesmo período
+    reserva = {
+        "id_recurso": reserva_da_ana.id_recurso,
+        "convidados": 4,
+        "inicio": "2026-10-02T13:00:00Z",
+        "fim": "2026-10-02T14:00:00Z",
+    }
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert corpo["status_reserva"] == "confirmada"
