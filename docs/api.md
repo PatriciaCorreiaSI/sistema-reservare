@@ -31,6 +31,23 @@ RecursoResposta
     status_recurso: str
 ```
 
+```
+Lacuna
+    inicio: datetime
+    fim: datetime
+```
+
+```
+DisponibilidadeResposta
+    id_recurso: int
+    dia: date
+    lacunas: list[Lacuna]
+```
+
+
+- **O `dia` é local; as lacunas, em UTC** ([ADR 0019](./adr/0019-disponibilidade-como-lacunas-livres.md)). A resposta devolve o `dia` junto porque uma lacuna às 23h UTC do dia 2 ainda pertence ao dia 2 em Brasília: sem ele, a lista não diz de que dia fala.
+
+
 ### Rotas de `/recursos`
 
 | **Rota**  |  **Sucesso** |  **Erros** | **Porquê** |
@@ -40,6 +57,7 @@ RecursoResposta
 |`GET /recursos/{id}`| `200`|`404`| |
 |`PATCH /recursos/{id}`| `200`|`404` · `422`| `PUT` obrigaria o usuário a escrever sempre todos os campos, sob risco de reescrever dado velho. `PATCH` garante a inserção apenas dos dados a serem atualizados e mantém os demais como estão. |
 |`DELETE /recursos/{id}`| `204`|`404` · `409`|Dá `404` quando o recurso pedido não existe. Dá `409` quando o recurso existe, a requisição está bem formada, mas ela conflita com o estado atual do sistema (o recurso está em uso: existe reserva apontando para ele. A FK é `ON DELETE RESTRICT` e por isso não é possível deletá-lo por causa do que já existe no banco).|
+|`GET /recursos/{id}/disponibilidade?dia=2026-10-02`| `200` + `DisponibilidadeResposta`| `401` · `404` · `409` · `422` |`401` para quem não está logado; `404` para recurso inexistente; `409` para recurso inativo; `422` para dia ausente ou mal formado. Um dia no passado ou todo ocupado não dá `422`, e sim `200` com a lista vazia. |
 
 
 ## Autenticação

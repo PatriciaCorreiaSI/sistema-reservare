@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict
 
@@ -27,3 +27,14 @@ class RecursoResposta(BaseModel):
     hora_func_inicio: time
     hora_func_fim: time
     status_recurso: str
+
+
+class Lacuna(BaseModel):
+    inicio: datetime
+    fim: datetime
+
+
+class DisponibilidadeResposta(BaseModel):
+    id_recurso: int
+    dia: date
+    lacunas: list[Lacuna]
