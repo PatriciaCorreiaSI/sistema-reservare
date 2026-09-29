@@ -211,7 +211,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
-| 7–8    | **Etapa 4**         | 🔨 **é aqui que estamos** — o invariante sob concorrência + o teste que prova; e o IDOR herdado da Etapa 3 |
+| 7–8    | **Etapa 4**         | 🔨 **é aqui que estamos** — critério de pronto cumprido: o teste de concorrência (`201` + `409` pela API) e o IDOR herdado da Etapa 3; 60 testes verdes. Falta a consulta de disponibilidade |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
@@ -239,7 +239,7 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ### 🧱 Etapa 0 — Fundação
 
-> **Concluída:**✅ `docker compose up` sobe API e Postgres; `/health` responde `200` pelo compose.
+> **✅ Concluída.** `docker compose up` sobe API e Postgres; `/health` responde `200` pelo compose.
 
 **Objetivo:** o projeto nasce com o ambiente que uma equipe profissional usaria, antes de existir regra de negócio.
 
@@ -257,7 +257,7 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 **Critério de pronto**
 `docker compose up` sobe API e Postgres; `GET /health` responde `200`; `ruff` e `mypy` passam limpos; `.env` está no `.gitignore`.
 
-**Armadilhas**0
+**Armadilhas**
 
 - Commitar `.env` — o `.gitignore` precisa existir **antes** do primeiro commit. Em repositório público, segredo commitado é segredo **rotacionado**, não apagado
 - Criar as pastas de camadas e escrever tudo dentro do router assim mesmo
@@ -268,17 +268,10 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ### 🗄️ Etapa 1 — Modelagem e migrations
 
-> **✅ Etapa concluída em 2026-09-10.** O critério de pronto abaixo está cumprido: a migration
-> `8cf01df862a4` cria as três tabelas, a extensão `btree_gist` e a `EXCLUDE` num banco vazio;
-> `docs/prova-invariante.sql` passa nos sete casos contra o banco que o Alembic construiu; e
-> `downgrade base` desfaz — deixando a `btree_gist` instalada, de propósito.
->
-> `docs/esquema-alvo.sql` foi **congelado como registro histórico**: a verdade sobre o esquema
-> passa a ser a migration, e ele não deve mais ser sincronizado. `docs/prova-invariante.sql`
-> continua vivo — ele não cria esquema, só pressupõe que existe, e é o teste de aceitação da etapa.
->
-> O que a etapa ensinou e não está no código está registrado em `CLAUDE.md` (seção "Decisões e
-> aprendizados da Etapa 1") e em `docs/aprendizados.md`.
+> **✅ Concluída em 2026-09-10.** A migration cria do zero as três tabelas, a extensão
+> `btree_gist` e a `EXCLUDE`, e o `downgrade base` desfaz. `docs/prova-invariante.sql` passa nos
+> sete casos contra o banco que o Alembic construiu. `docs/esquema-alvo.sql` ficou congelado como
+> registro histórico: a verdade sobre o esquema é a migration.
 
 **Objetivo:** o banco deve **impedir** dado inválido, não confiar que o Python vai validar.
 
@@ -304,21 +297,12 @@ Ao final da **Etapa 8** o projeto já é publicável: back-end completo, invaria
 
 ### 🚶 Etapa 2 — Primeira fatia vertical
 
-> **✅ Etapa concluída em 2026-09-15.** O critério de pronto abaixo está cumprido: CRUD de
-> `recurso` em `routers/` → `services/` → `repositories/`, schemas separados por direção, dois
-> `@app.exception_handler` traduzindo `RecursoNaoEncontrado` em `404` e `RecursoEmUso` em `409`; e
-> o primeiro `pytest` — 11 testes em `backend/tests/`, cada um numa transação desfeita no fim
-> (ADR [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md)) contra um banco
-> `reservare_test` que o próprio `conftest.py` constrói com `alembic upgrade head`. Cobre o caminho
-> feliz das cinco rotas, os três `404`, o `422` e o `409` do `DELETE` — este montando `usuario` e
-> `reserva` direto pelos modelos, porque ainda não têm rota.
->
-> As decisões da etapa estão nos ADRs [0010](adr/0010-requisicao-e-transacao.md) (a requisição é
-> a transação — nenhuma camada chama `commit()`, todo repository que escreve faz `flush()`) e 0011;
-> o desenho, em [`api.md`](api.md). O que a etapa ensinou e não está no código está em `CLAUDE.md`
-> (seção "Decisões e aprendizados da Etapa 2"). As três pendências pequenas que ficaram — o
-> *savepoint* na fixture `sessao`, a fixture `recurso_criado` e o vocabulário do pytest em
-> `docs/aprendizados.md` — fecharam em 2026-09-16.
+> **✅ Concluída em 2026-09-15.** CRUD de `recurso` em router → service → repository, com
+> exceções de domínio traduzidas em `404` e `409`. Decisões nos ADRs
+> [0010](adr/0010-requisicao-e-transacao.md) (a requisição é a transação) e
+> [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md) (cada teste numa transação
+> desfeita no fim, num banco `reservare_test`). 11 testes verdes: caminho feliz, `404`, `422` e o
+> `409` do `DELETE`.
 
 **Objetivo:** um recurso completo, da requisição HTTP ao banco e de volta, com teste. Fino, mas inteiro.
 
@@ -343,31 +327,12 @@ CRUD de `recurso` funcionando, documentado no `/docs`, com testes de caminho fel
 
 ### 🔐 Etapa 3 — Autenticação e autorização
 
-> **✅ Etapa concluída em 2026-09-23.** Decisões nos ADRs
-> [0012](adr/0012-jwt-curto-com-refresh-no-banco.md) (access JWT de 15 minutos + refresh opaco no
-> banco, que é o que o logout revoga) e
-> [0013](adr/0013-transportar-token-no-cabecalho-authorization.md) (token no cabeçalho
-> `Authorization`, em memória no frontend), mais uma emenda ao
-> [0010](adr/0010-requisicao-e-transacao.md): a revogação da família é a *resposta* ao reuso de
-> refresh, não parte dele, e sobrevive ao `401` no único `commit()` fora do `obter_sessao`. O
-> desenho está em [`api.md`](api.md).
->
-> A cadeia entrou no ar em 2026-09-22: login, `/auth/refresh` com rotação e detecção de reuso,
-> logout idempotente e `POST /usuarios` restrito a admin pela dependência `exigir_admin`. O `401`
-> nasce num handler só, com `WWW-Authenticate: Bearer`. O teste do critério de pronto foi escrito
-> quatro sessões antes das rotas e ficou verde sem ser tocado. Em 2026-09-23 fecharam os testes
-> do `403`, do `409`, do `422`, do login, da rotação e do reuso (este conferindo que a família
-> inteira cai), e o comando `criar_admin` (`python -m app.comandos.criar_admin`), que cria o
-> primeiro admin a partir do `.env`. **22 testes verdes.** Uma emenda ao
-> [0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md) fez a função substituta de
-> `obter_sessao` repetir o ciclo de `commit`/`rollback` — sem isso, o teste de reuso passava mesmo
-> com o `commit()` da emenda ao 0010 apagado. O que cada peça ensinou e não está no código está em
-> `CLAUDE.md`.
->
-> **A segunda metade do critério de pronto (IDOR) passou para a Etapa 4**, decidido em
-> 2026-09-23: ela é critério de aceite das rotas de `reserva`, que ainda não existem. O que a
-> Etapa 3 devia entregar para ela — o `UsuarioAtual` com o `id_usuario` vindo do JWT — está
-> pronto.
+> **✅ Concluída em 2026-09-23.** Login, `/auth/refresh` com rotação e detecção de reuso, logout
+> que revoga de verdade, `POST /usuarios` só para admin e o comando `criar_admin`. Decisões nos
+> ADRs [0012](adr/0012-jwt-curto-com-refresh-no-banco.md) (access JWT curto + refresh revogável no
+> banco) e [0013](adr/0013-transportar-token-no-cabecalho-authorization.md) (token no cabeçalho
+> `Authorization`), com emendas aos 0010 e 0011. 22 testes verdes. A metade IDOR do critério de
+> pronto passou para a Etapa 4, junto com as rotas de `reserva` que ela protege — e foi cumprida lá.
 
 **Objetivo:** entender a diferença entre _quem você é_ e _o que você pode fazer_ — e por que logout com JWT é um problema.
 
@@ -395,31 +360,14 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 
 ### ⚙️ Etapa 4 — O coração: reservas, concorrência e estados
 
-> **🔨 Em andamento.** A fase Decidir fechou em 2026-09-24 com quatro ADRs:
-> [0014](adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) (a violação é traduzida pelo nome
-> da constraint, no repository), [0015](adr/0015-concorrencia-com-threads-e-barreira-pela-api.md)
-> (o teste de concorrência usa threads liberadas por uma barreira, pela API),
-> [0016](adr/0016-cancelar-pela-acao-com-update-condicional.md) (cancelamento por
-> `POST /reservas/{id}/cancelar`, com `UPDATE` condicional) e
-> [0017](adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md) (`404` para a reserva alheia). A fase
-> Desenhar fechou em 2026-09-25 com mais um ADR,
-> [0018](adr/0018-fuso-unico-do-sistema.md) (o horário de funcionamento é lido num fuso único do
-> sistema); schemas e rotas no `api.md`; o esqueleto em código com os corpos em
-> `NotImplementedError`; e 37 testes com `skip` em três arquivos: regras puras, API e concorrência.
-> A fase Tentar começou no mesmo dia pelas três funções puras do service (status efetivo, acesso
-> à reserva e horário de funcionamento no fuso), com 13 testes. Em 2026-09-28 vieram as primeiras
-> rotas pela API: `GET /reservas/{id}` completo — com o **teste de IDOR verde** para a leitura
-> (`404` com a mesma mensagem da reserva inexistente) — e `POST /reservas` até a verificação do
-> recurso (`201`, `401`, `422` do schema, `404` e `409` para recurso inexistente e inativo); 11
-> testes pela API. Em 2026-09-29, o resto das rotas: as três regras de negócio da criação (`422`
-> para o passado, fora do horário e acima da ocupação, com um handler só), a violação da `EXCLUDE`
-> traduzida em `409` pelo nome da constraint (e a reserva que só encosta aceita), a listagem
-> filtrada pelo token e o cancelamento por `UPDATE` condicional — com o **teste de IDOR verde
-> também para o cancelamento**, o que fecha a metade herdada do critério de pronto. O teste de IDOR
-> do cancelamento revelou um defeito na preparação dos testes, corrigido por uma emenda ao
-> [ADR 0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md): a fixture que grava pelo
-> modelo passa a comitar o savepoint. Ao todo, 59 testes verdes. Falta o teste de concorrência,
-> começando pelo desenho das fixtures que comitam de verdade.
+> **🔨 Em andamento — critério de pronto cumprido.** Decisões nos ADRs
+> [0014](adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a
+> [0018](adr/0018-fuso-unico-do-sistema.md). As quatro rotas de `reserva` funcionam: criar (com
+> as regras de negócio e a sobreposição recusada pela `EXCLUDE`, traduzida em `409`), listar,
+> consultar e cancelar. O **teste de IDOR** está verde para a leitura e para o cancelamento, e o
+> **teste de concorrência**, para duas requisições simultâneas no mesmo horário, devolve
+> exatamente um `201` e um `409`. Ao todo, 60 testes verdes. A etapa segue aberta até a
+> **consulta de disponibilidade**, escopo da v1 (seção 3) que ainda não tem ADR nem rota.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

@@ -85,9 +85,10 @@ Antes de escrever implementação, verifique em que fase ela está:
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
 - **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
   2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
-  testes com `skip`); fase Tentar em andamento — as quatro rotas de `reserva` completas em
-  2026-09-29, com o **critério IDOR cumprido** (leitura e cancelamento); falta só o teste de
-  concorrência — suíte em `59 passed, 1 skipped`.
+  testes com `skip`); em 2026-09-29, as quatro rotas de `reserva` e o **critério de pronto
+  inteiro cumprido** — IDOR (leitura e cancelamento) e concorrência (`201` + `409` pela API) —,
+  suíte em `60 passed`. **Segue aberta** (decidido em 2026-09-29): falta a **consulta de
+  disponibilidade**, escopo da v1 que nenhum ADR decidiu e nenhuma rota implementa.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -180,8 +181,15 @@ compromissos sobre código que ainda não existe, e armadilhas.
   **repete o ciclo do `obter_sessao`** — mudar um exige mudar o outro. **Fixture que grava pelo
   modelo termina em `sessao.commit()`, nunca `flush()`** (emenda de 2026-09-29): com o savepoint,
   o `commit` só o confirma, e sem ele o `rollback` de uma requisição que falha desfaz a preparação
-  junto — o sintoma é `404` ao ler depois de um erro. Exceção nomeada: o teste de concorrência da
-  Etapa 4 comita de verdade, limpa com `TRUNCATE` e leva marcador próprio.
+  junto — o sintoma é `404` ao ler depois de um erro. Exceção nomeada: o teste de concorrência
+  (`test_reserva_concorrencia.py`) comita de verdade, limpa com `TRUNCATE` e leva o marcador
+  `concorrencia`. Suas fixtures moram no próprio arquivo e **não se misturam** com as do
+  `conftest.py`: a `api_com_sessao_real` é a segunda cópia do ciclo do `obter_sessao` (mudar um
+  exige mudar os três); as que gravam dependem de `banco_limpo` só pela **ordem** — montada
+  primeiro, desmontada por último, o `TRUNCATE` roda mesmo se uma fixture posterior quebrar — e
+  devolvem o **`id`**, lido dentro do `with` (depois do `commit` o objeto expira e, com a sessão
+  fechada, lê-lo dá `DetachedInstanceError`). O token é fabricado com `datetime.now(UTC)` real:
+  quem confere o `exp` é o PyJWT, não o `AGORA`.
 - **Fato que vira o centro da Etapa 4:** quando a transação 2 insere sobre uma linha que a 1 fez
   `flush` mas não comitou, o Postgres **não recusa — espera**. `commit` na 1 → erro da `EXCLUDE` na
   2; `rollback` na 1 → a 2 entra. Por isso o teste de concorrência precisa de `commit` real.
@@ -240,6 +248,17 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **Nome que resolve para outra coisa:** um nome local que some faz o Python achar a fixture ou a
   função de mesmo nome no módulo (`sessao.add(usuario)` dentro da fixture `admin`). Renomear com
   `F2`, em todas as ocorrências.
+- **`fabrica()` × `fabrica.begin()`:** os dois existem, por isso nenhuma ferramenta reclama.
+  `fabrica()` + `sessao.begin()` (o padrão do `criar_admin`) ou `fabrica.begin()` sozinho — a
+  mistura pede uma transação já aberta e dá `InvalidRequestError`.
+- **Thread engole o que acontece nela:** retorno e exceção não chegam ao teste (só um
+  `PytestUnhandledThreadExceptionWarning`); o resultado vai numa lista que o teste lê.
+  `join(timeout=...)` não falha ao vencer o prazo — quem diz é `is_alive()`. E o valor do `for`
+  precisa chegar ao `args`: `for c in (...)` com `args=(corpo, ...)` roda igual e não muda nada —
+  foi o contra-teste que passou quando devia falhar.
+- **Traceback: a linha que importa é a do arquivo do projeto.** `importlib\__init__.py:88` é o
+  Python carregando o teste; o erro está na linha `tests\...:13` logo abaixo, e na que começa com
+  `E`. `ERROR collecting` (≠ `FAILED`) = o arquivo nem carregou, nenhum teste rodou.
 - **`F401` pode ser o defeito**, não o ruído (import sem o `include_router`, sem o
   `pytest.raises`). Não rodar `ruff check --fix` em arquivo pela metade: ele apaga a pista.
 - **`os.environ[...]` protege contra chave ausente, não contra chave vazia.** `load_dotenv` com
@@ -262,15 +281,17 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**O teste de concorrência — a última peça da Etapa 4.** A outra metade do critério de pronto, o IDOR
-herdado da Etapa 3, está cumprida: `test_buscar_reserva_alheia_devolve_404` e
-`test_cancelar_reserva_alheia_devolve_404` conferem o `detail` (igual ao da inexistente) e, no
-cancelamento, que a reserva da Ana segue confirmada.
+**A consulta de disponibilidade — o que falta para fechar a Etapa 4.** O critério de pronto está
+cumprido: o IDOR (`test_buscar_reserva_alheia_devolve_404` e
+`test_cancelar_reserva_alheia_devolve_404` conferem o `detail`) e a concorrência
+(`test_reserva_concorrencia.py`: duas threads, `sorted(status) == [201, 409]`, com o contra-teste
+do horário vizinho — `[201, 201]` — feito e desfeito). A etapa segue aberta porque a consulta de
+disponibilidade é escopo da v1 (ROADMAP, seção 3) e a Etapa 7 depende dela para o calendário.
 
 **O que existe (fase Tentar, 2026-09-25 a 29):** as três funções puras de `services/reserva.py`
 (`status_efetivo`, `garantir_acesso`, `cabe_no_horario`), com 13 testes sem banco em
-`test_reserva_regras.py`; e as quatro rotas de `reserva`, com 27 testes pela API em
-`test_reserva.py`. Fatos do código que não se leem de primeira:
+`test_reserva_regras.py`; as quatro rotas de `reserva`, com 27 testes pela API em
+`test_reserva.py`; e o teste de concorrência. Fatos do código que não se leem de primeira:
 
 - **`criar`** (service): recurso primeiro (`404`, depois `409` inativo), então as três regras de
   `422` — passado (`inicio < self._agora`), `cabe_no_horario(..., self._fuso)` e
@@ -284,20 +305,20 @@ cancelamento, que a reserva da Ana segue confirmada.
   `ReservaNaoCancelavel` (`409`, "já foi cancelada ou já terminou"). A armadilha do identity map
   anunciada **não existe**: o `synchronize_session` padrão atualiza o objeto lido antes.
 
-**Retomar por: desenhar as fixtures do teste de concorrência** (ADR 0015, ainda sem desenho em
-código). O ADR já decide: duas threads liberadas por `threading.Barrier`, cada uma com o seu
-`TestClient`; uma substituta do `obter_sessao` que entrega a cada requisição uma **sessão nova e
-real**, que comita de verdade; fixtures próprias que comitam usuário e recurso; `TRUNCATE` na
-desmontagem, rodando mesmo se o teste falhar; prazo máximo por thread (falhar em vez de pendurar);
-o teste confere o conjunto `{201, 409}`, sem depender de qual thread vence. Marcador
-`concorrencia`, que roda por padrão. As fixtures de hoje (`sessao`, `client`, `usuario`) não
-servem: vivem dentro de uma transação que nunca comita, e a outra conexão não as enxergaria. Fase
-Desenhar antes de Tentar: nomes das fixtures, assinaturas e a ordem de montagem e desmontagem.
+**Retomar por: a fase Decidir da consulta de disponibilidade** — um ADR antes de qualquer código.
+O que ela é: uma leitura que devolve as **lacunas livres** de um recurso num dia, dentro do horário
+de funcionamento (ex.: funciona 8h–18h, reservas 10h–11h e 14h–16h → livre 8h–10h, 11h–14h,
+16h–18h). Só reservas ativas contam; o dia e o horário são lidos no fuso do sistema (ADR 0018) e
+as reservas estão em UTC; o intervalo é semiaberto. **Ela mostra, não garante** — a resposta
+envelhece no instante seguinte, e quem garante continua sendo a `EXCLUDE`. Decisões em aberto para
+o ADR: forma da rota (ex.: `GET /recursos/{id}/disponibilidade?dia=...`), quem pode consultar
+(liga-se à pendência das rotas de `/recursos` abaixo), e onde as lacunas são calculadas — no
+Python ou no SQL (o Postgres tem operações de intervalo). Depois, rota e schemas no `api.md`.
 
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`59 passed, 1 skipped` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+`60 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Pendente para depois de fechar a Etapa 4:** `limite` e `deslocamento` são `int` puro em
 `GET /reservas` e `GET /recursos` — `"abc"` dá `422`, mas `limite=-1` chega ao Postgres e vira

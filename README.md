@@ -3,11 +3,8 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 4 — reservas, concorrência e estados**, em andamento — as decisões estão
-> registradas em ADRs; criar, listar, consultar e cancelar reservas já funcionam pela API, com as
-> regras de negócio, a sobreposição recusada pelo banco e traduzida em `409`, e os testes de acesso
-> indevido verdes; falta o teste de concorrência. Fundação, modelagem, migrations, a primeira fatia
-> vertical e autenticação concluídas. Ao todo, 59 testes verdes.
+> Fase atual: **Etapa 4 — reservas, concorrência e estados**. As reservas funcionam pela API e o
+> teste de concorrência está verde; falta a consulta de horários livres. Ao todo, 60 testes verdes.
 
 ---
 
@@ -56,9 +53,9 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Modelagem de dados | ✅ concluída |
 | Fundação: ambiente, container, lint | ✅ concluída |
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
-| API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository; `pytest` com banco `reservare_test` isolado por transação: caminho feliz, `404`, `422` e o `409` do `DELETE` |
-| Autenticação e autorização | ✅ concluída — login, `/auth/refresh` com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin e com validação de nome, e-mail e senha, e um comando que cria o primeiro admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)); 22 testes verdes. O teste de IDOR passou para a etapa de reservas, junto com as rotas que ele protege |
-| Reservas, concorrência e estados | 🔨 em andamento — decisões registradas: tradução da violação de constraint em `409` ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md)), teste de concorrência pela API ([ADR 0015](docs/adr/0015-concorrencia-com-threads-e-barreira-pela-api.md)), cancelamento sem janela de corrida ([ADR 0016](docs/adr/0016-cancelar-pela-acao-com-update-condicional.md)), `404` para a reserva de outra pessoa ([ADR 0017](docs/adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md)) e horário de funcionamento lido num fuso único do sistema ([ADR 0018](docs/adr/0018-fuso-unico-do-sistema.md)). Implementadas e testadas as regras de status efetivo, acesso à reserva e horário de funcionamento (13 testes sem banco) e as quatro rotas de reserva (27 testes pela API): `POST /reservas` com as regras de negócio (`422` para o passado, fora do horário e acima da ocupação) e a sobreposição recusada pela `EXCLUDE` e traduzida em `409` — reservas que só se encostam passam; `GET /reservas`, em que cada usuária vê só as suas e o admin vê todas; `GET /reservas/{id}`; e `POST /reservas/{id}/cancelar`, que libera o horário. O teste de IDOR está verde para a leitura e para o cancelamento. Falta o teste de concorrência |
+| API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository, com testes isolados por transação num banco próprio |
+| Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
+| Reservas, concorrência e estados | 🔨 em andamento — criar, listar, consultar e cancelar reservas pela API, com a sobreposição recusada pelo banco e traduzida em `409` (decisões nos ADRs [0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0018](docs/adr/0018-fuso-unico-do-sistema.md)). Verdes o teste de acesso indevido (IDOR) e o de concorrência: duas requisições simultâneas no mesmo horário devolvem exatamente um `201` e um `409`. Falta a consulta de horários livres |
 | Testes e integração contínua | ⏳ |
 | Front-end | ⏳ |
 | Deploy | ⏳ |
