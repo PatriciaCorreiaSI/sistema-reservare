@@ -367,7 +367,9 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > consultar e cancelar. O **teste de IDOR** está verde para a leitura e para o cancelamento, e o
 > **teste de concorrência**, para duas requisições simultâneas no mesmo horário, devolve
 > exatamente um `201` e um `409`. Ao todo, 60 testes verdes. A etapa segue aberta até a
-> **consulta de disponibilidade**, escopo da v1 (seção 3) que ainda não tem ADR nem rota.
+> **consulta de disponibilidade**, escopo da v1 (seção 3): decidida no
+> [ADR 0019](adr/0019-disponibilidade-como-lacunas-livres.md) (as lacunas livres do dia,
+> calculadas em Python), com rota e schemas no `api.md`; falta a implementação.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

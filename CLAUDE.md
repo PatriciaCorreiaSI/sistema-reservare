@@ -88,7 +88,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   testes com `skip`); em 2026-09-29, as quatro rotas de `reserva` e o **critério de pronto
   inteiro cumprido** — IDOR (leitura e cancelamento) e concorrência (`201` + `409` pela API) —,
   suíte em `60 passed`. **Segue aberta** (decidido em 2026-09-29): falta a **consulta de
-  disponibilidade**, escopo da v1 que nenhum ADR decidiu e nenhuma rota implementa.
+  disponibilidade**, escopo da v1 — decidida no ADR 0019, com rota e schemas no `api.md`; o
+  Desenhar continua pelo código.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -305,15 +306,21 @@ disponibilidade é escopo da v1 (ROADMAP, seção 3) e a Etapa 7 depende dela pa
   `ReservaNaoCancelavel` (`409`, "já foi cancelada ou já terminou"). A armadilha do identity map
   anunciada **não existe**: o `synchronize_session` padrão atualiza o objeto lido antes.
 
-**Retomar por: a fase Decidir da consulta de disponibilidade** — um ADR antes de qualquer código.
-O que ela é: uma leitura que devolve as **lacunas livres** de um recurso num dia, dentro do horário
-de funcionamento (ex.: funciona 8h–18h, reservas 10h–11h e 14h–16h → livre 8h–10h, 11h–14h,
-16h–18h). Só reservas ativas contam; o dia e o horário são lidos no fuso do sistema (ADR 0018) e
-as reservas estão em UTC; o intervalo é semiaberto. **Ela mostra, não garante** — a resposta
-envelhece no instante seguinte, e quem garante continua sendo a `EXCLUDE`. Decisões em aberto para
-o ADR: forma da rota (ex.: `GET /recursos/{id}/disponibilidade?dia=...`), quem pode consultar
-(liga-se à pendência das rotas de `/recursos` abaixo), e onde as lacunas são calculadas — no
-Python ou no SQL (o Postgres tem operações de intervalo). Depois, rota e schemas no `api.md`.
+**Retomar por: o resto da fase Desenhar da consulta de disponibilidade.** Decidir fechou no
+ADR 0019: `GET /recursos/{id}/disponibilidade?dia=AAAA-MM-DD` devolve as **lacunas livres** do
+dia (ex.: funciona 8h–18h, reservas 10h–11h e 14h–16h → livre 8h–10h, 11h–14h, 16h–18h),
+calculadas por **função pura em Python** (o *multirange* do SQL ficou nas alternativas). Só
+reservas ativas contam; o `dia` é data **local**, no fuso do sistema, e as lacunas saem em UTC;
+intervalo semiaberto; o passado é cortado no `agora` (dia inteiro no passado → `200` com lista
+vazia, não `422`); `401` (é a primeira rota de `/recursos` com token) → `422` (`dia` mal formado,
+pelo tipo `date` do `Query`) → `404` → `409` (inativo), como no `POST /reservas`. **Ela mostra,
+não garante** — quem garante continua sendo a `EXCLUDE`. Já existem, no `api.md` e em
+`schemas/recurso.py`: `Lacuna(inicio, fim)` e `DisponibilidadeResposta(id_recurso, dia,
+lacunas)`, sem `from_attributes` (o service os monta a partir do cálculo). Falta desenhar: a
+assinatura da função pura (em `services/`, ao lado de `cabe_no_horario`), o método do repository
+que busca as reservas ativas do recurso na janela do dia, o método do service, a rota, e a lista
+dos testes com `skip` — os da função pura sem banco (dia vazio, dia lotado, reservas encostadas,
+no começo e no fim, corte no `agora`) e os da API.
 
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
