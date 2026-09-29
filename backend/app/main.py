@@ -5,6 +5,7 @@ from app.routers import auth, health, recurso, reserva, usuario
 from app.services.excecoes import (
     CredenciaisInvalidas,
     EmailJaCadastrado,
+    HorarioOcupado,
     PrivilegioInsuficiente,
     RecursoEmUso,
     RecursoInativo,
@@ -97,4 +98,12 @@ def traduzir_regra_de_reserva_violada(
     return JSONResponse(
         status_code=422,
         content={"detail": exc.detalhe},
+    )
+
+
+@app.exception_handler(HorarioOcupado)
+def traduzir_horario_ocupado(request: Request, exc: HorarioOcupado) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Horário já ocupado neste recurso"},
     )

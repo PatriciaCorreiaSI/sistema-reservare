@@ -234,22 +234,43 @@ def test_criar_reserva_em_recurso_inativo_devolve_409(
     assert resposta.status_code == 409
 
 
-@pendente
 def test_criar_reserva_sobreposta_devolve_409(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """Mesmo recurso, 10h30 às 11h30 sobre a reserva das 10h às 11h → 409
-    (HorarioOcupado). Critério de pronto: é a EXCLUDE recusando, traduzida
-    pelo ADR 0014.
-    """
+    # Mesmo recurso, 10h30 às 11h30 sobre a reserva das 10h às 11h → 409
+    # (HorarioOcupado). Critério de pronto: é a EXCLUDE recusando, traduzida
+    # pelo ADR 0014.
+    reserva = {
+        "id_recurso": reserva_da_ana.id_recurso,
+        "convidados": 4,
+        "inicio": "2026-10-02T13:30:00Z",
+        "fim": "2026-10-02T14:30:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 409
 
 
-@pendente
 def test_criar_reserva_encostada_devolve_201(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """Das 11h às 12h, logo depois da reserva das 10h às 11h → 201:
-    encostar não é sobrepor."""
+    # Das 11h às 12h, logo depois da reserva das 10h às 11h → 201:
+    # encostar não é sobrepor.
+    reserva = {
+        "id_recurso": reserva_da_ana.id_recurso,
+        "convidados": 4,
+        "inicio": "2026-10-02T14:00:00Z",
+        "fim": "2026-10-02T15:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 201
 
 
 # GET /reservas

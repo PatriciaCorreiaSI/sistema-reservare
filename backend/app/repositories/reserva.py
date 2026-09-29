@@ -1,10 +1,16 @@
 from collections.abc import Sequence
 from datetime import datetime
 
+import psycopg
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Reserva
+from app.services.excecoes import HorarioOcupado, RecursoNaoEncontrado
+
+SEM_SOBREPOSICAO = "ex_reserva_sem_sobreposicao"
+FK_RECURSO = "fk_reserva_id_recurso_recurso"
 
 
 class ReservaRepository:
@@ -23,7 +29,17 @@ class ReservaRepository:
     def criar(self, reserva: Reserva) -> Reserva:
         # levanta: HorarioOcupado, RecursoNaoEncontrado (ADR 0014)
         self._sessao.add(reserva)
-        self._sessao.flush()
+        try:
+            self._sessao.flush()
+        except IntegrityError as erro:
+            if not isinstance(erro.orig, psycopg.Error):
+                raise
+            constraint = erro.orig.diag.constraint_name
+            if constraint == SEM_SOBREPOSICAO:
+                raise HorarioOcupado from erro
+            if constraint == FK_RECURSO:
+                raise RecursoNaoEncontrado from erro
+            raise
         return reserva
 
     def cancelar(self, id_reserva: int, cancelada_por_id: int, agora: datetime) -> bool:
