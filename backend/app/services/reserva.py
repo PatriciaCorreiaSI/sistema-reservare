@@ -12,9 +12,12 @@ from app.repositories.recurso import RecursoRepository
 from app.repositories.reserva import ReservaRepository
 from app.schemas.reserva import ReservaCriar, ReservaResposta
 from app.services.excecoes import (
+    ConvidadosAcimaDaOcupacao,
+    ForaDoHorario,
     RecursoInativo,
     RecursoNaoEncontrado,
     ReservaNaoEncontrada,
+    ReservaNoPassado,
 )
 
 
@@ -68,6 +71,12 @@ class ReservaService:
             raise RecursoNaoEncontrado
         if recurso.status_recurso != "ativo":
             raise RecursoInativo
+        if dados.inicio < self._agora:
+            raise ReservaNoPassado
+        if not cabe_no_horario(dados.inicio, dados.fim, recurso, self._fuso):
+            raise ForaDoHorario
+        if dados.convidados > recurso.ocupacao:
+            raise ConvidadosAcimaDaOcupacao
 
         reserva = Reserva(
             id_usuario=usuario.id_usuario,

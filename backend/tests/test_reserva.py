@@ -136,25 +136,60 @@ def test_criar_reserva_com_inicio_igual_ao_fim_devolve_422(
     assert resposta.status_code == 422
 
 
-@pendente
 def test_criar_reserva_no_passado_devolve_422(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """inicio antes de AGORA → 422 (ReservaNoPassado)."""
+    # inicio antes de AGORA → 422 (ReservaNoPassado).
+    # AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+    # Preparar: o corpo do pedido, no formato do ReservaCriar.
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-09-30T15:00:00Z",
+        "fim": "2026-09-30T16:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 422
 
 
-@pendente
 def test_criar_reserva_fora_do_horario_devolve_422(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """Recurso das 8h às 18h, reseva das 18h às 19h locais → 422 (ForaDohorario)."""
+    # Recurso das 8h às 18h, reseva das 18h às 19h locais → 422 (ForaDohorario).
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 4,
+        "inicio": "2026-10-01T21:00:00Z",
+        "fim": "2026-10-01T22:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 422
 
 
-@pendente
 def test_criar_reserva_acima_da_ocupacao_devolve_422(
     client, usuario, recurso_criado, cabecalho_de
 ):
-    """Ocupação 10, convidados 11 → 422 (ConvidadosAcimaDaOcupacao)."""
+    # Ocupação 10, convidados 11 → 422 (ConvidadosAcimaDaOcupacao).
+    reserva = {
+        "id_recurso": recurso_criado["id_recurso"],
+        "convidados": 11,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+
+    # Agir
+    resposta = client.post("/reservas", json=reserva, headers=cabecalho_de(usuario))
+
+    # Conferir
+    assert resposta.status_code == 422
 
 
 def test_criar_reserva_em_recurso_inexistente_devolve_404(

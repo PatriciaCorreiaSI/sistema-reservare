@@ -303,11 +303,12 @@ Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esp
 `docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `46 passed, 14 skipped` (e o
 aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
-**Questão em aberto, a olhar depois do `POST`:** as rotas de `/recursos` não exigem token — o
-`PATCH` do teste do recurso inativo funciona sem cabeçalho, então qualquer pessoa cria, altera ou
-remove recurso. O `api.md` não diz nada sobre isso, e nenhum ADR decidiu. Descobrir se foi decisão
-ou esquecimento da Etapa 3 antes de mudar (mudar quebra os testes de `test_recurso.py`, que não
-mandam token).
+**Pendente para depois de fechar as reservas (decidido em 2026-09-29):** as rotas de `/recursos`
+não exigem token — qualquer pessoa cria, altera ou remove recurso. Foi esquecimento da Etapa 3
+(o CRUD nasceu na Etapa 2, antes da autenticação). Opção escolhida: **leitura para quem está
+logada (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`, `403`)**. Falta o
+ADR (antes do código), a atualização do `api.md` e dos testes de `test_recurso.py` (passam a
+mandar `cabecalho_de`), e os testes novos de `401` e `403`.
 
 **Backlog** (regra 7 — nenhum é v1):
 

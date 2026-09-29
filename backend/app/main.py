@@ -9,6 +9,7 @@ from app.services.excecoes import (
     RecursoEmUso,
     RecursoInativo,
     RecursoNaoEncontrado,
+    RegraDeReservaViolada,
     ReservaNaoEncontrada,
 )
 
@@ -86,4 +87,14 @@ def traduzir_recurso_inativo(request: Request, exc: RecursoInativo) -> JSONRespo
     return JSONResponse(
         status_code=409,
         content={"detail": "Recurso inativo não aceita reservas"},
+    )
+
+
+@app.exception_handler(RegraDeReservaViolada)
+def traduzir_regra_de_reserva_violada(
+    request: Request, exc: RegraDeReservaViolada
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.detalhe},
     )
