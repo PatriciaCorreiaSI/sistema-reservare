@@ -411,8 +411,15 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > rotas pela API: `GET /reservas/{id}` completo — com o **teste de IDOR verde** para a leitura
 > (`404` com a mesma mensagem da reserva inexistente) — e `POST /reservas` até a verificação do
 > recurso (`201`, `401`, `422` do schema, `404` e `409` para recurso inexistente e inativo); 11
-> testes pela API. Seguem as regras de negócio da criação, a tradução da `EXCLUDE` em `409`, a
-> listagem, o cancelamento (a outra metade do IDOR) e o teste de concorrência.
+> testes pela API. Em 2026-09-29, o resto das rotas: as três regras de negócio da criação (`422`
+> para o passado, fora do horário e acima da ocupação, com um handler só), a violação da `EXCLUDE`
+> traduzida em `409` pelo nome da constraint (e a reserva que só encosta aceita), a listagem
+> filtrada pelo token e o cancelamento por `UPDATE` condicional — com o **teste de IDOR verde
+> também para o cancelamento**, o que fecha a metade herdada do critério de pronto. O teste de IDOR
+> do cancelamento revelou um defeito na preparação dos testes, corrigido por uma emenda ao
+> [ADR 0011](adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md): a fixture que grava pelo
+> modelo passa a comitar o savepoint. Ao todo, 59 testes verdes. Falta o teste de concorrência,
+> começando pelo desenho das fixtures que comitam de verdade.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

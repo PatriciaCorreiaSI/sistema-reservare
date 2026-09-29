@@ -85,9 +85,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
 - **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
   2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
-  testes com `skip`); fase Tentar em andamento — as três funções puras prontas em 2026-09-25;
-  em 2026-09-28, o `GET /reservas/{id}` completo (com o teste de IDOR verde) e o `POST /reservas`
-  até a verificação do recurso — suíte em `46 passed, 14 skipped`.
+  testes com `skip`); fase Tentar em andamento — as quatro rotas de `reserva` completas em
+  2026-09-29, com o **critério IDOR cumprido** (leitura e cancelamento); falta só o teste de
+  concorrência — suíte em `59 passed, 1 skipped`.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -174,11 +174,14 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 **Testes**
 
-- **ADR 0011 e emenda:** banco `reservare_test`, criado à mão (o Alembic cria tabelas, não
+- **ADR 0011 e emendas:** banco `reservare_test`, criado à mão (o Alembic cria tabelas, não
   bancos); o `conftest.py` aplica `upgrade head` uma vez por rodada; a fixture `sessao` usa
   `join_transaction_mode="create_savepoint"`; a função substituta (`obter_sessao_de_teste`)
-  **repete o ciclo do `obter_sessao`** — mudar um exige mudar o outro. Exceção nomeada: o teste de
-  concorrência da Etapa 4 comita de verdade, limpa com `TRUNCATE` e leva marcador próprio.
+  **repete o ciclo do `obter_sessao`** — mudar um exige mudar o outro. **Fixture que grava pelo
+  modelo termina em `sessao.commit()`, nunca `flush()`** (emenda de 2026-09-29): com o savepoint,
+  o `commit` só o confirma, e sem ele o `rollback` de uma requisição que falha desfaz a preparação
+  junto — o sintoma é `404` ao ler depois de um erro. Exceção nomeada: o teste de concorrência da
+  Etapa 4 comita de verdade, limpa com `TRUNCATE` e leva marcador próprio.
 - **Fato que vira o centro da Etapa 4:** quando a transação 2 insere sobre uma linha que a 1 fez
   `flush` mas não comitou, o Postgres **não recusa — espera**. `commit` na 1 → erro da `EXCLUDE` na
   2; `rollback` na 1 → a 2 entra. Por isso o teste de concorrência precisa de `commit` real.
@@ -186,14 +189,24 @@ compromissos sobre código que ainda não existe, e armadilhas.
   mais direto** (fixture grava pelo modelo) e **age pela interface testada**; a entrada é válida em
   tudo menos no que se testa (**um teste, um motivo para falhar**); confere comportamento, não
   implementação; depois de verde, o **contra-teste** — estragar o ato e ver falhar com o número
-  certo. Teste ainda não escrito leva `@pytest.mark.skip(reason=...)`, nunca `pass` (que é verde).
-  Dados do teste ficam no teste, nunca no `.env`.
+  certo. Teste ainda não escrito leva `@pytest.mark.skip(reason=...)`, nunca `pass` (que é verde) —
+  nem só a docstring sem o `@pendente`, que também é verde. Dados do teste ficam no teste, nunca no
+  `.env`. **Preparação que passa pela API leva `assert` do status** (o primeiro cancelamento, a
+  leitura depois do erro): sem ele, a preparação que falha faz o ato falhar pelo motivo errado, ou
+  aparece como `KeyError` em vez de um número. O contra-teste estraga de um jeito **plausível** —
+  id errado mas existente, `>` → `>=` —, não grosseiro: um id `0` é pego pela FK antes do `assert`.
 - **Teste pela API:** o teste é o cliente — manda **dicionário** em `json=` (instantes como texto
   ISO 8601 com fuso) e lê `resposta.json()`; não monta modelo, não importa exceção. No `POST`, o
   corpo de referência é o do teste do `201`: copiar de um teste de erro traz o defeito dele junto
   (`Z` faltando, `inicio == fim`), e o sintoma é `422` onde se esperava `404`/`409` — o pedido
   barrado no schema antes de chegar à regra testada. Trocar o relógio dentro de um teste: só a
   atribuição no `dependency_overrides`, sem `yield` (fixture only) e sem `pop` (é da `agora_fixo`).
+  Instantes do corpo em UTC, conferidos contra a fixture: a `reserva_da_ana` é 2/10, 13h–14h UTC
+  (10h–11h em Brasília). Fixture que vem da API (`recurso_criado`) é dicionário, `["campo"]`; a que
+  grava pelo modelo (`reserva_da_ana`, `usuario`) é objeto, `.campo`. Resposta de erro só tem
+  `detail`; lista se confere por `id in [...]`, não pelo tamanho. `405` = rota certa, método errado;
+  `404` com `detail: "Not Found"` = a rota nem existe (e mascara o `404` do IDOR — por isso o
+  teste de IDOR confere o `detail`).
 
 ### Armadilhas que as ferramentas não pegam
 
@@ -203,9 +216,17 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 - **Erro dentro de string** não tem quem verifique: status `"arivo"`, `prefix` sem a barra
   (`/authlogin`), `"Barer"`, nome de campo do JSON (`senha` × `senha_usuario_hash`), f-string sem
-  `=`. Só o teste, o banco ou quem lê a saída.
+  `=`, nome de constraint (`"ex_reseva_..."` — a tradução não reconhece e relança), URL com `{...}`
+  sem o `f` (vai literal → `422`; o `ruff` só avisa o contrário, `f` sobrando, `F541`). Só o
+  teste, o banco ou quem lê a saída.
 - **Expressão solta não faz nada:** `CredenciaisInvalidas` sem `raise`, `Classe.campo == x` fora do
-  `where`, argumento nomeado numa linha sozinho, chamada sem guardar o retorno.
+  `where`, argumento nomeado numa linha sozinho, chamada sem guardar o retorno, `consulta.where(...)`
+  sem reatribuir (o `select` é imutável: cada método devolve um novo), comparação guardada numa
+  variável em vez de `assert` (o `F841` é o defeito).
+- **O `mypy` e os tipos genéricos do SQLAlchemy:** `IntegrityError.orig` é `BaseException | None`
+  — `.diag` só depois de `isinstance(erro.orig, psycopg.Error)` (senão, `raise`); `execute()` de um
+  `update()` promete `Result`, e o `rowcount` só existe no `CursorResult` (`assert isinstance`, fato
+  garantido pela biblioteca). `scalar()` devolve um; `scalars().all()`, todos.
 - **Classe × objeto:** `Classe.campo` dentro de `where` pergunta ao banco; `objeto.campo = x` ordena
   ao objeto. Num `if`, comparar o campo da classe é sempre falso — foi o que faria todo usuário
   virar admin.
@@ -241,69 +262,48 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**A fase Tentar da Etapa 4.** O critério de pronto tem duas partes: o teste de concorrência (duas
-requisições simultâneas para o mesmo recurso e horário → exatamente um `201` e um `409`) e o de IDOR
-herdado da Etapa 3. As decisões estão nos ADRs 0014–0018. O esqueleto está em código, com corpos em
-`raise NotImplementedError` (corpo vazio `...` o `mypy` recusa como `empty-body`): `obter_agora` e
-`obter_fuso` em `dependencies.py`; as exceções novas em `excecoes.py` (os três `422` como filhas de
-`RegraDeReservaViolada`, que carregam a mensagem em `detalhe` — um handler só, para a mãe);
-`schemas/reserva.py`; `repositories/reserva.py` (`cancelar` devolve `bool`; sem `atualizar` nem
-`remover`: reserva é histórico); e `services/reserva.py` (`status_efetivo`, `garantir_acesso` e
-`cabe_no_horario` como funções puras fora da classe; `_para_resposta` monta a resposta, porque o
-status efetivo e o `periodo` → `inicio`/`fim` impedem o `from_attributes`).
+**O teste de concorrência — a última peça da Etapa 4.** A outra metade do critério de pronto, o IDOR
+herdado da Etapa 3, está cumprida: `test_buscar_reserva_alheia_devolve_404` e
+`test_cancelar_reserva_alheia_devolve_404` conferem o `detail` (igual ao da inexistente) e, no
+cancelamento, que a reserva da Ana segue confirmada.
 
-**Feito na fase Tentar (2026-09-25):** as três funções puras, com 13 testes em
-`test_reserva_regras.py`, que rodam sem o banco — `status_efetivo` (a cancelada é conferida antes
-do fim; `fim <= agora` é concluída; `assert fim is not None` estreita o `Range.upper`, que o `CHECK
-formato_semiaberto` garante), `garantir_acesso` (uma condição e um `raise` só, com `reserva is None`
-primeiro pelo curto-circuito) e `cabe_no_horario` (converte `inicio` e `fim` para o fuso uma vez e
-tira deles a data e a hora; `mesmo_dia` resolve a meia-noite; devolve `bool` — quem levanta
-`ForaDoHorario` é o `criar`). Nos testes: instantes de entrada sempre em UTC, para pegar a função
-que esquece de converter; cada fronteira com a dupla "em cima" e "um minuto fora" (valor-limite).
+**O que existe (fase Tentar, 2026-09-25 a 29):** as três funções puras de `services/reserva.py`
+(`status_efetivo`, `garantir_acesso`, `cabe_no_horario`), com 13 testes sem banco em
+`test_reserva_regras.py`; e as quatro rotas de `reserva`, com 27 testes pela API em
+`test_reserva.py`. Fatos do código que não se leem de primeira:
 
-**Feito na fase Tentar (2026-09-28):** `obter_fuso` lê `FUSO_FUNCIONAMENTO` no nível do módulo
-(`ZoneInfo(os.environ[...])` falha no startup também com valor vazio ou nome errado), e a variável
-entrou no compose. Fixtures: `agora_fixo` e `fuso_fixo` sem parâmetros, com `yield` e
-`dependency_overrides.pop(..., None)` — o `pop` tolerante porque o `clear()` da `client` desmonta
-antes; `reserva_da_ana` usa a `usuario` pronta e grava 13h–14h UTC; `cabecalho_de` sem `client`,
-pelo `criar_access_token` direto, com `datetime.now(UTC)` e **nunca `AGORA`** (quem confere o `exp`
-é o PyJWT, no relógio real — com `AGORA` a suíte quebraria sozinha a partir de 2026-10-01). Router
-`GET /reservas/{id_reserva}` com `Depends(obter_usuario_atual)` e devolvendo o que o service
-devolve, sem `model_validate`; `_para_resposta` com `assert` nas duas pontas do `Range`.
-`buscar_por_id` no service: ler → `garantir_acesso` (o retorno reatribuído a `reserva`) →
-`_para_resposta`; handler de `ReservaNaoEncontrada` → `404`. Cinco testes do `GET` verdes: dona,
-**IDOR** (confere também o `detail`, igual ao do inexistente — a resposta não revela que a reserva
-existe), inexistente, admin e terminada. **A metade IDOR do critério de pronto está coberta para a
-leitura**; falta a do cancelamento. `POST /reservas`: `validar_periodo` (`>=`, `ValueError` → `422`);
-`criar` lê o recurso primeiro (`None` → `RecursoNaoEncontrado` `404`; `!= "ativo"` →
-`RecursoInativo` `409`, handler novo), monta a `Reserva` com `id_usuario` do token e
-`Range(inicio, fim, "[)")`; repository `add` + `flush`. Seis testes do `POST` verdes: `201`, sem
-token (o `401` vem do próprio `HTTPBearer`, com `WWW-Authenticate`), sem fuso (só o `inicio`),
-`inicio == fim`, recurso inexistente e inativo (inativado pelo `PATCH`).
+- **`criar`** (service): recurso primeiro (`404`, depois `409` inativo), então as três regras de
+  `422` — passado (`inicio < self._agora`), `cabe_no_horario(..., self._fuso)` e
+  `convidados > recurso.ocupacao` —, todas filhas de `RegraDeReservaViolada`, com **um handler só**,
+  para a mãe, que lê `exc.detalhe`. A sobreposição não é checada no Python: o repository traduz a
+  `EXCLUDE` (ADR 0014) por constantes (`SEM_SOBREPOSICAO`, `FK_RECURSO`); o resto sobe (`500`).
+- **`listar`**: o service decide o filtro (admin → `None`; usuária → o `id` do token); o repository
+  só aplica o `where` se vier `id`, e ordena por `id_reserva` (paginação estável).
+- **`cancelar`**: ler → `garantir_acesso` (`404`) → `update()` condicional do ADR 0016, que grava as
+  três colunas que o `CHECK cancelamento` exige juntas → `rowcount == 1`, senão
+  `ReservaNaoCancelavel` (`409`, "já foi cancelada ou já terminou"). A armadilha do identity map
+  anunciada **não existe**: o `synchronize_session` padrão atualiza o objeto lido antes.
 
-Os demais testes esperados seguem com `@pendente` (o `skip`) e a docstring dizendo o que conferem,
-em `test_reserva.py` (API) e `test_reserva_concorrencia.py` (marcador `concorrencia`, registrado no
-`pyproject.toml`). As fixtures que comitam de verdade para o teste de concorrência ainda não estão
-desenhadas.
+**Retomar por: desenhar as fixtures do teste de concorrência** (ADR 0015, ainda sem desenho em
+código). O ADR já decide: duas threads liberadas por `threading.Barrier`, cada uma com o seu
+`TestClient`; uma substituta do `obter_sessao` que entrega a cada requisição uma **sessão nova e
+real**, que comita de verdade; fixtures próprias que comitam usuário e recurso; `TRUNCATE` na
+desmontagem, rodando mesmo se o teste falhar; prazo máximo por thread (falhar em vez de pendurar);
+o teste confere o conjunto `{201, 409}`, sem depender de qual thread vence. Marcador
+`concorrencia`, que roda por padrão. As fixtures de hoje (`sessao`, `client`, `usuario`) não
+servem: vivem dentro de uma transação que nunca comita, e a outra conexão não as enxergaria. Fase
+Desenhar antes de Tentar: nomes das fixtures, assinaturas e a ordem de montagem e desmontagem.
 
-**Retomar por:** as três regras do `criar` que respondem `422` — no passado (`inicio < agora`),
-fora do horário (`cabe_no_horario`, já pronta, com `self._fuso`) e acima da ocupação
-(`convidados > recurso.ocupacao`) —, cada uma um `if` + `raise` depois das verificações do recurso,
-e **um handler só** para `RegraDeReservaViolada`, que lê a mensagem de `exc.detalhe`. Depois a
-sobreposta (`409`) e a encostada (`201`): a tradução do ADR 0014 no `criar` do repository
-(`IntegrityError` → `orig.diag.constraint_name` comparado com constante: `EXCLUDE` →
-`HorarioOcupado`, FK → `RecursoNaoEncontrado`; o resto sobe) — lembrar que após o erro a
-transação fica abortada. Depois `listar` e `cancelar` (a outra metade do IDOR), e por fim a
-concorrência. O mesmo ciclo: tirar o `@pendente`, ver falhar, escrever, ver passar, contra-teste.
-Armadilha já anunciada: após o `UPDATE`
-do `cancelar`, o objeto lido antes segue com o status antigo na sessão (identity map) —
-`test_cancelar_reserva_da_dona_devolve_200_cancelada` é quem pega.
+Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
+compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
+`docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
+`59 passed, 1 skipped` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
-Subir o Docker Desktop antes de começar (`docker compose up -d db` da raiz, esperar `(healthy)` no
-`docker compose ps`); `uv run pytest` de dentro de `backend/` deve dar `46 passed, 14 skipped` (e o
-aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+**Pendente para depois de fechar a Etapa 4:** `limite` e `deslocamento` são `int` puro em
+`GET /reservas` e `GET /recursos` — `"abc"` dá `422`, mas `limite=-1` chega ao Postgres e vira
+`500`, e o `api.md` promete `422`. O conserto é validar no router (`Query(ge=...)`), com teste.
 
-**Pendente para depois de fechar as reservas (decidido em 2026-09-29):** as rotas de `/recursos`
+**Também depois da Etapa 4 (decidido em 2026-09-29):** as rotas de `/recursos`
 não exigem token — qualquer pessoa cria, altera ou remove recurso. Foi esquecimento da Etapa 3
 (o CRUD nasceu na Etapa 2, antes da autenticação). Opção escolhida: **leitura para quem está
 logada (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`, `403`)**. Falta o
