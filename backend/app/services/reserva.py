@@ -16,6 +16,7 @@ from app.services.excecoes import (
     ForaDoHorario,
     RecursoInativo,
     RecursoNaoEncontrado,
+    ReservaNaoCancelavel,
     ReservaNaoEncontrada,
     ReservaNoPassado,
 )
@@ -104,7 +105,12 @@ class ReservaService:
 
     def cancelar(self, id_reserva: int, usuario: UsuarioAtual) -> ReservaResposta:
         # levanta: ReservaNaoEncontrada, ReservaNaoCancelavel
-        raise NotImplementedError
+        reserva = self._reservas.buscar_por_id(id_reserva)
+        reserva = garantir_acesso(reserva, usuario)
+        cancelou = self._reservas.cancelar(id_reserva, usuario.id_usuario, self._agora)
+        if not cancelou:
+            raise ReservaNaoCancelavel
+        return self._para_resposta(reserva)
 
     def _para_resposta(self, reserva: Reserva) -> ReservaResposta:
         inicio = reserva.periodo.lower

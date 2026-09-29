@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 import psycopg
-from sqlalchemy import select
+from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -49,4 +49,19 @@ class ReservaRepository:
         return reserva
 
     def cancelar(self, id_reserva: int, cancelada_por_id: int, agora: datetime) -> bool:
-        raise NotImplementedError
+        comando = (
+            update(Reserva)
+            .where(
+                Reserva.id_reserva == id_reserva,
+                Reserva.cancelada_em.is_(None),
+                func.upper(Reserva.periodo) > agora,
+            )
+            .values(
+                status_reserva="cancelada",
+                cancelada_em=agora,
+                cancelada_por_id_usuario=cancelada_por_id,
+            )
+        )
+        resultado = self._sessao.execute(comando)
+        assert isinstance(resultado, CursorResult)
+        return resultado.rowcount == 1

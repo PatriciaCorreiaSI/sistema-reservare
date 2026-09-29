@@ -33,3 +33,12 @@ def listar(
     service: ReservaService = Depends(),
 ) -> list[ReservaResposta]:
     return service.listar(usuario, limite, deslocamento)
+
+
+@router.post("/{id_reserva}/cancelar", response_model=ReservaResposta)
+def cancelar(
+    id_reserva: int,
+    usuario: UsuarioAtual = Depends(obter_usuario_atual),
+    service: ReservaService = Depends(),
+) -> ReservaResposta:
+    return service.cancelar(id_reserva, usuario)

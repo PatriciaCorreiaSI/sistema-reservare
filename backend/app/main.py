@@ -11,6 +11,7 @@ from app.services.excecoes import (
     RecursoInativo,
     RecursoNaoEncontrado,
     RegraDeReservaViolada,
+    ReservaNaoCancelavel,
     ReservaNaoEncontrada,
 )
 
@@ -106,4 +107,14 @@ def traduzir_horario_ocupado(request: Request, exc: HorarioOcupado) -> JSONRespo
     return JSONResponse(
         status_code=409,
         content={"detail": "Horário já ocupado neste recurso"},
+    )
+
+
+@app.exception_handler(ReservaNaoCancelavel)
+def traduzir_reserva_nao_cancelavel(
+    request: Request, exc: ReservaNaoCancelavel
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "A reserva já foi cancelada ou já terminou"},
     )

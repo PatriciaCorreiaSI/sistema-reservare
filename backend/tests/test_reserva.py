@@ -394,19 +394,41 @@ def test_buscar_reserva_terminada_devolve_status_concluida(
 # POST /reservas/{id}/cancelar
 
 
-@pendente
 def test_cancelar_reserva_da_dona_devolve_200_cancelada(
     client, usuario, reserva_da_ana, cabecalho_de
 ):
-    """200; status_reserva 'cancelada'; 'cancelada_por_id_usuario' é a Ana;
-    'cancelada_em' é AGORA. Pega a armadilha do identity map."""
+    # 200; status_reserva 'cancelada'; 'cancelada_por_id_usuario' é a Ana;
+    # 'cancelada_em' é AGORA. Pega a armadilha do identity map.
+    # Preparar: as fixtures já gravaram a Ana, o recurso e a reserva
+    # Agir
+    resposta = client.post(
+        f"/reservas/{reserva_da_ana.id_reserva}/cancelar", headers=cabecalho_de(usuario)
+    )
+
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["status_reserva"] == "cancelada"
+    assert corpo["cancelada_por_id_usuario"] == usuario.id_usuario
+    assert datetime.fromisoformat(corpo["cancelada_em"]) == AGORA
 
 
-@pendente
 def test_cancelar_reserva_alheia_como_admin_devolve_200(
     client, admin, reserva_da_ana, cabecalho_de
 ):
-    """O admin cancela a reserva da Ana → 200; 'cancelada_por_id_usuario' é o admin."""
+    # O admin cancela a reserva da Ana → 200; 'cancelada_por_id_usuario' é o admin.
+    # Preparar: as fixtures já gravaram a Ana, o recurso e a reserva
+    # Agir
+    resposta = client.post(
+        f"/reservas/{reserva_da_ana.id_reserva}/cancelar", headers=cabecalho_de(admin)
+    )
+
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["status_reserva"] == "cancelada"
+    assert corpo["cancelada_por_id_usuario"] == admin.id_usuario
+    assert datetime.fromisoformat(corpo["cancelada_em"]) == AGORA
 
 
 @pendente
