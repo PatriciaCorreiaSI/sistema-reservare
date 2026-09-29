@@ -24,7 +24,13 @@ class ReservaRepository:
     def listar(
         self, limite: int, deslocamento: int, id_usuario: int | None
     ) -> Sequence[Reserva]:
-        raise NotImplementedError
+        consulta = select(Reserva)
+        if id_usuario is not None:
+            consulta = consulta.where(Reserva.id_usuario == id_usuario)
+        consulta = (
+            consulta.order_by(Reserva.id_reserva).limit(limite).offset(deslocamento)
+        )
+        return self._sessao.scalars(consulta).all()
 
     def criar(self, reserva: Reserva) -> Reserva:
         # levanta: HorarioOcupado, RecursoNaoEncontrado (ADR 0014)

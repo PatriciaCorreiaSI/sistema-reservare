@@ -91,7 +91,10 @@ class ReservaService:
     def listar(
         self, usuario: UsuarioAtual, limite: int, deslocamento: int
     ) -> list[ReservaResposta]:
-        raise NotImplementedError
+        eh_admin = usuario.privilegio_usuario == "admin"
+        id_usuario = None if eh_admin else usuario.id_usuario
+        reservas = self._reservas.listar(limite, deslocamento, id_usuario)
+        return [self._para_resposta(reserva) for reserva in reservas]
 
     def buscar_por_id(self, id_reserva: int, usuario: UsuarioAtual) -> ReservaResposta:
         reserva = self._reservas.buscar_por_id(id_reserva)
@@ -106,7 +109,7 @@ class ReservaService:
     def _para_resposta(self, reserva: Reserva) -> ReservaResposta:
         inicio = reserva.periodo.lower
         fim = reserva.periodo.upper
-        # O CHECK format_semiabertp proíbe período sem uma das pontas.
+        # O CHECK formato_semiaberto proíbe período sem uma das pontas.
         # O assert conta isso ao mypy.
         assert inicio is not None and fim is not None
         return ReservaResposta(

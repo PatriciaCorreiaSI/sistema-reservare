@@ -23,3 +23,13 @@ def criar(
     service: ReservaService = Depends(),
 ) -> ReservaResposta:
     return service.criar(dados, usuario)
+
+
+@router.get("", response_model=list[ReservaResposta])
+def listar(
+    limite: int = 20,
+    deslocamento: int = 0,
+    usuario: UsuarioAtual = Depends(obter_usuario_atual),
+    service: ReservaService = Depends(),
+) -> list[ReservaResposta]:
+    return service.listar(usuario, limite, deslocamento)

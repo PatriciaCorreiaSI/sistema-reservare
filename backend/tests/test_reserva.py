@@ -276,18 +276,34 @@ def test_criar_reserva_encostada_devolve_201(
 # GET /reservas
 
 
-@pendente
 def test_listar_reservas_devolve_so_as_da_usuaria(
     client, outra_usuaria, reserva_da_ana, cabecalho_de
 ):
-    """A outra usuária lista e não recebe a reserva da Ana."""
+    # A outra usuária lista e não recebe a reserva da Ana.
+    # Preparar: as fixtures já gravaram a Ana, o recurso e a reserva.
+
+    # Agir
+    resposta = client.get("/reservas", headers=cabecalho_de(outra_usuaria))
+
+    # Conferir
+    assert resposta.status_code == 200
+    ids = [r["id_reserva"] for r in resposta.json()]
+    assert reserva_da_ana.id_reserva not in ids
 
 
-@pendente
 def test_listar_reservas_devolve_todas_ao_admin(
     client, admin, reserva_da_ana, cabecalho_de
 ):
-    """O admin lista e recebe a reseva da Ana."""
+    # O admin lista e recebe a reseva da Ana.
+    # Preparar: as fixtures já gravaram a Ana, o recurso e a reserva.
+
+    # Agir
+    resposta = client.get("/reservas", headers=cabecalho_de(admin))
+
+    # Conferir
+    assert resposta.status_code == 200
+    ids = [r["id_reserva"] for r in resposta.json()]
+    assert reserva_da_ana.id_reserva in ids
 
 
 # GET /reservas/{id}
