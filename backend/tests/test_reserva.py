@@ -431,11 +431,26 @@ def test_cancelar_reserva_alheia_como_admin_devolve_200(
     assert datetime.fromisoformat(corpo["cancelada_em"]) == AGORA
 
 
-@pendente
 def test_cancelar_reserva_alheia_devolve_404(
-    client, outra_usuaria, reserva_da_ana, cabecalho_de
+    client, usuario, outra_usuaria, reserva_da_ana, cabecalho_de
 ):
-    """IDOR, critério de pronto: a outra usuária cancela a reserva da Ana → 404."""
+    # IDOR, critério de pronto: a outra usuária cancela a reserva da Ana → 404.
+    # Preparar: as fixtures já gravaram a Ana, o recurso, a reserva e a outra usuária
+    # Agir
+    resposta = client.post(
+        f"/reservas/{reserva_da_ana.id_reserva}/cancelar",
+        headers=cabecalho_de(outra_usuaria),
+    )
+
+    # Conferir: a resposta é a mesma da reserva inexistente (ADR 0017)...
+    assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Reserva não encontrada"
+
+    # ...e a reserva da Ana continua confirmada
+    leitura = client.get(
+        f"/reservas/{reserva_da_ana.id_reserva}", headers=cabecalho_de(usuario)
+    )
+    assert leitura.json()["status_reserva"] == "confirmada"
 
 
 @pendente
