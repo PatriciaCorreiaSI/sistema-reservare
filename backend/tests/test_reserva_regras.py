@@ -7,7 +7,12 @@ from sqlalchemy.dialects.postgresql import Range
 from app.dependencies import UsuarioAtual
 from app.models import Recurso, Reserva
 from app.services.excecoes import ReservaNaoEncontrada
-from app.services.reserva import cabe_no_horario, garantir_acesso, status_efetivo
+from app.services.reserva import (
+    cabe_no_horario,
+    calcular_lacunas,
+    garantir_acesso,
+    status_efetivo,
+)
 
 pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
 
@@ -211,36 +216,122 @@ def test_cabe_no_horario_recusa_reserva_que_atravessa_a_meia_noite(recurso_das_8
     assert not cabe
 
 
-@pendente
 def test_calcular_lacunas_dia_vazio_devolve_a_janela_inteira():
-    """Sem ocupados → uma lacuna só: (8h, 18h)."""
+    # Sem ocupados → uma lacuna só: (8h, 18h).
+    # Preparar
+    inicio = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    ocupados = []
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == [(inicio, fim)]
 
 
-@pendente
-def test_calcular_lacunas_reserva_que_comeca_antes_da_janela():
-    """Janela 10h30-18h, ocupado 10h-11h → só (11h, 18h)."""
-
-
-@pendente
-def test_calcular_lacunas_dia_lotado_devolve_lista_vazia():
-    """Ocupado 8h-18h → []."""
-
-
-@pendente
 def test_calcular_lacunas_reserva_no_meio_devolve_duas_lacunas():
-    """Ocupado 10h-11h → (8h, 10h) e (11h, 18h)."""
+    # Ocupado 10h-11h → (8h, 10h) e (11h, 18h).
+    # Preparar
+    inicio = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    dez = datetime(2026, 10, 1, 10, 0, tzinfo=UTC)
+    onze = datetime(2026, 10, 1, 11, 0, tzinfo=UTC)
+    ocupados = [(dez, onze)]
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == [(inicio, dez), (onze, fim)]
 
 
-@pendente
+def test_calcular_lacunas_reserva_que_comeca_antes_da_janela():
+    # Janela 10h30-18h, ocupado 10h-11h → só (11h, 18h).
+    # Preparar
+    inicio = datetime(2026, 10, 1, 10, 30, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    dez = datetime(2026, 10, 1, 10, 0, tzinfo=UTC)
+    onze = datetime(2026, 10, 1, 11, 0, tzinfo=UTC)
+    ocupados = [(dez, onze)]
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == [(onze, fim)]
+
+
+def test_calcular_lacunas_dia_lotado_devolve_lista_vazia():
+    # Ocupado 8h-18h → [].
+    # Preparar
+    inicio = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    ocupados = [(inicio, fim)]
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == []
+
+
 def test_calcular_lacunas_reservas_encostadas_nao_deixam_lacuna_entre_elas():
-    """Ocupados 10h-11h e 11h-12h → (8h, 10h) e (12h, 18h); nada de (11h, 11h)."""
+    # Ocupados 10h-11h e 11h-12h → (8h, 10h) e (12h, 18h); nada de (11h, 11h).
+    # Preparar
+    inicio = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    dez = datetime(2026, 10, 1, 10, 0, tzinfo=UTC)
+    onze = datetime(2026, 10, 1, 11, 0, tzinfo=UTC)
+    doze = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+    ocupados = [(dez, onze), (onze, doze)]
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == [(inicio, dez), (doze, fim)]
 
 
-@pendente
 def test_calcular_lacunas_reserva_no_comeco_nao_deixa_lacuna_antes():
-    """Ocupado 8h-9h → só (9h, 18h); nada de (8h, 8h)."""
+    # Ocupado 8h-9h → só (9h, 18h); nada de (8h, 8h).
+    # Preparar
+    inicio = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    nove = datetime(2026, 10, 1, 9, 0, tzinfo=UTC)
+    ocupados = [(inicio, nove)]
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == [(nove, fim)]
 
 
-@pendente
 def test_calcular_lacunas_reserva_no_fim_nao_deixa_lacuna_depois():
-    """Ocupado 17h-18h → só (8h, 17h); nada de (18h, 18h)."""
+    # Ocupado 17h-18h → só (8h, 17h); nada de (18h, 18h).
+    # Preparar
+    inicio = datetime(2026, 10, 1, 8, 0, tzinfo=UTC)
+    dezessete = datetime(2026, 10, 1, 17, 0, tzinfo=UTC)
+    fim = datetime(2026, 10, 1, 18, 0, tzinfo=UTC)
+    ocupados = [(dezessete, fim)]
+    # Agir
+    lacunas = calcular_lacunas(
+        janela_inicio=inicio,
+        janela_fim=fim,
+        ocupados=ocupados,
+    )
+    # Conferir
+    assert lacunas == [(inicio, dezessete)]

@@ -59,7 +59,15 @@ def calcular_lacunas(
     ocupados: list[tuple[datetime, datetime]],
 ) -> list[tuple[datetime, datetime]]:
     # assume: ocupados ordenado por início (o repository garante com ORDER BY)
-    raise NotImplementedError
+    lacunas: list[tuple[datetime, datetime]] = []
+    marcador = janela_inicio
+    for inicio, fim in ocupados:
+        if marcador < inicio:
+            lacunas.append((marcador, inicio))
+        marcador = fim
+    if marcador < janela_fim:
+        lacunas.append((marcador, janela_fim))
+    return lacunas
 
 
 class ReservaService:
