@@ -3,6 +3,7 @@ from datetime import datetime
 
 import psycopg
 from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -73,4 +74,14 @@ class ReservaRepository:
         janela_fim: datetime,
     ) -> Sequence[Reserva]:
         # devolve ordenado por início do período
-        raise NotImplementedError
+        janela = Range(janela_inicio, janela_fim, bounds="[)")
+        consulta = (
+            select(Reserva)
+            .where(
+                Reserva.id_recurso == id_recurso,
+                Reserva.cancelada_em.is_(None),
+                Reserva.periodo.overlaps(janela),
+            )
+            .order_by(func.lower(Reserva.periodo))
+        )
+        return self._sessao.scalars(consulta).all()

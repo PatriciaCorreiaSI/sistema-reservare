@@ -211,7 +211,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
-| 7–8    | **Etapa 4**         | 🔨 **é aqui que estamos** — critério de pronto cumprido: o teste de concorrência (`201` + `409` pela API) e o IDOR herdado da Etapa 3; 60 testes verdes. Falta a consulta de disponibilidade |
+| 7–8    | **Etapa 4**         | 🔨 **é aqui que estamos** — critério de pronto cumprido: o teste de concorrência (`201` + `409` pela API) e o IDOR herdado da Etapa 3; 67 testes verdes. A consulta de disponibilidade está meio escrita: falta o service e os testes da API |
 | 9      | Etapa 6             | Suíte de testes e CI verde                                                |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
@@ -369,9 +369,10 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > exatamente um `201` e um `409`. Ao todo, 60 testes verdes. A etapa segue aberta até a
 > **consulta de disponibilidade**, escopo da v1 (seção 3): decidida no
 > [ADR 0019](adr/0019-disponibilidade-como-lacunas-livres.md) (as lacunas livres do dia,
-> calculadas em Python), desenhada em 2026-09-30 — assinaturas da função pura, do repository,
-> do service e da rota, e 17 testes em `skip` dizendo o que cada corpo faz; falta escrever os
-> corpos.
+> calculadas em Python), desenhada e meio escrita em 2026-09-30 — a função pura
+> `calcular_lacunas` (sete testes verdes, sem banco) e a busca das reservas ativas na janela
+> estão prontas; a rota também. Falta o corpo do service que as junta, e os dez testes da API
+> que ainda estão em `skip`. Ao todo, 67 testes verdes.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 
