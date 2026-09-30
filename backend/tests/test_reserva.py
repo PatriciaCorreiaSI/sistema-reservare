@@ -518,3 +518,58 @@ def test_cancelar_reserva_libera_o_horario(
     assert resposta.status_code == 201
     corpo = resposta.json()
     assert corpo["status_reserva"] == "confirmada"
+
+
+# GET /recursos/{id}/disponibilidade
+
+
+@pendente
+def test_disponibilidade_sem_token_devolve_401():
+    """Sem Authorization → 401 com WWW-Authenticate: Bearer."""
+
+
+@pendente
+def test_disponibilidade_com_dia_mal_formado_devolve_422():
+    """?dia=2026-13-40 → 422 (o tipo date recusa antes do service)."""
+
+
+@pendente
+def test_disponibilidade_de_recurso_inexistente_devolve_404():
+    """id que não existe → 404."""
+
+
+@pendente
+def test_disponibilidade_de_recurso_inativo_devolve_409():
+    """PATCH para inativo (com assert do status) antes → 409."""
+
+
+@pendente
+def test_disponibilidade_de_dia_livre_devolve_a_janela_inteira_em_utc():
+    """dia=2026-10-03, sem reservas → uma lacuna: 11h-21h UTC (8h-18h local);
+    dia ecoado na resposta."""
+
+
+@pendente
+def test_disponibilidade_com_reserva_devolve_as_lacunas_em_volta():
+    """dia=2026-10-02, com a reserva_da_ana (13h-14h UTC) → 11h-13h e 14h-21h."""
+
+
+@pendente
+def test_disponibilidade_nao_revela_quem_reservou():
+    """A resposta não tem id_usuario nem convidados em lugar nenhum (ADR 00017)."""
+
+
+@pendente
+def test_disponibilidade_corta_o_passado_no_agora():
+    """dia=2026-10-01 (AGORA = 12h UTC) → a lacuna começa em 12h, não às 11h."""
+
+
+@pendente
+def test_disponibilidade_do_dia_inteiro_no_passado_devolve_200_com_lista_vazia():
+    """dia=2026-09-30 → 200 e lacunas == []."""
+
+
+@pendente
+def test_disponibilidade_ignora_reserva_cancelada():
+    """Cancelar a reserva_da_ana (com assert do status) e consultar 2/10
+    → janela inteira."""
