@@ -10,6 +10,7 @@ from app.dependencies import UsuarioAtual, obter_agora, obter_fuso
 from app.models import Recurso, Reserva
 from app.repositories.recurso import RecursoRepository
 from app.repositories.reserva import ReservaRepository
+from app.schemas.recurso import DisponibilidadeResposta
 from app.schemas.reserva import ReservaCriar, ReservaResposta
 from app.services.excecoes import (
     ConvidadosAcimaDaOcupacao,
@@ -50,6 +51,15 @@ def cabe_no_horario(
     abre_antes = recurso.hora_func_inicio <= local_inicio.time()
     fecha_depois = recurso.hora_func_fim >= local_fim.time()
     return mesmo_dia and abre_antes and fecha_depois
+
+
+def calcular_lacunas(
+    janela_inicio: datetime,
+    janela_fim: datetime,
+    ocupados: list[tuple[datetime, datetime]],
+) -> list[tuple[datetime, datetime]]:
+    # assume: ocupados ordenado por início (o repository garante com ORDER BY)
+    raise NotImplementedError
 
 
 class ReservaService:
@@ -129,3 +139,6 @@ class ReservaService:
             cancelada_por_id_usuario=reserva.cancelada_por_id_usuario,
             cancelada_em=reserva.cancelada_em,
         )
+
+    def disponibilidade(id_recurso, dia) -> DisponibilidadeResposta:
+        raise NotImplementedError

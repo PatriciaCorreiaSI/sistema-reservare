@@ -209,3 +209,38 @@ def test_cabe_no_horario_recusa_reserva_que_atravessa_a_meia_noite(recurso_das_8
     cabe = cabe_no_horario(inicio, fim, recurso_das_8_as_18, FUSO)
     # Conferir
     assert not cabe
+
+
+@pendente
+def test_calcular_lacunas_dia_vazio_devolve_a_janela_inteira():
+    """Sem ocupados → uma lacuna só: (8h, 18h)."""
+
+
+@pendente
+def test_calcular_lacunas_reserva_que_comeca_antes_da_janela():
+    """Janela 10h30-18h, ocupado 10h-11h → só (11h, 18h)."""
+
+
+@pendente
+def test_calcular_lacunas_dia_lotado_devolve_lista_vazia():
+    """Ocupado 8h-18h → []."""
+
+
+@pendente
+def test_calcular_lacunas_reserva_no_meio_devolve_duas_lacunas():
+    """Ocupado 10h-11h → (8h, 10h) e (11h, 18h)."""
+
+
+@pendente
+def test_calcular_lacunas_reservas_encostadas_nao_deixam_lacuna_entre_elas():
+    """Ocupados 10h-11h e 11h-12h → (8h, 10h) e (12h, 18h); nada de (11h, 11h)."""
+
+
+@pendente
+def test_calcular_lacunas_reserva_no_comeco_nao_deixa_lacuna_antes():
+    """Ocupado 8h-9h → só (9h, 18h); nada de (8h, 8h)."""
+
+
+@pendente
+def test_calcular_lacunas_reserva_no_fim_nao_deixa_lacuna_depois():
+    """Ocupado 17h-18h → só (8h, 17h); nada de (18h, 18h)."""

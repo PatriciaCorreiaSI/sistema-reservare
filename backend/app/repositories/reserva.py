@@ -65,3 +65,12 @@ class ReservaRepository:
         resultado = self._sessao.execute(comando)
         assert isinstance(resultado, CursorResult)
         return resultado.rowcount == 1
+
+    def listar_ativas_na_janela(
+        self,
+        id_recurso: int,
+        janela_inicio: datetime,
+        janela_fim: datetime,
+    ) -> Sequence[Reserva]:
+        # devolve ordenado por início do período
+        raise NotImplementedError
