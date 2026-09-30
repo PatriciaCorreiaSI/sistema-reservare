@@ -1,7 +1,16 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends
 
-from app.schemas.recurso import RecursoAtualizar, RecursoCriar, RecursoResposta
+from app.dependencies import obter_usuario_atual
+from app.schemas.recurso import (
+    DisponibilidadeResposta,
+    RecursoAtualizar,
+    RecursoCriar,
+    RecursoResposta,
+)
 from app.services.recurso import RecursoService
+from app.services.reserva import ReservaService
 
 router = APIRouter(prefix="/recursos", tags=["Recursos"])
 
@@ -39,3 +48,14 @@ def atualizar(
 @router.delete("/{id_recurso}", status_code=204)
 def remover(id_recurso: int, service: RecursoService = Depends()) -> None:
     service.remover(id_recurso)
+
+
+@router.get(
+    "/{id_recurso}/disponibilidade",
+    response_model=DisponibilidadeResposta,
+    dependencies=[Depends(obter_usuario_atual)],
+)
+def disponibilidade(
+    id_recurso: int, dia: date, service: ReservaService = Depends()
+) -> DisponibilidadeResposta:
+    return service.disponibilidade(id_recurso, dia)

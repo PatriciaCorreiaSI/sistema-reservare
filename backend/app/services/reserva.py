@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends
@@ -140,5 +140,6 @@ class ReservaService:
             cancelada_em=reserva.cancelada_em,
         )
 
-    def disponibilidade(id_recurso, dia) -> DisponibilidadeResposta:
+    def disponibilidade(self, id_recurso: int, dia: date) -> DisponibilidadeResposta:
+        # levanta: RecursoNaoEncontrado, RecursoInativo
         raise NotImplementedError
