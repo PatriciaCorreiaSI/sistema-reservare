@@ -369,7 +369,9 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 > exatamente um `201` e um `409`. Ao todo, 60 testes verdes. A etapa segue aberta até a
 > **consulta de disponibilidade**, escopo da v1 (seção 3): decidida no
 > [ADR 0019](adr/0019-disponibilidade-como-lacunas-livres.md) (as lacunas livres do dia,
-> calculadas em Python), com rota e schemas no `api.md`; falta a implementação.
+> calculadas em Python), desenhada em 2026-09-30 — assinaturas da função pura, do repository,
+> do service e da rota, e 17 testes em `skip` dizendo o que cada corpo faz; falta escrever os
+> corpos.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

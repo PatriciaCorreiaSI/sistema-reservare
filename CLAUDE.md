@@ -88,8 +88,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   testes com `skip`); em 2026-09-29, as quatro rotas de `reserva` e o **critério de pronto
   inteiro cumprido** — IDOR (leitura e cancelamento) e concorrência (`201` + `409` pela API) —,
   suíte em `60 passed`. **Segue aberta** (decidido em 2026-09-29): falta a **consulta de
-  disponibilidade**, escopo da v1 — decidida no ADR 0019, com rota e schemas no `api.md`; o
-  Desenhar continua pelo código.
+  disponibilidade**, escopo da v1 — decidida no ADR 0019; fase Desenhar fechada em 2026-09-30
+  (assinaturas, rota e 17 testes em `skip`; suíte em `60 passed, 17 skipped`). Falta o Tentar.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -199,7 +199,9 @@ compromissos sobre código que ainda não existe, e armadilhas.
   tudo menos no que se testa (**um teste, um motivo para falhar**); confere comportamento, não
   implementação; depois de verde, o **contra-teste** — estragar o ato e ver falhar com o número
   certo. Teste ainda não escrito leva `@pytest.mark.skip(reason=...)`, nunca `pass` (que é verde) —
-  nem só a docstring sem o `@pendente`, que também é verde. Dados do teste ficam no teste, nunca no
+  nem só a docstring sem o `@pendente`, que também é verde — nem `raise NotImplementedError`,
+  que é **vermelho** (`FAILED`): esse fica para o corpo da *função* desenhada, onde quebrar alto é
+  o objetivo. `@pendente` + docstring com o resultado esperado é o corpo certo. Dados do teste ficam no teste, nunca no
   `.env`. **Preparação que passa pela API leva `assert` do status** (o primeiro cancelamento, a
   leitura depois do erro): sem ele, a preparação que falha faz o ato falhar pelo motivo errado, ou
   aparece como `KeyError` em vez de um número. O contra-teste estraga de um jeito **plausível** —
@@ -246,6 +248,13 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **Exceção de domínio sem handler:** o `TestClient` **relança** a exceção no teste (aparece o nome,
   `ReservaNaoEncontrada`, em vez de um número); em produção seria `500`. Toda exceção nova pede o
   seu handler no `main.py` — o contra-teste é quem costuma revelar a falta.
+- **Schema copiado para um segundo módulo:** duas classes com o mesmo nome e os mesmos campos em
+  `schemas/recurso.py` e `schemas/reserva.py` são **dois tipos** para o Python (tipagem nominal:
+  a identidade vem de onde a classe foi definida, não da forma). O `mypy` acusa
+  `got "app.schemas.recurso.X", expected "app.schemas.reserva.X"`. Um schema mora num módulo só;
+  quem precisa dele importa de lá. E o router é escolhido pela **URL**; o service, pela
+  **regra** — `/recursos/{id}/disponibilidade` fica em `routers/recurso.py` mesmo chamando o
+  `ReservaService`.
 - **Nome que resolve para outra coisa:** um nome local que some faz o Python achar a fixture ou a
   função de mesmo nome no módulo (`sessao.add(usuario)` dentro da fixture `admin`). Renomear com
   `F2`, em todas as ocorrências.
@@ -306,21 +315,34 @@ disponibilidade é escopo da v1 (ROADMAP, seção 3) e a Etapa 7 depende dela pa
   `ReservaNaoCancelavel` (`409`, "já foi cancelada ou já terminou"). A armadilha do identity map
   anunciada **não existe**: o `synchronize_session` padrão atualiza o objeto lido antes.
 
-**Retomar por: o resto da fase Desenhar da consulta de disponibilidade.** Decidir fechou no
-ADR 0019: `GET /recursos/{id}/disponibilidade?dia=AAAA-MM-DD` devolve as **lacunas livres** do
-dia (ex.: funciona 8h–18h, reservas 10h–11h e 14h–16h → livre 8h–10h, 11h–14h, 16h–18h),
-calculadas por **função pura em Python** (o *multirange* do SQL ficou nas alternativas). Só
-reservas ativas contam; o `dia` é data **local**, no fuso do sistema, e as lacunas saem em UTC;
-intervalo semiaberto; o passado é cortado no `agora` (dia inteiro no passado → `200` com lista
-vazia, não `422`); `401` (é a primeira rota de `/recursos` com token) → `422` (`dia` mal formado,
-pelo tipo `date` do `Query`) → `404` → `409` (inativo), como no `POST /reservas`. **Ela mostra,
-não garante** — quem garante continua sendo a `EXCLUDE`. Já existem, no `api.md` e em
-`schemas/recurso.py`: `Lacuna(inicio, fim)` e `DisponibilidadeResposta(id_recurso, dia,
-lacunas)`, sem `from_attributes` (o service os monta a partir do cálculo). Falta desenhar: a
-assinatura da função pura (em `services/`, ao lado de `cabe_no_horario`), o método do repository
-que busca as reservas ativas do recurso na janela do dia, o método do service, a rota, e a lista
-dos testes com `skip` — os da função pura sem banco (dia vazio, dia lotado, reservas encostadas,
-no começo e no fim, corte no `agora`) e os da API.
+**Retomar por: a fase Tentar da consulta de disponibilidade — ela escreve os corpos.** O
+Desenhar fechou em 2026-09-30, e o contrato está nas assinaturas e nos 17 testes em `skip`:
+
+- **`calcular_lacunas(janela_inicio, janela_fim, ocupados) -> list[tuple[datetime, datetime]]`**
+  (`services/reserva.py`, ao lado de `cabe_no_horario`): só aritmética de intervalos, em UTC,
+  sem fuso, sem `agora`, sem modelo. **Assume `ocupados` ordenado por início** — o repository
+  garante com `ORDER BY`; o contrato está em comentário dos dois lados. Um ocupado pode começar
+  **antes** da janela (reserva em andamento, com o corte no `agora`). Sete testes sem banco em
+  `test_reserva_regras.py` (`-k calcular_lacunas`), com o resultado esperado na docstring.
+- **`ReservaRepository.listar_ativas_na_janela(id_recurso, janela_inicio, janela_fim) ->
+  Sequence[Reserva]`**: só ativas, sobrepostas à janela, ordenadas por `lower(periodo)`.
+- **`ReservaService.disponibilidade(id_recurso, dia) -> DisponibilidadeResposta`** (decidido
+  em 2026-09-30: mora no `ReservaService`, não no `RecursoService`, porque a regra de horário e
+  fuso fica num service só — o ADR 0019 diz que a regra calculada diferente em dois lugares é
+  como se saberia do erro). Faz o que a função pura não faz: `404` → `409`, `dia` local + horário
+  do recurso → janela UTC, corte no `agora`, desempacotar `periodo.lower/.upper` em tuplas,
+  montar o schema. Não recebe `usuario`: a resposta é a mesma para qualquer pessoa logada.
+- **Rota** em `routers/recurso.py` (o router é escolhido pela URL; o service, pela regra — por
+  isso esse router importa os dois services): `401` no decorador
+  (`dependencies=[Depends(obter_usuario_atual)]`), `dia: date` sem padrão (query obrigatória,
+  `422` pelo tipo), sem `model_validate` (o service já devolve o schema). Dez testes em
+  `test_reserva.py` (`-k disponibilidade`), lá e não em `test_recurso.py` porque o corte no
+  `agora` precisa do `agora_fixo`. Fatos para os corpos: `AGORA` = 1/10 12h UTC; `recurso_criado`
+  funciona 8h–18h local = **11h–21h UTC** (Brasília é UTC−3 o ano inteiro); `reserva_da_ana` =
+  2/10, 13h–14h UTC.
+
+Ordem sugerida: função pura (verde sem banco) → repository → service → rota, tirando o
+`@pendente` de cada teste conforme o corpo fica pronto. Contra-teste em cada um.
 
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
