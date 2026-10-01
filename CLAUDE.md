@@ -88,7 +88,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   concorrência com `201` + `409` pela API) e a consulta de disponibilidade
   (`GET /recursos/{id}/disponibilidade?dia=`). Suíte em `77 passed`, nenhum `skip`.
 - **Etapa 6 (estratégia de testes e CI): próxima.** Antes dela, duas pendências pequenas
-  decididas durante a Etapa 4 (ver "Próximo passo").
+  decididas durante a Etapa 4 (ver "Próximo passo"): a primeira, o ADR 0020 (token nas rotas de
+  `/recursos`), está em andamento desde 2026-10-01; a segunda, `Query(ge=...)` em `limite` e
+  `deslocamento`, não começou.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -300,13 +302,22 @@ compromissos sobre código que ainda não existe, e armadilhas.
 **Etapa 4 fechada em 2026-10-01.** Duas pendências pequenas, decididas durante a etapa, vêm
 **antes** de abrir a Etapa 6 — as duas seguem o protocolo das quatro fases:
 
-1. **Autenticação nas rotas de `/recursos`** (decidido em 2026-09-29): hoje não exigem token —
-   qualquer pessoa cria, altera ou remove recurso. Foi esquecimento da Etapa 3 (o CRUD nasceu na
-   Etapa 2, antes da autenticação). Opção escolhida: **leitura para quem está logada
-   (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`, `403`)**. Falta o ADR
-   (antes do código), a atualização do `api.md` e dos testes de `test_recurso.py` (passam a
-   mandar `cabecalho_de`), e os testes novos de `401` e `403`. A rota de disponibilidade já exige
-   token; é a única do router que exige.
+1. **Autenticação nas rotas de `/recursos` — em andamento, retomar por aqui.** ADR 0020
+   (2026-10-01): leitura para quem está logada (`obter_usuario_atual`, `401`), escrita só para
+   admin (`exigir_admin`, `403`), guarda no decorador. **Feito e commitado:** os cinco
+   decoradores; a fixture `recurso_criado` manda `cabecalho_de(admin)` e tem `assert` do `201`
+   (sem isso, toda a suíte de reserva cairia com `KeyError`); os dez testes existentes de
+   `test_recurso.py` com cabeçalho (leitura com `usuario`, escrita com `admin`;
+   `test_remover_recurso_em_uso` passou a usar a fixture `usuario` em vez de criar a Ana à mão —
+   as duas Anas davam `UniqueViolation`); os dois `PATCH` de recurso inativo em
+   `test_reserva.py` com `admin` e `assert`; os cinco testes de `401`
+   (`test_<acao>_recurso_sem_token_devolve_401`, um por rota, com `WWW-Authenticate: Bearer`;
+   contra-teste = tirar o `dependencies` da rota). **Falta:** os três de `403`
+   (`test_criar/atualizar/remover_recurso_como_usuaria_devolve_403`: `cabecalho_de(usuario)`,
+   corpo válido, `assert "WWW-Authenticate" not in resposta.headers`; contra-teste = trocar
+   `usuario` por `admin` e ver `201`/`200`/`204`) e o `api.md` (coluna de erros das cinco rotas:
+   `401` nas leituras, `401 · 403` nas escritas, porquê apontando para o ADR 0020). Suíte em
+   `82 passed`.
 2. **`limite` e `deslocamento`** são `int` puro em `GET /reservas` e `GET /recursos` — `"abc"`
    dá `422`, mas `limite=-1` chega ao Postgres e vira `500`, e o `api.md` promete `422`. O
    conserto é validar no router (`Query(ge=...)`), com teste. Não precisa de ADR: é o `api.md`

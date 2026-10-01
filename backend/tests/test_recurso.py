@@ -127,3 +127,48 @@ def test_criar_recurso_sem_campo_obrigatorio(client, usuario, cabecalho_de, admi
         headers=cabecalho_de(admin),
     )
     assert resposta.status_code == 422
+
+
+def test_listar_recursos_sem_token_devolve_401(client, recurso_criado):
+    resposta = client.get("/recursos")
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_buscar_recurso_sem_token_devolve_401(client, recurso_criado):
+    resposta = client.get(f"/recursos/{recurso_criado['id_recurso']}")
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_criar_recurso_sem_token_devolve_401(client):
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 10,
+        "hora_func_inicio": "08:00:00",
+        "hora_func_fim": "18:00:00",
+    }
+
+    resposta = client.post(
+        "/recursos",
+        json=dados,
+    )
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_atualizar_recurso_sem_token_devolve_401(client, recurso_criado):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"status_recurso": "inativo"},
+    )
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_remover_recurso_sem_token_devolve_401(client, recurso_criado):
+    resposta = client.delete(
+        f"/recursos/{recurso_criado['id_recurso']}",
+    )
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
