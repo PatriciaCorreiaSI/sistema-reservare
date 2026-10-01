@@ -360,16 +360,12 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 
 ### ⚙️ Etapa 4 — O coração: reservas, concorrência e estados
 
-> **✅ Concluída em 2026-10-01.** Decisões nos ADRs
+> **✅ Concluída em 2026-10-01.** Criar, listar, consultar e cancelar reservas, com a sobreposição
+> recusada pela `EXCLUDE` e traduzida em `409`; consulta de disponibilidade como lacunas livres
+> do dia. O critério de pronto está verde: IDOR na leitura e no cancelamento, e concorrência
+> (duas requisições simultâneas → um `201` e um `409`). Decisões nos ADRs
 > [0014](adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a
-> [0019](adr/0019-disponibilidade-como-lacunas-livres.md). As quatro rotas de `reserva` funcionam:
-> criar (com as regras de negócio e a sobreposição recusada pela `EXCLUDE`, traduzida em `409`),
-> listar, consultar e cancelar. O **teste de IDOR** está verde para a leitura e para o
-> cancelamento, e o **teste de concorrência**, para duas requisições simultâneas no mesmo
-> horário, devolve exatamente um `201` e um `409`. A **consulta de disponibilidade**
-> (`GET /recursos/{id}/disponibilidade?dia=`) devolve as lacunas livres do dia, calculadas em
-> Python por uma função pura sobre as reservas ativas que o banco devolve, cortadas no relógio
-> atual; a resposta não revela quem reservou. Ao todo, 77 testes verdes, nenhum em `skip`.
+> [0019](adr/0019-disponibilidade-como-lacunas-livres.md). 77 testes verdes.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

@@ -56,7 +56,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository, com testes isolados por transação num banco próprio |
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
-| Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas pela API, com a sobreposição recusada pelo banco e traduzida em `409` (decisões nos ADRs [0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0018](docs/adr/0018-fuso-unico-do-sistema.md)). Verdes o teste de acesso indevido (IDOR) e o de concorrência: duas requisições simultâneas no mesmo horário devolvem exatamente um `201` e um `409`. A consulta de horários livres ([ADR 0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) devolve as lacunas do dia em UTC, cortadas no relógio atual, sem revelar quem reservou |
+| Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | 🔨 em andamento |
 | Front-end | ⏳ |
 | Deploy | ⏳ |
