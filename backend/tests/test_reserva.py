@@ -210,14 +210,16 @@ def test_criar_reserva_em_recurso_inexistente_devolve_404(
 
 
 def test_criar_reserva_em_recurso_inativo_devolve_409(
-    client, usuario, recurso_criado, cabecalho_de
+    client, usuario, recurso_criado, cabecalho_de, admin
 ):
     # Recurso inativo antes, pelo PATCH → 409 (RecursoInativo).
     # Preparar: o corpo do pedido, no formato do ReservaCriar. Sem id_usuario:
-    client.patch(
-        f"/recursos/{recurso_criado['id_recurso']}", json={"status_recurso": "inativo"}
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"status_recurso": "inativo"},
+        headers=cabecalho_de(admin),
     )
-
+    assert resposta.status_code == 200
     reserva = {
         "id_recurso": recurso_criado["id_recurso"],
         "convidados": 4,
@@ -570,12 +572,14 @@ def test_disponibilidade_de_recurso_inexistente_devolve_404(
 
 
 def test_disponibilidade_de_recurso_inativo_devolve_409(
-    client, recurso_criado, usuario, cabecalho_de
+    client, recurso_criado, usuario, cabecalho_de, admin
 ):
     # PATCH para inativo (com assert do status) antes → 409.
     # Preparar
     resposta = client.patch(
-        f"/recursos/{recurso_criado['id_recurso']}", json={"status_recurso": "inativo"}
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"status_recurso": "inativo"},
+        headers=cabecalho_de(admin),
     )
     assert resposta.status_code == 200
     # Agir: o mesmo GET, id real, dia válido e token

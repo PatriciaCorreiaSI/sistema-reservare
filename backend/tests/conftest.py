@@ -65,14 +65,16 @@ def client(sessao):
 
 
 @pytest.fixture
-def recurso_criado(client):
+def recurso_criado(client, admin, cabecalho_de):
     dados = {
         "nome_recurso": "Sala 1",
         "ocupacao": 10,
         "hora_func_inicio": "08:00:00",
         "hora_func_fim": "18:00:00",
     }
-    return client.post("/recursos", json=dados).json()
+    resposta = client.post("/recursos", json=dados, headers=cabecalho_de(admin))
+    assert resposta.status_code == 201
+    return resposta.json()
 
 
 @pytest.fixture

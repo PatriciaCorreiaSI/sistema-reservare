@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies import obter_usuario_atual
+from app.dependencies import exigir_admin, obter_usuario_atual
 from app.schemas.recurso import (
     DisponibilidadeResposta,
     RecursoAtualizar,
@@ -15,7 +15,11 @@ from app.services.reserva import ReservaService
 router = APIRouter(prefix="/recursos", tags=["Recursos"])
 
 
-@router.get("/{id_recurso}", response_model=RecursoResposta)
+@router.get(
+    "/{id_recurso}",
+    response_model=RecursoResposta,
+    dependencies=[Depends(obter_usuario_atual)],
+)
 def buscar_por_id(
     id_recurso: int, service: RecursoService = Depends()
 ) -> RecursoResposta:
@@ -23,12 +27,21 @@ def buscar_por_id(
 
 
 # 201 = criado com sucesso
-@router.post("", status_code=201, response_model=RecursoResposta)
+@router.post(
+    "",
+    status_code=201,
+    response_model=RecursoResposta,
+    dependencies=[Depends(exigir_admin)],
+)
 def criar(dados: RecursoCriar, service: RecursoService = Depends()) -> RecursoResposta:
     return RecursoResposta.model_validate(service.criar(dados))
 
 
-@router.get("", response_model=list[RecursoResposta])
+@router.get(
+    "",
+    response_model=list[RecursoResposta],
+    dependencies=[Depends(obter_usuario_atual)],
+)
 def listar(
     limite: int = 20, deslocamento: int = 0, service: RecursoService = Depends()
 ) -> list[RecursoResposta]:
@@ -37,7 +50,11 @@ def listar(
     ]
 
 
-@router.patch("/{id_recurso}", response_model=RecursoResposta)
+@router.patch(
+    "/{id_recurso}",
+    response_model=RecursoResposta,
+    dependencies=[Depends(exigir_admin)],
+)
 def atualizar(
     id_recurso: int, dados: RecursoAtualizar, service: RecursoService = Depends()
 ) -> RecursoResposta:
@@ -45,7 +62,11 @@ def atualizar(
 
 
 # 204 = removido com sucesso e não retorna dados
-@router.delete("/{id_recurso}", status_code=204)
+@router.delete(
+    "/{id_recurso}",
+    status_code=204,
+    dependencies=[Depends(exigir_admin)],
+)
 def remover(id_recurso: int, service: RecursoService = Depends()) -> None:
     service.remover(id_recurso)
 
