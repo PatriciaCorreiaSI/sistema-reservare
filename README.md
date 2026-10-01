@@ -3,9 +3,9 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 4 — reservas, concorrência e estados**. As reservas funcionam pela API e o
-> teste de concorrência está verde; a consulta de horários livres está meio escrita — o cálculo
-> das lacunas e a busca no banco prontos, falta juntá-los na rota. Ao todo, 67 testes verdes.
+> Fase atual: **Etapa 6 — estratégia de testes e CI**. As reservas funcionam pela API, o teste
+> de concorrência está verde e a consulta de horários livres devolve as lacunas do dia. Ao todo,
+> 77 testes verdes.
 
 ---
 
@@ -56,8 +56,8 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Migrations e constraints | ✅ concluída — `alembic upgrade head` cria as três tabelas, a extensão e a `EXCLUDE` num banco vazio; `downgrade base` desfaz |
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository, com testes isolados por transação num banco próprio |
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
-| Reservas, concorrência e estados | 🔨 em andamento — criar, listar, consultar e cancelar reservas pela API, com a sobreposição recusada pelo banco e traduzida em `409` (decisões nos ADRs [0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0018](docs/adr/0018-fuso-unico-do-sistema.md)). Verdes o teste de acesso indevido (IDOR) e o de concorrência: duas requisições simultâneas no mesmo horário devolvem exatamente um `201` e um `409`. A consulta de horários livres ([ADR 0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) está meio escrita: o cálculo das lacunas e a busca no banco prontos, falta o service que os junta |
-| Testes e integração contínua | ⏳ |
+| Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas pela API, com a sobreposição recusada pelo banco e traduzida em `409` (decisões nos ADRs [0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0018](docs/adr/0018-fuso-unico-do-sistema.md)). Verdes o teste de acesso indevido (IDOR) e o de concorrência: duas requisições simultâneas no mesmo horário devolvem exatamente um `201` e um `409`. A consulta de horários livres ([ADR 0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) devolve as lacunas do dia em UTC, cortadas no relógio atual, sem revelar quem reservou |
+| Testes e integração contínua | 🔨 em andamento |
 | Front-end | ⏳ |
 | Deploy | ⏳ |
 

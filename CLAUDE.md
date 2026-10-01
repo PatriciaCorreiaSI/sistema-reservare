@@ -83,16 +83,12 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 3 (autenticação e autorização): concluída em 2026-09-23** — ADRs 0012 e 0013, emendas aos
   0010 e 0011; sete rotas, o comando `criar_admin`, suíte em `22 passed`. A metade IDOR do critério
   de pronto **passou para a Etapa 4**: é critério das rotas de `reserva`, que ainda não existem.
-- **Etapa 4 (reservas, concorrência e estados): em andamento** — fase Decidir fechada em
-  2026-09-24 (ADRs 0014–0017); fase Desenhar fechada em 2026-09-25 (ADR 0018, esqueleto, 37
-  testes com `skip`); em 2026-09-29, as quatro rotas de `reserva` e o **critério de pronto
-  inteiro cumprido** — IDOR (leitura e cancelamento) e concorrência (`201` + `409` pela API) —,
-  suíte em `60 passed`. **Segue aberta** (decidido em 2026-09-29): falta a **consulta de
-  disponibilidade**, escopo da v1 — decidida no ADR 0019; fase Desenhar fechada em 2026-09-30
-  (assinaturas, rota e 17 testes em `skip`); Tentar em andamento — `calcular_lacunas` e
-  `listar_ativas_na_janela` prontos em 2026-09-30; corpo do `disponibilidade` no service e
-  quatro dos dez testes da API prontos em 2026-10-01 (suíte em `71 passed, 6 skipped`); faltam
-  os seis testes de conteúdo da resposta.
+- **Etapa 4 (reservas, concorrência e estados): concluída em 2026-10-01** — ADRs 0014–0019;
+  as quatro rotas de `reserva`, o critério de pronto (IDOR em leitura e cancelamento;
+  concorrência com `201` + `409` pela API) e a consulta de disponibilidade
+  (`GET /recursos/{id}/disponibilidade?dia=`). Suíte em `77 passed`, nenhum `skip`.
+- **Etapa 6 (estratégia de testes e CI): próxima.** Antes dela, duas pendências pequenas
+  decididas durante a Etapa 4 (ver "Próximo passo").
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -261,6 +257,13 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **Nome que resolve para outra coisa:** um nome local que some faz o Python achar a fixture ou a
   função de mesmo nome no módulo (`sessao.add(usuario)` dentro da fixture `admin`). Renomear com
   `F2`, em todas as ocorrências.
+- **Import que você não digitou:** digitar um nome que ainda não existe (`reserva`, `client`) faz
+  o VS Code **auto-importar** o primeiro módulo homônimo que acha — `from backend.app.routers
+  import reserva`, `from xmlrpc import client`, `from backend.tests.conftest import client`
+  (cinco vezes em 2026-10-01). O sintoma é `ModuleNotFoundError: No module named 'backend'` na
+  coleta, ou uma cascata de `F811`. Fixture do `conftest.py` nunca se importa: o `pytest` a
+  entrega pelo nome do parâmetro. Desligar `python.analysis.autoImportCompletions` nas
+  configurações do VS Code.
 - **`fabrica()` × `fabrica.begin()`:** os dois existem, por isso nenhuma ferramenta reclama.
   `fabrica()` + `sessao.begin()` (o padrão do `criar_admin`) ou `fabrica.begin()` sozinho — a
   mistura pede uma transação já aberta e dá `InvalidRequestError`.
@@ -294,17 +297,22 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**A consulta de disponibilidade — o que falta para fechar a Etapa 4.** O critério de pronto está
-cumprido: o IDOR (`test_buscar_reserva_alheia_devolve_404` e
-`test_cancelar_reserva_alheia_devolve_404` conferem o `detail`) e a concorrência
-(`test_reserva_concorrencia.py`: duas threads, `sorted(status) == [201, 409]`, com o contra-teste
-do horário vizinho — `[201, 201]` — feito e desfeito). A etapa segue aberta porque a consulta de
-disponibilidade é escopo da v1 (ROADMAP, seção 3) e a Etapa 7 depende dela para o calendário.
+**Etapa 4 fechada em 2026-10-01.** Duas pendências pequenas, decididas durante a etapa, vêm
+**antes** de abrir a Etapa 6 — as duas seguem o protocolo das quatro fases:
 
-**O que existe (fase Tentar, 2026-09-25 a 29):** as três funções puras de `services/reserva.py`
-(`status_efetivo`, `garantir_acesso`, `cabe_no_horario`), com 13 testes sem banco em
-`test_reserva_regras.py`; as quatro rotas de `reserva`, com 27 testes pela API em
-`test_reserva.py`; e o teste de concorrência. Fatos do código que não se leem de primeira:
+1. **Autenticação nas rotas de `/recursos`** (decidido em 2026-09-29): hoje não exigem token —
+   qualquer pessoa cria, altera ou remove recurso. Foi esquecimento da Etapa 3 (o CRUD nasceu na
+   Etapa 2, antes da autenticação). Opção escolhida: **leitura para quem está logada
+   (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`, `403`)**. Falta o ADR
+   (antes do código), a atualização do `api.md` e dos testes de `test_recurso.py` (passam a
+   mandar `cabecalho_de`), e os testes novos de `401` e `403`. A rota de disponibilidade já exige
+   token; é a única do router que exige.
+2. **`limite` e `deslocamento`** são `int` puro em `GET /reservas` e `GET /recursos` — `"abc"`
+   dá `422`, mas `limite=-1` chega ao Postgres e vira `500`, e o `api.md` promete `422`. O
+   conserto é validar no router (`Query(ge=...)`), com teste. Não precisa de ADR: é o `api.md`
+   que já promete, só falta cumprir.
+
+**Fatos do código da Etapa 4 que não se leem de primeira:**
 
 - **`criar`** (service): recurso primeiro (`404`, depois `409` inativo), então as três regras de
   `422` — passado (`inicio < self._agora`), `cabe_no_horario(..., self._fuso)` e
@@ -315,69 +323,29 @@ disponibilidade é escopo da v1 (ROADMAP, seção 3) e a Etapa 7 depende dela pa
   só aplica o `where` se vier `id`, e ordena por `id_reserva` (paginação estável).
 - **`cancelar`**: ler → `garantir_acesso` (`404`) → `update()` condicional do ADR 0016, que grava as
   três colunas que o `CHECK cancelamento` exige juntas → `rowcount == 1`, senão
-  `ReservaNaoCancelavel` (`409`, "já foi cancelada ou já terminou"). A armadilha do identity map
-  anunciada **não existe**: o `synchronize_session` padrão atualiza o objeto lido antes.
-
-**Retomar por: os seis testes de disponibilidade ainda em `@pendente`** (`dia_livre`,
-`com_reserva`, `nao_revela`, `corta_o_passado`, `dia_inteiro_no_passado`, `ignora_cancelada`).
-Prontos e commitados:
-
-- **`calcular_lacunas(janela_inicio, janela_fim, ocupados) -> list[tuple[datetime, datetime]]`**
-  (`services/reserva.py`): varredura com um `marcador` que parte de `janela_inicio` e pula para o
-  fim de cada ocupado; duas guardas `if marcador < ...` (estrito — é o semiaberto: lacuna de
-  duração zero não existe). **Assume `ocupados` ordenado por início.** Sete testes verdes em
-  `test_reserva_regras.py` (`-k calcular_lacunas`); contra-teste feito: `<` → `<=` na guarda final
-  derruba `lotado` e `no_fim`; na primeira, derrubaria `encostadas` e `no_comeco`.
-- **`ReservaRepository.listar_ativas_na_janela(id_recurso, janela_inicio, janela_fim) ->
-  Sequence[Reserva]`**: `where` com `id_recurso`, `cancelada_em.is_(None)` (**o mesmo predicado
-  do `where=` da `EXCLUDE`** — o que a consulta mostra como ocupado e o que a constraint recusa
-  têm de ser o mesmo conjunto) e `periodo.overlaps(Range(inicio, fim, bounds="[)"))` (o `&&`);
-  `order_by(func.lower(Reserva.periodo))`. Sem teste próprio: quem o exercita são os dez da API.
-- **`ReservaService.disponibilidade(id_recurso, dia) -> DisponibilidadeResposta`** (decidido
-  em 2026-09-30: mora no `ReservaService`, não no `RecursoService`, porque a regra de horário e
-  fuso fica num service só — o ADR 0019 diz que a regra calculada diferente em dois lugares é
-  como se saberia do erro). **Corpo escrito em 2026-10-01**, nesta ordem: recurso (`404` →
-  `409`, as mesmas quatro linhas do `criar`); janela por `datetime.combine(dia,
-  recurso.hora_func_inicio, tzinfo=self._fuso).astimezone(UTC)` e o mesmo com `hora_func_fim`;
-  corte no `agora` (`max(janela_inicio, self._agora)`; se `inicio >= fim`, resposta com
-  `lacunas=[]` sem consultar o banco); repository; `for` com o `assert ... is not None` por
-  reserva (compreensão de lista não comporta `assert`) montando as tuplas; `calcular_lacunas`;
-  `DisponibilidadeResposta` convertendo cada tupla em `Lacuna`. Não recebe `usuario`: a
-  resposta é a mesma para qualquer pessoa logada. Armadilha vista duas vezes: digitar um nome
-  que ainda não existe (`reserva`) faz o editor **auto-importar** o primeiro módulo homônimo
-  (`from backend.app.routers import reserva`) — import que não se digitou é suspeito.
-- **Rota** em `routers/recurso.py`, **já escrita** (o router é escolhido pela URL; o service,
-  pela regra — por isso esse router importa os dois services): `401` no decorador, `dia: date`
-  sem padrão (`422` pelo tipo), sem `model_validate`. Dez testes em `test_reserva.py`
-  (`-k disponibilidade`), lá e não em `test_recurso.py` porque o corte no `agora` precisa do
-  `agora_fixo`. Fatos para os corpos: `AGORA` = 1/10 12h UTC; `recurso_criado` funciona 8h–18h
-  local = **11h–21h UTC** (Brasília é UTC−3 o ano inteiro); `reserva_da_ana` = 2/10, 13h–14h UTC.
-
-Ordem: tirar o `@pendente` dos seis testes restantes **um por vez**, escrevendo o corpo de cada
-com os três atos e o `assert` **deste** caso (a armadilha do dia: `assert` copiado do teste
-vizinho fica verde testando o caso errado — três vezes em 2026-09-30). Contra-teste em cada um.
-Os quatro de erro (`401`, `422`, `404`, `409`) seguem o molde: `id_recurso =
-recurso_criado["id_recurso"]`, `client.get(f"/recursos/{id_recurso}/disponibilidade",
-params={"dia": ...}, headers=cabecalho_de(usuario))`; o `GET` não tem corpo, o `dia` vai em
-`params=`. Os seis de conteúdo conferem instantes como o teste da linha ~327:
-`datetime.fromisoformat(corpo[...]) == datetime(..., tzinfo=UTC)`, nunca a string (o JSON pode
-escrever `Z` ou `+00:00`). Depois, `api.md` e ROADMAP, e a Etapa 4 fecha.
+  `ReservaNaoCancelavel` (`409`). A armadilha do identity map anunciada **não existe**: o
+  `synchronize_session` padrão atualiza o objeto lido antes.
+- **`disponibilidade`** mora no `ReservaService`, não no `RecursoService`: a regra de horário e
+  fuso fica num service só (ADR 0019). O router é escolhido pela URL, por isso a rota está em
+  `routers/recurso.py` e esse router importa os dois services. `listar_ativas_na_janela` filtra
+  por `cancelada_em.is_(None)`, **o mesmo predicado do `where=` da `EXCLUDE`** — o que a consulta
+  mostra como ocupado e o que a constraint recusa têm de ser o mesmo conjunto; sem teste próprio,
+  quem o exercita são os dez da API. `calcular_lacunas` **assume `ocupados` ordenado por início**
+  (o `order_by(func.lower(periodo))` do repository é parte do contrato). Dia inteiro no passado
+  devolve `200` com lista vazia **sem consultar o banco**; lotado devolve o mesmo `200` vazio,
+  mas consultando. Os dez testes ficam em `test_reserva.py`, não em `test_recurso.py`, porque o
+  corte no `agora` precisa do `agora_fixo`.
+- **Fatos das fixtures para testes novos:** `AGORA` = 1/10 12h UTC; `recurso_criado` funciona
+  8h–18h local = **11h–21h UTC** (Brasília é UTC−3 o ano inteiro); `reserva_da_ana` = 2/10,
+  13h–14h UTC. Instante na resposta se confere por `datetime.fromisoformat(corpo[...]) ==
+  datetime(..., tzinfo=UTC)`, nunca pela string (o JSON pode escrever `Z` ou `+00:00`). `GET` não
+  tem corpo: o parâmetro vai em `params=`. Preparação pela API leva **um** `assert`, o do status;
+  os demais são do teste que testa aquela rota ("um teste, um motivo").
 
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`60 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
-
-**Pendente para depois de fechar a Etapa 4:** `limite` e `deslocamento` são `int` puro em
-`GET /reservas` e `GET /recursos` — `"abc"` dá `422`, mas `limite=-1` chega ao Postgres e vira
-`500`, e o `api.md` promete `422`. O conserto é validar no router (`Query(ge=...)`), com teste.
-
-**Também depois da Etapa 4 (decidido em 2026-09-29):** as rotas de `/recursos`
-não exigem token — qualquer pessoa cria, altera ou remove recurso. Foi esquecimento da Etapa 3
-(o CRUD nasceu na Etapa 2, antes da autenticação). Opção escolhida: **leitura para quem está
-logada (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`, `403`)**. Falta o
-ADR (antes do código), a atualização do `api.md` e dos testes de `test_recurso.py` (passam a
-mandar `cabecalho_de`), e os testes novos de `401` e `403`.
+`77 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Backlog** (regra 7 — nenhum é v1):
 

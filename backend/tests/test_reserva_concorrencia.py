@@ -100,8 +100,8 @@ def reservar(corpo, cabecalho, barreira, status):
 def test_reservas_simultaneas_no_mesmo_horario_devolvem_um_201_e_um_409(
     api_com_sessao_real, id_usuaria, id_recurso
 ):
-    """Duas threads, cada uma com o seu TestClient, liberadas por um Barrier.
-    O conjunto dos status é {201, 409}, sem depender de qual thread vence."""
+    # Duas threads, cada uma com o seu TestClient, liberadas por um Barrier.
+    # O conjunto dos status é {201, 409}, sem depender de qual thread vence.
     # Preparar
     token = criar_access_token(id_usuaria, "usuario", datetime.now(UTC))
     cabecalho = {"Authorization": f"Bearer {token}"}

@@ -211,8 +211,8 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 2      | Etapa 1 (migration) | ✅ **concluída** — `alembic upgrade head` cria o esquema do zero; a prova dos sete casos passa contra ele; `downgrade base` desfaz |
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
-| 7–8    | **Etapa 4**         | 🔨 **é aqui que estamos** — critério de pronto cumprido: o teste de concorrência (`201` + `409` pela API) e o IDOR herdado da Etapa 3; 67 testes verdes. A consulta de disponibilidade está meio escrita: falta o service e os testes da API |
-| 9      | Etapa 6             | Suíte de testes e CI verde                                                |
+| 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
+| 9      | **Etapa 6**         | 🔨 **é aqui que estamos** — suíte de testes e CI verde                   |
 | 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
@@ -360,19 +360,16 @@ _(A segunda metade — IDOR — foi movida para o critério da Etapa 4 em 2026-0
 
 ### ⚙️ Etapa 4 — O coração: reservas, concorrência e estados
 
-> **🔨 Em andamento — critério de pronto cumprido.** Decisões nos ADRs
+> **✅ Concluída em 2026-10-01.** Decisões nos ADRs
 > [0014](adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a
-> [0018](adr/0018-fuso-unico-do-sistema.md). As quatro rotas de `reserva` funcionam: criar (com
-> as regras de negócio e a sobreposição recusada pela `EXCLUDE`, traduzida em `409`), listar,
-> consultar e cancelar. O **teste de IDOR** está verde para a leitura e para o cancelamento, e o
-> **teste de concorrência**, para duas requisições simultâneas no mesmo horário, devolve
-> exatamente um `201` e um `409`. Ao todo, 60 testes verdes. A etapa segue aberta até a
-> **consulta de disponibilidade**, escopo da v1 (seção 3): decidida no
-> [ADR 0019](adr/0019-disponibilidade-como-lacunas-livres.md) (as lacunas livres do dia,
-> calculadas em Python), desenhada e meio escrita em 2026-09-30 — a função pura
-> `calcular_lacunas` (sete testes verdes, sem banco) e a busca das reservas ativas na janela
-> estão prontas; a rota também. Falta o corpo do service que as junta, e os dez testes da API
-> que ainda estão em `skip`. Ao todo, 67 testes verdes.
+> [0019](adr/0019-disponibilidade-como-lacunas-livres.md). As quatro rotas de `reserva` funcionam:
+> criar (com as regras de negócio e a sobreposição recusada pela `EXCLUDE`, traduzida em `409`),
+> listar, consultar e cancelar. O **teste de IDOR** está verde para a leitura e para o
+> cancelamento, e o **teste de concorrência**, para duas requisições simultâneas no mesmo
+> horário, devolve exatamente um `201` e um `409`. A **consulta de disponibilidade**
+> (`GET /recursos/{id}/disponibilidade?dia=`) devolve as lacunas livres do dia, calculadas em
+> Python por uma função pura sobre as reservas ativas que o banco devolve, cortadas no relógio
+> atual; a resposta não revela quem reservou. Ao todo, 77 testes verdes, nenhum em `skip`.
 
 **Objetivo:** a etapa mais importante. Aqui você aprende o que acontece quando duas pessoas clicam ao mesmo tempo.
 

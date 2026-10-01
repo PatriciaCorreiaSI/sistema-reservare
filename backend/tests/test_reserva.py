@@ -8,8 +8,6 @@ from app.dependencies import obter_agora, obter_fuso
 from app.main import app
 from app.models import Reserva
 
-pendente = pytest.mark.skip(reason="Etapa 4, fase Tentar: corpo ainda não escrito")
-
 AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 FUSO = ZoneInfo("America/Sao_Paulo")
 
@@ -592,45 +590,147 @@ def test_disponibilidade_de_recurso_inativo_devolve_409(
     assert resposta.json()["detail"] == "Recurso inativo não aceita reservas"
 
 
-@pendente
 def test_disponibilidade_de_dia_livre_devolve_a_janela_inteira_em_utc(
     client, recurso_criado, usuario, cabecalho_de
 ):
-    """dia=2026-10-03, sem reservas → uma lacuna: 11h-21h UTC (8h-18h local);
-    dia ecoado na resposta."""
+    # dia=2026-10-03, sem reservas → uma lacuna: 11h-21h UTC (8h-18h local);
+    # dia ecoado na resposta.
+    # Preparar
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-03"},
+        headers=cabecalho_de(usuario),
+    )
+    corpo = resposta.json()
+    # Conferir
+    assert resposta.status_code == 200
+    assert corpo["dia"] == "2026-10-03"
+    assert len(corpo["lacunas"]) == 1
+    assert datetime.fromisoformat(corpo["lacunas"][0]["inicio"]) == datetime(
+        2026, 10, 3, 11, 0, tzinfo=UTC
+    )
+    assert datetime.fromisoformat(corpo["lacunas"][0]["fim"]) == datetime(
+        2026, 10, 3, 21, 0, tzinfo=UTC
+    )
 
 
-@pendente
 def test_disponibilidade_com_reserva_devolve_as_lacunas_em_volta(
-    client, recurso_criado, usuario, cabecalho_de
+    client, recurso_criado, usuario, cabecalho_de, reserva_da_ana
 ):
-    """dia=2026-10-02, com a reserva_da_ana (13h-14h UTC) → 11h-13h e 14h-21h."""
+    # dia=2026-10-02, com a reserva_da_ana (13h-14h UTC) → 11h-13h e 14h-21h.
+    # Preparar: o recurso e a reserva vêm da fixture
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-02"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo["lacunas"]) == 2
+    primeira, segunda = corpo["lacunas"]
+    assert datetime.fromisoformat(primeira["inicio"]) == datetime(
+        2026, 10, 2, 11, 0, tzinfo=UTC
+    )
+    assert datetime.fromisoformat(primeira["fim"]) == datetime(
+        2026, 10, 2, 13, 0, tzinfo=UTC
+    )
+    assert datetime.fromisoformat(segunda["inicio"]) == datetime(
+        2026, 10, 2, 14, 0, tzinfo=UTC
+    )
+    assert datetime.fromisoformat(segunda["fim"]) == datetime(
+        2026, 10, 2, 21, 0, tzinfo=UTC
+    )
 
 
-@pendente
 def test_disponibilidade_nao_revela_quem_reservou(
-    client, recurso_criado, usuario, cabecalho_de
+    client, recurso_criado, usuario, cabecalho_de, reserva_da_ana
 ):
-    """A resposta não tem id_usuario nem convidados em lugar nenhum (ADR 00017)."""
+    # A resposta não tem id_usuario nem convidados em lugar nenhum (ADR 00017).
+    # Preparar: o recurso e a reserva vêm da fixture
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-02"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 200
+    assert "id_usuario" not in resposta.text
+    assert "convidados" not in resposta.text
 
 
-@pendente
 def test_disponibilidade_corta_o_passado_no_agora(
     client, recurso_criado, usuario, cabecalho_de
 ):
-    """dia=2026-10-01 (AGORA = 12h UTC) → a lacuna começa em 12h, não às 11h."""
+    # dia=2026-10-01 (AGORA = 12h UTC) → a lacuna começa em 12h, não às 11h.
+    # Preparar
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-01"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo["lacunas"]) == 1
+    assert datetime.fromisoformat(corpo["lacunas"][0]["inicio"]) == AGORA
+    assert datetime.fromisoformat(corpo["lacunas"][0]["fim"]) == datetime(
+        2026, 10, 1, 21, 0, tzinfo=UTC
+    )
 
 
-@pendente
 def test_disponibilidade_do_dia_inteiro_no_passado_devolve_200_com_lista_vazia(
     client, recurso_criado, usuario, cabecalho_de
 ):
-    """dia=2026-09-30 → 200 e lacunas == []."""
+    # dia=2026-09-30 → 200 e lacunas == [].
+    # Preparar
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-09-30"},
+        headers=cabecalho_de(usuario),
+    )
+    corpo = resposta.json()
+    # Conferir
+    assert resposta.status_code == 200
+    assert corpo["dia"] == "2026-09-30"
+    assert corpo["lacunas"] == []
+    assert corpo["dia"] == "2026-09-30"
 
 
-@pendente
 def test_disponibilidade_ignora_reserva_cancelada(
-    client, recurso_criado, usuario, cabecalho_de
+    client, recurso_criado, usuario, cabecalho_de, reserva_da_ana
 ):
-    """Cancelar a reserva_da_ana (com assert do status) e consultar 2/10
-    → janela inteira."""
+    # Cancelar a reserva_da_ana (com assert do status) e consultar 2/10
+    # → janela inteira.
+    # Preparar: cancela a reserva_da_ana
+    resposta = client.post(
+        f"/reservas/{reserva_da_ana.id_reserva}/cancelar", headers=cabecalho_de(usuario)
+    )
+    assert resposta.status_code == 200
+    # Agir
+    id_recurso = recurso_criado["id_recurso"]
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-02"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo["lacunas"]) == 1
+    assert datetime.fromisoformat(corpo["lacunas"][0]["inicio"]) == datetime(
+        2026, 10, 2, 11, 0, tzinfo=UTC
+    )
+    assert datetime.fromisoformat(corpo["lacunas"][0]["fim"]) == datetime(
+        2026, 10, 2, 21, 0, tzinfo=UTC
+    )
