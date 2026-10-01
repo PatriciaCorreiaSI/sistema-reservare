@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends
@@ -10,7 +10,7 @@ from app.dependencies import UsuarioAtual, obter_agora, obter_fuso
 from app.models import Recurso, Reserva
 from app.repositories.recurso import RecursoRepository
 from app.repositories.reserva import ReservaRepository
-from app.schemas.recurso import DisponibilidadeResposta
+from app.schemas.recurso import DisponibilidadeResposta, Lacuna
 from app.schemas.reserva import ReservaCriar, ReservaResposta
 from app.services.excecoes import (
     ConvidadosAcimaDaOcupacao,
@@ -150,4 +150,40 @@ class ReservaService:
 
     def disponibilidade(self, id_recurso: int, dia: date) -> DisponibilidadeResposta:
         # levanta: RecursoNaoEncontrado, RecursoInativo
-        raise NotImplementedError
+        recurso = self._recursos.buscar_por_id(id_recurso)
+        if recurso is None:
+            raise RecursoNaoEncontrado
+        if recurso.status_recurso != "ativo":
+            raise RecursoInativo
+        janela_inicio = datetime.combine(
+            dia, recurso.hora_func_inicio, tzinfo=self._fuso
+        ).astimezone(UTC)
+        janela_fim = datetime.combine(
+            dia, recurso.hora_func_fim, tzinfo=self._fuso
+        ).astimezone(UTC)
+        janela_inicio = max(janela_inicio, self._agora)
+        if janela_inicio >= janela_fim:
+            return DisponibilidadeResposta(
+                id_recurso=id_recurso,
+                dia=dia,
+                lacunas=[],
+            )
+        reservas = self._reservas.listar_ativas_na_janela(
+            id_recurso,
+            janela_inicio,
+            janela_fim,
+        )
+        ocupados: list[tuple[datetime, datetime]] = []
+        for reserva in reservas:
+            inicio = reserva.periodo.lower
+            fim = reserva.periodo.upper
+            # O CHECK formato_semiaberto proíbe período sem uma das pontas.
+            # O assert conta isso ao mypy.
+            assert inicio is not None and fim is not None
+            ocupados.append((inicio, fim))
+        lacunas = calcular_lacunas(janela_inicio, janela_fim, ocupados)
+        return DisponibilidadeResposta(
+            id_recurso=id_recurso,
+            dia=dia,
+            lacunas=[Lacuna(inicio=inicio, fim=fim) for inicio, fim in lacunas],
+        )

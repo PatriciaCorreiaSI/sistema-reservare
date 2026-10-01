@@ -90,8 +90,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   suíte em `60 passed`. **Segue aberta** (decidido em 2026-09-29): falta a **consulta de
   disponibilidade**, escopo da v1 — decidida no ADR 0019; fase Desenhar fechada em 2026-09-30
   (assinaturas, rota e 17 testes em `skip`); Tentar em andamento — `calcular_lacunas` e
-  `listar_ativas_na_janela` prontos em 2026-09-30 (suíte em `67 passed, 10 skipped`); falta o
-  corpo do `disponibilidade` no service e destravar os dez testes da API.
+  `listar_ativas_na_janela` prontos em 2026-09-30; corpo do `disponibilidade` no service e
+  quatro dos dez testes da API prontos em 2026-10-01 (suíte em `71 passed, 6 skipped`); faltam
+  os seis testes de conteúdo da resposta.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -317,8 +318,9 @@ disponibilidade é escopo da v1 (ROADMAP, seção 3) e a Etapa 7 depende dela pa
   `ReservaNaoCancelavel` (`409`, "já foi cancelada ou já terminou"). A armadilha do identity map
   anunciada **não existe**: o `synchronize_session` padrão atualiza o objeto lido antes.
 
-**Retomar por: o corpo do `ReservaService.disponibilidade` — o único que falta.** Prontos e
-commitados em 2026-09-30:
+**Retomar por: os seis testes de disponibilidade ainda em `@pendente`** (`dia_livre`,
+`com_reserva`, `nao_revela`, `corta_o_passado`, `dia_inteiro_no_passado`, `ignora_cancelada`).
+Prontos e commitados:
 
 - **`calcular_lacunas(janela_inicio, janela_fim, ocupados) -> list[tuple[datetime, datetime]]`**
   (`services/reserva.py`): varredura com um `marcador` que parte de `janela_inicio` e pula para o
@@ -334,15 +336,16 @@ commitados em 2026-09-30:
 - **`ReservaService.disponibilidade(id_recurso, dia) -> DisponibilidadeResposta`** (decidido
   em 2026-09-30: mora no `ReservaService`, não no `RecursoService`, porque a regra de horário e
   fuso fica num service só — o ADR 0019 diz que a regra calculada diferente em dois lugares é
-  como se saberia do erro). **Ainda `raise NotImplementedError`.** O corpo faz o que a função
-  pura não faz, nesta ordem: recurso (`404` → `409`, as mesmas quatro linhas do `criar`); montar
-  a janela — `datetime.combine(dia, recurso.hora_func_inicio, tzinfo=self._fuso)` e o mesmo com
-  `hora_func_fim`, depois `.astimezone(UTC)`; cortar no `agora` (`max(janela_inicio,
-  self._agora)`; se `inicio >= fim`, lista vazia sem consultar o banco); buscar pelo repository;
-  desempacotar cada `periodo.lower/.upper` em tuplas (com o `assert ... is not None` que o
-  `_para_resposta` já usa); `calcular_lacunas`; montar `DisponibilidadeResposta(id_recurso,
-  dia, lacunas=[Lacuna(inicio=, fim=) ...])`. Não recebe `usuario`: a resposta é a mesma para
-  qualquer pessoa logada.
+  como se saberia do erro). **Corpo escrito em 2026-10-01**, nesta ordem: recurso (`404` →
+  `409`, as mesmas quatro linhas do `criar`); janela por `datetime.combine(dia,
+  recurso.hora_func_inicio, tzinfo=self._fuso).astimezone(UTC)` e o mesmo com `hora_func_fim`;
+  corte no `agora` (`max(janela_inicio, self._agora)`; se `inicio >= fim`, resposta com
+  `lacunas=[]` sem consultar o banco); repository; `for` com o `assert ... is not None` por
+  reserva (compreensão de lista não comporta `assert`) montando as tuplas; `calcular_lacunas`;
+  `DisponibilidadeResposta` convertendo cada tupla em `Lacuna`. Não recebe `usuario`: a
+  resposta é a mesma para qualquer pessoa logada. Armadilha vista duas vezes: digitar um nome
+  que ainda não existe (`reserva`) faz o editor **auto-importar** o primeiro módulo homônimo
+  (`from backend.app.routers import reserva`) — import que não se digitou é suspeito.
 - **Rota** em `routers/recurso.py`, **já escrita** (o router é escolhido pela URL; o service,
   pela regra — por isso esse router importa os dois services): `401` no decorador, `dia: date`
   sem padrão (`422` pelo tipo), sem `model_validate`. Dez testes em `test_reserva.py`
@@ -350,10 +353,15 @@ commitados em 2026-09-30:
   `agora_fixo`. Fatos para os corpos: `AGORA` = 1/10 12h UTC; `recurso_criado` funciona 8h–18h
   local = **11h–21h UTC** (Brasília é UTC−3 o ano inteiro); `reserva_da_ana` = 2/10, 13h–14h UTC.
 
-Ordem: corpo do service → tirar o `@pendente` dos dez testes da API **um por vez**, escrevendo o
-corpo de cada com os três atos e o `assert` **deste** caso (a armadilha do dia: `assert` copiado
-do teste vizinho fica verde testando o caso errado — três vezes em 2026-09-30). Contra-teste
-em cada um. Depois, `api.md` e ROADMAP, e a Etapa 4 fecha.
+Ordem: tirar o `@pendente` dos seis testes restantes **um por vez**, escrevendo o corpo de cada
+com os três atos e o `assert` **deste** caso (a armadilha do dia: `assert` copiado do teste
+vizinho fica verde testando o caso errado — três vezes em 2026-09-30). Contra-teste em cada um.
+Os quatro de erro (`401`, `422`, `404`, `409`) seguem o molde: `id_recurso =
+recurso_criado["id_recurso"]`, `client.get(f"/recursos/{id_recurso}/disponibilidade",
+params={"dia": ...}, headers=cabecalho_de(usuario))`; o `GET` não tem corpo, o `dia` vai em
+`params=`. Os seis de conteúdo conferem instantes como o teste da linha ~327:
+`datetime.fromisoformat(corpo[...]) == datetime(..., tzinfo=UTC)`, nunca a string (o JSON pode
+escrever `Z` ou `+00:00`). Depois, `api.md` e ROADMAP, e a Etapa 4 fecha.
 
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,

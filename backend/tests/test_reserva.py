@@ -523,53 +523,114 @@ def test_cancelar_reserva_libera_o_horario(
 # GET /recursos/{id}/disponibilidade
 
 
-@pendente
-def test_disponibilidade_sem_token_devolve_401():
-    """Sem Authorization → 401 com WWW-Authenticate: Bearer."""
+def test_disponibilidade_sem_token_devolve_401(client, recurso_criado):
+    # Sem Authorization → 401 com WWW-Authenticate: Bearer.
+    # Preparar: o recurso vem da fixture; o id vai na URL
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir: sem token
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade", params={"dia": "2026-10-02"}
+    )
+    # Conferir
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_disponibilidade_com_dia_mal_formado_devolve_422(
+    client, recurso_criado, usuario, cabecalho_de
+):
+    # ?dia=2026-13-40 → 422 (o tipo date recusa antes do service).
+    # Preparar: o recurso vem da fixture; o id vai na URL
+    id_recurso = recurso_criado["id_recurso"]
+    # Agir: com token
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-13-40"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 422
+
+
+def test_disponibilidade_de_recurso_inexistente_devolve_404(
+    client, recurso_criado, usuario, cabecalho_de
+):
+    # id que não existe → 404.
+    # Preparar: o recurso vem da fixture; o id vai na URL;
+    # a sequencia do Postgres só avança
+    # então o próximo id (id_recurso + 1) nunca foi usado
+    id_recurso = recurso_criado["id_recurso"] + 1
+    # Agir: com token
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-02"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Recurso não encontrado"
+
+
+def test_disponibilidade_de_recurso_inativo_devolve_409(
+    client, recurso_criado, usuario, cabecalho_de
+):
+    # PATCH para inativo (com assert do status) antes → 409.
+    # Preparar
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}", json={"status_recurso": "inativo"}
+    )
+    assert resposta.status_code == 200
+    # Agir: o mesmo GET, id real, dia válido e token
+    id_recurso = recurso_criado["id_recurso"]
+    resposta = client.get(
+        f"/recursos/{id_recurso}/disponibilidade",
+        params={"dia": "2026-10-02"},
+        headers=cabecalho_de(usuario),
+    )
+    # Conferir
+    assert resposta.status_code == 409
+    assert resposta.json()["detail"] == "Recurso inativo não aceita reservas"
 
 
 @pendente
-def test_disponibilidade_com_dia_mal_formado_devolve_422():
-    """?dia=2026-13-40 → 422 (o tipo date recusa antes do service)."""
-
-
-@pendente
-def test_disponibilidade_de_recurso_inexistente_devolve_404():
-    """id que não existe → 404."""
-
-
-@pendente
-def test_disponibilidade_de_recurso_inativo_devolve_409():
-    """PATCH para inativo (com assert do status) antes → 409."""
-
-
-@pendente
-def test_disponibilidade_de_dia_livre_devolve_a_janela_inteira_em_utc():
+def test_disponibilidade_de_dia_livre_devolve_a_janela_inteira_em_utc(
+    client, recurso_criado, usuario, cabecalho_de
+):
     """dia=2026-10-03, sem reservas → uma lacuna: 11h-21h UTC (8h-18h local);
     dia ecoado na resposta."""
 
 
 @pendente
-def test_disponibilidade_com_reserva_devolve_as_lacunas_em_volta():
+def test_disponibilidade_com_reserva_devolve_as_lacunas_em_volta(
+    client, recurso_criado, usuario, cabecalho_de
+):
     """dia=2026-10-02, com a reserva_da_ana (13h-14h UTC) → 11h-13h e 14h-21h."""
 
 
 @pendente
-def test_disponibilidade_nao_revela_quem_reservou():
+def test_disponibilidade_nao_revela_quem_reservou(
+    client, recurso_criado, usuario, cabecalho_de
+):
     """A resposta não tem id_usuario nem convidados em lugar nenhum (ADR 00017)."""
 
 
 @pendente
-def test_disponibilidade_corta_o_passado_no_agora():
+def test_disponibilidade_corta_o_passado_no_agora(
+    client, recurso_criado, usuario, cabecalho_de
+):
     """dia=2026-10-01 (AGORA = 12h UTC) → a lacuna começa em 12h, não às 11h."""
 
 
 @pendente
-def test_disponibilidade_do_dia_inteiro_no_passado_devolve_200_com_lista_vazia():
+def test_disponibilidade_do_dia_inteiro_no_passado_devolve_200_com_lista_vazia(
+    client, recurso_criado, usuario, cabecalho_de
+):
     """dia=2026-09-30 → 200 e lacunas == []."""
 
 
 @pendente
-def test_disponibilidade_ignora_reserva_cancelada():
+def test_disponibilidade_ignora_reserva_cancelada(
+    client, recurso_criado, usuario, cabecalho_de
+):
     """Cancelar a reserva_da_ana (com assert do status) e consultar 2/10
     → janela inteira."""
