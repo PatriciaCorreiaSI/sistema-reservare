@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.dependencies import UsuarioAtual, obter_usuario_atual
 from app.schemas.reserva import ReservaCriar, ReservaResposta
@@ -27,8 +27,8 @@ def criar(
 
 @router.get("", response_model=list[ReservaResposta])
 def listar(
-    limite: int = 20,
-    deslocamento: int = 0,
+    limite: int = Query(20, ge=1, le=100),
+    deslocamento: int = Query(0, ge=0),
     usuario: UsuarioAtual = Depends(obter_usuario_atual),
     service: ReservaService = Depends(),
 ) -> list[ReservaResposta]:

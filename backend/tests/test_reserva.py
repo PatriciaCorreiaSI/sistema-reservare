@@ -738,3 +738,34 @@ def test_disponibilidade_ignora_reserva_cancelada(
     assert datetime.fromisoformat(corpo["lacunas"][0]["fim"]) == datetime(
         2026, 10, 2, 21, 0, tzinfo=UTC
     )
+
+
+def test_listar_reserva_com_limite_zero_devolve_422(client, usuario, cabecalho_de):
+    resposta = client.get(
+        "/reservas",
+        params={"limite": 0},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 422
+
+
+def test_listar_reserva_com_limite_acima_de_100_devolve_422(
+    client, usuario, cabecalho_de
+):
+    resposta = client.get(
+        "/reservas",
+        params={"limite": 101},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 422
+
+
+def test_listar_reserva_com_deslocamento_negativo_devolve_422(
+    client, usuario, cabecalho_de
+):
+    resposta = client.get(
+        "/reservas",
+        params={"deslocamento": -1},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 422

@@ -208,3 +208,34 @@ def test_remover_recurso_como_usuaria_devolve_403(
     )
     assert resposta.status_code == 403
     assert "WWW-Authenticate" not in resposta.headers
+
+
+def test_listar_recurso_com_limite_zero_devolve_422(client, usuario, cabecalho_de):
+    resposta = client.get(
+        "/recursos",
+        params={"limite": 0},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 422
+
+
+def test_listar_recurso_com_limite_acima_de_100_devolve_422(
+    client, usuario, cabecalho_de
+):
+    resposta = client.get(
+        "/recursos",
+        params={"limite": 101},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 422
+
+
+def test_listar_recurso_com_deslocamento_negativo_devolve_422(
+    client, usuario, cabecalho_de
+):
+    resposta = client.get(
+        "/recursos",
+        params={"deslocamento": -1},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 422

@@ -87,10 +87,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   as quatro rotas de `reserva`, o critério de pronto (IDOR em leitura e cancelamento;
   concorrência com `201` + `409` pela API) e a consulta de disponibilidade
   (`GET /recursos/{id}/disponibilidade?dia=`). Suíte em `77 passed`, nenhum `skip`.
-- **Etapa 6 (estratégia de testes e CI): próxima.** Antes dela, duas pendências pequenas
-  decididas durante a Etapa 4 (ver "Próximo passo"): a primeira, o ADR 0020 (token nas rotas de
-  `/recursos`), foi **concluída em 2026-10-02**, suíte em `85 passed`; a segunda, `Query(ge=...)`
-  em `limite` e `deslocamento`, não começou.
+- **Pendências da Etapa 4: concluídas em 2026-10-02** — ADR 0020 (token nas rotas de
+  `/recursos`) e a faixa de `limite` e `deslocamento` nas duas listagens. Suíte em `91 passed`.
+- **Etapa 6 (estratégia de testes e CI): próxima, ainda não começou.**
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -264,8 +263,10 @@ compromissos sobre código que ainda não existe, e armadilhas.
   import reserva`, `from xmlrpc import client`, `from backend.tests.conftest import client`
   (cinco vezes em 2026-10-01). O sintoma é `ModuleNotFoundError: No module named 'backend'` na
   coleta, ou uma cascata de `F811`. Fixture do `conftest.py` nunca se importa: o `pytest` a
-  entrega pelo nome do parâmetro. Desligar `python.analysis.autoImportCompletions` nas
-  configurações do VS Code.
+  entrega pelo nome do parâmetro. `python.analysis.autoImportCompletions` já está desligado nas
+  configurações do VS Code, e mesmo assim os imports voltaram duas vezes em 2026-10-02 — a
+  origem não foi identificada (suspeitas: a lâmpada de "Add import" ou uma sugestão aceita com
+  `Tab`). Até descobrir, conferir o topo do arquivo no `git diff` antes de rodar o teste.
 - **`fabrica()` × `fabrica.begin()`:** os dois existem, por isso nenhuma ferramenta reclama.
   `fabrica()` + `sessao.begin()` (o padrão do `criar_admin`) ou `fabrica.begin()` sozinho — a
   mistura pede uma transação já aberta e dá `InvalidRequestError`.
@@ -299,21 +300,29 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 4 fechada em 2026-10-01.** Duas pendências pequenas, decididas durante a etapa, vêm
-**antes** de abrir a Etapa 6 — as duas seguem o protocolo das quatro fases:
+**Abrir a Etapa 6 (estratégia de testes e CI) — retomar por aqui.** Começa pela fase 1 do
+protocolo: o que ainda não está decidido vira ADR antes de qualquer código. Pelo ROADMAP, as
+decisões em aberto são o nível de cada teste (pirâmide: unitário sem banco × integração com o
+Postgres do compose), quando usar dublês, o papel da cobertura (alarme, nunca meta) e o desenho
+do CI no GitHub Actions (lint, tipos, testes e migrations a cada push; badge no README). O
+critério de pronto: o CI roda tudo a cada push e o badge está verde.
 
-1. **Autenticação nas rotas de `/recursos` — concluída em 2026-10-02.** ADR 0020: leitura para
-   quem está logada (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`,
-   `403`), guarda no decorador. Testes: cinco de `401` (um por rota, com `WWW-Authenticate:
-   Bearer`) e três de `403` (escritas com `cabecalho_de(usuario)`, conferindo a **ausência** do
-   cabeçalho com `not in resposta.headers` — indexar com `[...]` uma chave ausente dá
-   `KeyError`, não `""`). A fixture `recurso_criado` manda `cabecalho_de(admin)` e tem `assert`
-   do `201`: sem ele, toda a suíte de reserva cairia com `KeyError`. No `api.md`, o porquê de cada
-   rota aponta para o ADR que a decidiu — as cinco para o 0020, a disponibilidade para o 0019.
-2. **`limite` e `deslocamento` — retomar por aqui.** São `int` puro em `GET /reservas` e
-   `GET /recursos` — `"abc"` dá `422`, mas `limite=-1` chega ao Postgres e vira `500`, e o
-   `api.md` promete `422`. O conserto é validar no router (`Query(ge=...)`), com teste. Não
-   precisa de ADR: é o `api.md` que já promete, só falta cumprir.
+**As duas pendências da Etapa 4, fechadas em 2026-10-02:**
+
+1. **Token nas rotas de `/recursos` (ADR 0020).** Leitura para quem está logada
+   (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`, `403`), guarda no
+   decorador. Cinco testes de `401` e três de `403`; estes conferem a **ausência** do cabeçalho
+   com `not in resposta.headers` — indexar com `[...]` uma chave ausente dá `KeyError`, não `""`.
+   A fixture `recurso_criado` manda `cabecalho_de(admin)` e tem `assert` do `201`: sem ele, toda a
+   suíte de reserva cairia com `KeyError`. No `api.md`, o porquê de cada rota aponta para o ADR
+   que a decidiu — as cinco para o 0020, a disponibilidade para o 0019.
+2. **Faixa de `limite` e `deslocamento`.** Eram `int` puro, e `limite=-1` chegava ao Postgres como
+   `500`. Agora `Query(20, ge=1, le=100)` e `Query(0, ge=0)` nos dois routers, sem ADR (o
+   `api.md` já prometia `422`). Teto de 100 para nenhum pedido ler a tabela inteira; `limite=0`
+   recusado por ser pedido que nunca devolve nada; acima do teto é `422`, não rebaixamento
+   silencioso. Seis testes de `422`, três por listagem; como o conserto veio antes dos testes, o
+   vermelho foi visto com `git stash push app/routers`. Parâmetro da URL vai em `params=`
+   como dicionário — `client.get(..., limite=0)` é `TypeError`.
 
 **Fatos do código da Etapa 4 que não se leem de primeira:**
 
@@ -348,7 +357,7 @@ compromissos sobre código que ainda não existe, e armadilhas.
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`85 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+`91 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Backlog** (regra 7 — nenhum é v1):
 

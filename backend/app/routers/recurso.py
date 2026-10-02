@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.dependencies import exigir_admin, obter_usuario_atual
 from app.schemas.recurso import (
@@ -43,7 +43,9 @@ def criar(dados: RecursoCriar, service: RecursoService = Depends()) -> RecursoRe
     dependencies=[Depends(obter_usuario_atual)],
 )
 def listar(
-    limite: int = 20, deslocamento: int = 0, service: RecursoService = Depends()
+    limite: int = Query(20, ge=1, le=100),
+    deslocamento: int = Query(0, ge=0),
+    service: RecursoService = Depends(),
 ) -> list[RecursoResposta]:
     return [
         RecursoResposta.model_validate(r) for r in service.listar(limite, deslocamento)
