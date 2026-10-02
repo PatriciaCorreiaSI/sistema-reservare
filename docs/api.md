@@ -52,12 +52,12 @@ DisponibilidadeResposta
 
 | **Rota**  |  **Sucesso** |  **Erros** | **Porquê** |
 |-----------|--------------|------------|------------|
-|`POST /recursos`| `201` + `RecursoResposta`|`422` (schema)| `RecursoCriar` não tem `status_recurso` porque por default todo recurso nasce como `ativo`. |
-|`GET /recursos?limite=&deslocamento=`| `200` + lista| — | |
-|`GET /recursos/{id}`| `200`|`404`| |
-|`PATCH /recursos/{id}`| `200`|`404` · `422`| `PUT` obrigaria o usuário a escrever sempre todos os campos, sob risco de reescrever dado velho. `PATCH` garante a inserção apenas dos dados a serem atualizados e mantém os demais como estão. |
-|`DELETE /recursos/{id}`| `204`|`404` · `409`|Dá `404` quando o recurso pedido não existe. Dá `409` quando o recurso existe, a requisição está bem formada, mas ela conflita com o estado atual do sistema (o recurso está em uso: existe reserva apontando para ele. A FK é `ON DELETE RESTRICT` e por isso não é possível deletá-lo por causa do que já existe no banco).|
-|`GET /recursos/{id}/disponibilidade?dia=2026-10-02`| `200` + `DisponibilidadeResposta`| `401` · `404` · `409` · `422` |`401` para quem não está logado; `404` para recurso inexistente; `409` para recurso inativo; `422` para dia ausente ou mal formado. Um dia no passado ou todo ocupado não dá `422`, e sim `200` com a lista vazia. |
+|`POST /recursos`| `201` + `RecursoResposta`| `401` · `403` · `422` (schema)| `401` para quem não está logado [ADR 0020](./adr/0020-exigir-token-nas-rotas-de-recurso.md); `403` para usuário comum, só admin escreve em recursos; `RecursoCriar` não tem `status_recurso` porque por default todo recurso nasce como `ativo`.  |
+|`GET /recursos?limite=&deslocamento=`| `200` + lista| `401`  | `401` para quem não está logado. Leitura é para quem está logado, de qualquer privilégio [ADR 0020](./adr/0020-exigir-token-nas-rotas-de-recurso.md). |
+|`GET /recursos/{id}`| `200`| `401` · `404` | `401` para quem não está logado; dá `404` quando o recurso pedido não existe. |
+|`PATCH /recursos/{id}`| `200`| `401` · `403` · `404` · `422`| `401` para quem não está logado; `PUT` obrigaria o usuário a escrever sempre todos os campos, sob risco de reescrever dado velho. `PATCH` garante a inserção apenas dos dados a serem atualizados e mantém os demais como estão; `403` para usuário comum. |
+|`DELETE /recursos/{id}`| `204`| `401` · `403` · `404` · `409`| `401` para quem não está logado; `403` para usuário comum; dá `404` quando o recurso pedido não existe. Dá `409` quando o recurso existe, a requisição está bem formada, mas ela conflita com o estado atual do sistema (o recurso está em uso: existe reserva apontando para ele. A FK é `ON DELETE RESTRICT` e por isso não é possível deletá-lo por causa do que já existe no banco). |
+|`GET /recursos/{id}/disponibilidade?dia=2026-10-02`| `200` + `DisponibilidadeResposta`| `401` · `404` · `409` · `422` |`401` para quem não está logado [ADR 0019](./adr/0019-disponibilidade-como-lacunas-livres.md); `404` para recurso inexistente; `409` para recurso inativo; `422` para dia ausente ou mal formado. Um dia no passado ou todo ocupado não dá `422`, e sim `200` com a lista vazia. |
 
 
 ## Autenticação
