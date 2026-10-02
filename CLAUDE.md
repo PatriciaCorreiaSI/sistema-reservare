@@ -89,8 +89,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   (`GET /recursos/{id}/disponibilidade?dia=`). Suíte em `77 passed`, nenhum `skip`.
 - **Etapa 6 (estratégia de testes e CI): próxima.** Antes dela, duas pendências pequenas
   decididas durante a Etapa 4 (ver "Próximo passo"): a primeira, o ADR 0020 (token nas rotas de
-  `/recursos`), está em andamento desde 2026-10-01; a segunda, `Query(ge=...)` em `limite` e
-  `deslocamento`, não começou.
+  `/recursos`), foi **concluída em 2026-10-02**, suíte em `85 passed`; a segunda, `Query(ge=...)`
+  em `limite` e `deslocamento`, não começou.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -302,26 +302,18 @@ compromissos sobre código que ainda não existe, e armadilhas.
 **Etapa 4 fechada em 2026-10-01.** Duas pendências pequenas, decididas durante a etapa, vêm
 **antes** de abrir a Etapa 6 — as duas seguem o protocolo das quatro fases:
 
-1. **Autenticação nas rotas de `/recursos` — em andamento, retomar por aqui.** ADR 0020
-   (2026-10-01): leitura para quem está logada (`obter_usuario_atual`, `401`), escrita só para
-   admin (`exigir_admin`, `403`), guarda no decorador. **Feito e commitado:** os cinco
-   decoradores; a fixture `recurso_criado` manda `cabecalho_de(admin)` e tem `assert` do `201`
-   (sem isso, toda a suíte de reserva cairia com `KeyError`); os dez testes existentes de
-   `test_recurso.py` com cabeçalho (leitura com `usuario`, escrita com `admin`;
-   `test_remover_recurso_em_uso` passou a usar a fixture `usuario` em vez de criar a Ana à mão —
-   as duas Anas davam `UniqueViolation`); os dois `PATCH` de recurso inativo em
-   `test_reserva.py` com `admin` e `assert`; os cinco testes de `401`
-   (`test_<acao>_recurso_sem_token_devolve_401`, um por rota, com `WWW-Authenticate: Bearer`;
-   contra-teste = tirar o `dependencies` da rota). **Falta:** os três de `403`
-   (`test_criar/atualizar/remover_recurso_como_usuaria_devolve_403`: `cabecalho_de(usuario)`,
-   corpo válido, `assert "WWW-Authenticate" not in resposta.headers`; contra-teste = trocar
-   `usuario` por `admin` e ver `201`/`200`/`204`) e o `api.md` (coluna de erros das cinco rotas:
-   `401` nas leituras, `401 · 403` nas escritas, porquê apontando para o ADR 0020). Suíte em
-   `82 passed`.
-2. **`limite` e `deslocamento`** são `int` puro em `GET /reservas` e `GET /recursos` — `"abc"`
-   dá `422`, mas `limite=-1` chega ao Postgres e vira `500`, e o `api.md` promete `422`. O
-   conserto é validar no router (`Query(ge=...)`), com teste. Não precisa de ADR: é o `api.md`
-   que já promete, só falta cumprir.
+1. **Autenticação nas rotas de `/recursos` — concluída em 2026-10-02.** ADR 0020: leitura para
+   quem está logada (`obter_usuario_atual`, `401`), escrita só para admin (`exigir_admin`,
+   `403`), guarda no decorador. Testes: cinco de `401` (um por rota, com `WWW-Authenticate:
+   Bearer`) e três de `403` (escritas com `cabecalho_de(usuario)`, conferindo a **ausência** do
+   cabeçalho com `not in resposta.headers` — indexar com `[...]` uma chave ausente dá
+   `KeyError`, não `""`). A fixture `recurso_criado` manda `cabecalho_de(admin)` e tem `assert`
+   do `201`: sem ele, toda a suíte de reserva cairia com `KeyError`. No `api.md`, o porquê de cada
+   rota aponta para o ADR que a decidiu — as cinco para o 0020, a disponibilidade para o 0019.
+2. **`limite` e `deslocamento` — retomar por aqui.** São `int` puro em `GET /reservas` e
+   `GET /recursos` — `"abc"` dá `422`, mas `limite=-1` chega ao Postgres e vira `500`, e o
+   `api.md` promete `422`. O conserto é validar no router (`Query(ge=...)`), com teste. Não
+   precisa de ADR: é o `api.md` que já promete, só falta cumprir.
 
 **Fatos do código da Etapa 4 que não se leem de primeira:**
 
@@ -356,7 +348,7 @@ compromissos sobre código que ainda não existe, e armadilhas.
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`77 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+`85 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Backlog** (regra 7 — nenhum é v1):
 
