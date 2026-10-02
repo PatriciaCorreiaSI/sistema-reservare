@@ -119,3 +119,14 @@
 |📒 **Pytest: `ERROR collecting`:** | O Python nem conseguiu carregar o arquivo, então nenhum teste dele roda, nem os com `skip` (ex: um `import` de algo que não existe). |
 |🖥️ **Pytest: `ERROR at setup`:** |  Um `ERROR` significa que o problema está antes do teste, na preparação. O arquivo carregou, mas a preparação do teste quebrou antes dele começar (ex: uma fixture que não existe ou que levanta exceção).|
 |☢️ **Pytest: `FAILED`:**| Um `FAILED` significa que o problema está no teste. O teste rodou, mas algo nele falhou. O `FAILED` não depende de um `assert`: qualquer exceção levantada dentro do teste, inclusive pela função testada, o produz. |
+
+
+### 🧪 Etapa 6 — QA/QC: estratégia de testes e CI
+
+| **Conceitos** | **Novo aprendizado** |
+|---------------|----------------------|
+|☑️ **CI** (*Continuous Integration*):| É uma prática de juntar o código na linha principal com frequência, verificando cada mudança automaticamente: build, lint, tipos e testes rodam sozinhos a cada push. O objetivo é que nenhum código entre no repositório sem passar por elas. GitHub Actions, GitLab CI e Jenkins são serviços que executam essa prática. |
+|🗂️ **Workflow**:| É o arquivo que descreve o que o CI faz e quando: um evento, como um push ou um pull request, dispara a execução. No GitHub Actions, ele mora no `.github/workflows/` e é escrito em YAML. |
+|🖥️ **Runner**:| É a máquina que executa o workflow. A hospedada pelo GitHub é temporária: nasce vazia cada execução e é apagada no fim. Traz ferramentas comuns instaladas, como Docker e Git, mas nada do projeto: o código, as dependências, o banco e as variáveis de ambiente chegam pelos passos do workflow. Um runner próprio (*self-hosted*) é uma máquina sua e não nasce vazio. |
+|👣 **Job**:| É um conjunto de steps (passos) que rodam em ordem no mesmo runner. Se um passo falha, o job falha, e o commit fica marcado em vermelho. Jobs diferentes do mesmo workflow rodam em paralelo, cada um no seu runner, a menos que um declare que depende do outro. |
+|🔐 **GitHub Secrets**:| É um cofre do repositório do GitHub para valores que não podem aparecer no código. O workflow os lê por nome, e o GitHub os esconde nos logs, trocando o valor por `***`. Por segurança, não os entrega a *pull requests* vindos de forks: senão, qualquer pessoa poderia escrever um workflow que os imprimisse. |
