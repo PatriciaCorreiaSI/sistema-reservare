@@ -172,3 +172,39 @@ def test_remover_recurso_sem_token_devolve_401(client, recurso_criado):
     )
     assert resposta.status_code == 401
     assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
+def test_criar_recurso_como_usuaria_devolve_403(client, usuario, cabecalho_de):
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 10,
+        "hora_func_inicio": "08:00:00",
+        "hora_func_fim": "18:00:00",
+    }
+
+    resposta = client.post("/recursos", json=dados, headers=cabecalho_de(usuario))
+    assert resposta.status_code == 403
+    assert "WWW-Authenticate" not in resposta.headers
+
+
+def test_atualizar_recurso_como_usuaria_devolve_403(
+    client, recurso_criado, usuario, cabecalho_de
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"status_recurso": "inativo"},
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 403
+    assert "WWW-Authenticate" not in resposta.headers
+
+
+def test_remover_recurso_como_usuaria_devolve_403(
+    client, recurso_criado, usuario, cabecalho_de
+):
+    resposta = client.delete(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        headers=cabecalho_de(usuario),
+    )
+    assert resposta.status_code == 403
+    assert "WWW-Authenticate" not in resposta.headers
