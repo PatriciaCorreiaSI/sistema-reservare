@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres-user-test
+          POSTGRES_PASSWORD: postgres-password-test
+          POSTGRES_DB: reservare_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_USER: postgres-user-test
+      POSTGRES_PASSWORD: postgres-password-test
+      POSTGRES_DB: reservare_test
+      DB_HOST: 127.0.0.1
+      JWT_SEGREDO: segredo-do-de-ci
+      FUSO_FUNCIONAMENTO: America/Sao_Paulo
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Instalar o uv
+        uses: astral-sh/setup-uv@v10
+
+      - name: Instalar as dependências do uv.lock
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Formatação
+        run: uv run ruff format . --check
+
+      - name: Tipos
+        run: uv run mypy app
+
+      - name: Testes com relatório de cobertura
+        run: uv run pytest --cov=app  --cov-report=term-missing
+
+      - name: Modelos e migrations de acordo
+        run: uv run alembic check
+
+      - name: Vaivém das migrations
+        run: |
+          uv run alembic downgrade base
+          uv run alembic upgrade head
