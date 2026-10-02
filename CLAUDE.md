@@ -89,7 +89,11 @@ Antes de escrever implementação, verifique em que fase ela está:
   (`GET /recursos/{id}/disponibilidade?dia=`). Suíte em `77 passed`, nenhum `skip`.
 - **Pendências da Etapa 4: concluídas em 2026-10-02** — ADR 0020 (token nas rotas de
   `/recursos`) e a faixa de `limite` e `deslocamento` nas duas listagens. Suíte em `91 passed`.
-- **Etapa 6 (estratégia de testes e CI): próxima, ainda não começou.**
+- **Etapa 6 (estratégia de testes e CI): em andamento desde 2026-10-02.** Fase de decidir
+  concluída: ADR 0021 (nível do teste pelo que ele depende; dublê só para relógio e fuso;
+  cobertura como alarme, sem mínimo) e ADR 0022 (Postgres como container de serviço do Actions,
+  variáveis de teste escritas no workflow, `alembic check` e vaivém das migrations). Falta o
+  workflow e o badge.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -300,12 +304,22 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Abrir a Etapa 6 (estratégia de testes e CI) — retomar por aqui.** Começa pela fase 1 do
-protocolo: o que ainda não está decidido vira ADR antes de qualquer código. Pelo ROADMAP, as
-decisões em aberto são o nível de cada teste (pirâmide: unitário sem banco × integração com o
-Postgres do compose), quando usar dublês, o papel da cobertura (alarme, nunca meta) e o desenho
-do CI no GitHub Actions (lint, tipos, testes e migrations a cada push; badge no README). O
-critério de pronto: o CI roda tudo a cada push e o badge está verde.
+**Etapa 6 — desenhar e escrever o workflow, retomar por aqui.** As decisões estão nos ADRs 0021
+e 0022; o desenho do arquivo foi apresentado em 2026-10-02 e a primeira tentativa do YAML é da
+autora. Fatos que o desenho fixou e que não se leem de primeira:
+
+- **`pytest-cov` ainda não está instalado** — `uv add --dev pytest-cov` antes do workflow, com o
+  `uv.lock` no mesmo commit (senão o `uv sync --locked` do CI falha).
+- **A ordem dos passos importa:** o `alembic check` precisa do banco já em `head`, e quem o leva
+  até lá é o `conftest.py` durante o `pytest`. Rodado antes do `pytest`, num banco vazio, ele
+  acusaria todas as tabelas como faltando. Por isso as migrations vêm **depois** dos testes.
+- **No CI, `POSTGRES_DB=reservare_test`:** o `conftest.py` troca o nome do banco por
+  `reservare_test`, mas os comandos do Alembic leem `POSTGRES_DB` direto (`env.py` deriva a
+  URL). Com o mesmo nome nos dois, o vaivém roda no banco que os testes usaram.
+- **`DB_HOST=127.0.0.1` no CI:** o job roda direto no runner, não num container, e alcança o
+  serviço pela porta publicada — o mesmo raciocínio do host Windows.
+- **O vaivém foi provado à mão em 2026-10-02** no banco de desenvolvimento: desceu e subiu sem
+  erro. Esse banco ficou vazio — recriar o admin com o `criar_admin` antes de usar a API à mão.
 
 **As duas pendências da Etapa 4, fechadas em 2026-10-02:**
 
