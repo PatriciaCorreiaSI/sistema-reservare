@@ -92,8 +92,10 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 6 (estratégia de testes e CI): em andamento desde 2026-10-02.** Fase de decidir
   concluída: ADR 0021 (nível do teste pelo que ele depende; dublê só para relógio e fuso;
   cobertura como alarme, sem mínimo) e ADR 0022 (Postgres como container de serviço do Actions,
-  variáveis de teste escritas no workflow, `alembic check` e vaivém das migrations). Falta o
-  workflow e o badge.
+  variáveis de teste escritas no workflow, `alembic check` e vaivém das migrations). O
+  `.github/workflows/ci.yml` está **verde desde 2026-10-02** (commit `73cba87`): 91 testes,
+  cobertura total de 95%, em menos de um minuto. Badge no README. Critério de pronto atingido;
+  falta o fechamento (ver "Próximo passo").
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -304,22 +306,39 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 6 — desenhar e escrever o workflow, retomar por aqui.** As decisões estão nos ADRs 0021
-e 0022; o desenho do arquivo foi apresentado em 2026-10-02 e a primeira tentativa do YAML é da
-autora. Fatos que o desenho fixou e que não se leem de primeira:
+**Etapa 6 — fechar, retomar por aqui.** O CI está verde e o badge está no README. Faltam três
+coisas antes de declarar a etapa concluída:
 
-- **`pytest-cov` ainda não está instalado** — `uv add --dev pytest-cov` antes do workflow, com o
-  `uv.lock` no mesmo commit (senão o `uv sync --locked` do CI falha).
-- **A ordem dos passos importa:** o `alembic check` precisa do banco já em `head`, e quem o leva
-  até lá é o `conftest.py` durante o `pytest`. Rodado antes do `pytest`, num banco vazio, ele
-  acusaria todas as tabelas como faltando. Por isso as migrations vêm **depois** dos testes.
-- **No CI, `POSTGRES_DB=reservare_test`:** o `conftest.py` troca o nome do banco por
-  `reservare_test`, mas os comandos do Alembic leem `POSTGRES_DB` direto (`env.py` deriva a
-  URL). Com o mesmo nome nos dois, o vaivém roda no banco que os testes usaram.
-- **`DB_HOST=127.0.0.1` no CI:** o job roda direto no runner, não num container, e alcança o
-  serviço pela porta publicada — o mesmo raciocínio do host Windows.
-- **O vaivém foi provado à mão em 2026-10-02** no banco de desenvolvimento: desceu e subiu sem
-  erro. Esse banco ficou vazio — recriar o admin com o `criar_admin` antes de usar a API à mão.
+1. **Aviso de chave curta no CI.** O `JWT_SEGREDO` do workflow (`segredo-do-de-ci`) tem 16 bytes,
+   e o PyJWT emite `InsecureKeyLengthWarning` (o HMAC-SHA256 pede no mínimo 32, RFC 7518 §3.2) —
+   são os 131 avisos a mais do CI em relação à máquina local. O conserto é um valor de teste com
+   32 bytes ou mais. Pergunta que fica: o app deveria recusar no startup uma chave curta, como já
+   recusa uma ausente?
+2. **Ler o primeiro relatório de cobertura** (ADR 0021: alarme, não meta). Linhas não
+   executadas na execução de 2026-10-02: `comandos/criar_admin.py` 36–49 e 53 (a casca `main()`;
+   a lógica é testada), `db.py` 29–37, `dependencies.py` 26–27, 41 e 45, `repositories/reserva.py`
+   43 e 47–49, `services/auth.py` 36, 44, 51 e 54. Para cada uma, decidir: regra sem teste
+   (escrever o teste) ou código que não precisa de teste (registrar por quê).
+3. **Comparar com o mercado** e atualizar ROADMAP, README e este arquivo para "concluída".
+
+**Fatos do workflow que não se leem de primeira:**
+
+- **Tag de action nem sempre é móvel.** `actions/checkout@v7` existe e acompanha a v7;
+  `astral-sh/setup-uv` deixou de publicar a tag curta a partir da v8 — `@v10` falhou com
+  `unable to find version` no "Set up job", antes de qualquer passo. Fixado em `@v10.2.0`. Antes
+  de citar uma versão, conferir se a tag existe (`gh api repos/<dono>/<action>/tags`). Fixar pelo
+  hash do commit é a prática mais forte (ataque ao `tj-actions/changed-files`, março de 2025).
+- **`ubuntu-latest` vira Ubuntu 26 em 19/10/2026.** Se o CI quebrar depois disso sem mudança no
+  repositório, olhar a imagem do runner primeiro.
+- **A ordem dos passos importa:** o `alembic check` precisa do banco em `head`, e quem o leva até
+  lá é o `conftest.py` durante o `pytest`. Por isso as migrations vêm **depois** dos testes.
+- **No CI, `POSTGRES_DB=reservare_test` e `DB_HOST=127.0.0.1`:** os comandos do Alembic leem
+  `POSTGRES_DB` direto, então o vaivém roda no banco que os testes usaram; o job roda no runner e
+  alcança o serviço pela porta publicada.
+- **Finais de linha:** `core.autocrlf` está ligado — o Git grava LF no repositório e entrega CRLF
+  no Windows. O "CRLF" no canto do VS Code não precisa de ação.
+- **O banco de desenvolvimento ficou vazio** depois do vaivém provado à mão em 2026-10-02 —
+  recriar o admin com o `criar_admin` antes de usar a API à mão.
 
 **As duas pendências da Etapa 4, fechadas em 2026-10-02:**
 
