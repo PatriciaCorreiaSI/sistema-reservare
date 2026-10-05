@@ -13,7 +13,7 @@ O [ADR 0013](0013-transportar-token-no-cabecalho-authorization.md) decidiu que o
 
 ## Decisão
 
-Escolhi guardar o refresh num cookie `HttpOnly; Secure; SameSite=Strict; Path=/auth`, com `Max-Age` igual ao `REFRESH_DIAS`. O access continua como no [ADR 0013](0013-transportar-token-no-cabecalho-authorization.md): no corpo da resposta, na memória do front, enviado pelo cabeçalho `Authorization`.
+Escolhi guardar o refresh num cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`, com `Max-Age` igual ao `REFRESH_DIAS`. O access continua como no [ADR 0013](0013-transportar-token-no-cabecalho-authorization.md): no corpo da resposta, na memória do front, enviado pelo cabeçalho `Authorization`.
 O ciclo de vida:
 
 - o login grava o cookie;
@@ -24,7 +24,7 @@ O refresh deixa de aparecer no corpo das respostas e das requisições. Se apare
 - `HttpOnly`: o JavaScript não lê o cookie;
 - `Secure`: só trafega por HTTPS; o `localhost` é exceção dos navegadores;
 - `SameSite=Strict`: o cookie nunca vai em pedido que parte de outro site, que é a defesa contra CSRF;
-- `Path=/auth`: o cookie só vai às rotas de autenticação. Não pode ser `/auth/refresh`, porque o logout precisa ler o cookie.
+- `Path=/api/auth`: o cookie só vai às rotas de autenticação. Não pode ser `/api/auth/refresh`, porque o logout precisa ler o cookie. O prefixo `/api` vem do [ADR 0024](0024-alcancar-api-pelo-proxy-do-vite.md).
 
 ## Alternativas consideradas
 
@@ -40,12 +40,12 @@ O refresh deixa de aparecer no corpo das respostas e das requisições. Se apare
 O ganho: a sessão sobrevive ao F5, e o token de vida longa fica fora do alcance do JavaScript; um XSS ainda pode usar o access enquanto a aba está aberta, mas não consegue levar o refreh embora. Fica fechado o risco que o [ADR 0013](0013-transportar-token-no-cabecalho-authorization.md) tinha deixado aberto.
 O custo: 
 - No backend: as 3 rotas de `/auth` mudam; o schema de refresh e de logout perde o campo do corpo; a extração do refresh passa a ler cookie;
-- Nos testes: os de `test_auth.py` que leem `resposta.json()["refresh_token]` mudam. O `TestClient` guarda cookies como um navegador.
+- Nos testes: os de `test_auth.py` que leem `resposta.json()["refresh_token"]` mudam. O `TestClient` guarda cookies como um navegador.
 - Nos outros clientes: o `curl` e os scripts continuam funcionando, mas precisam guardar cookies (`curl -c` e `-b`). Antes era só copiar um campo do JSON.
-- Na arquitetura: com `SameSite=Strict`, front e API precisam parecer a mesma origem para o navegador. Em desenvolvimento, isso pede o proxy do Vite (próximo ADR). Em produção, os dois sob o mesmo domínio (Etapa 8).
+- Na arquitetura: com `SameSite=Strict`, front e API precisam estar no mesmo site - mesmo domínio, mesmo que em portas ou subdomínios diferentes. `localhost:5173` e `localhost:8000` já são o mesmo site, então o cookie chega à API em desenvolvimento. Como o front alcança a API (proxy ou CORS) fica para o próximo ADR. Em produção, os dois (front e API) precisam ficar sob o mesmo domínio (Etapa 8).
 
 O custo de mudar de ideia: voltar ao refresh no corpo é localizado, as mesmas 3 rotas. Ir para o BFF reaproveitaria tudo isto, porque o cookie passaria a ser de sessão e os tokens morariam no servidor intermediário.
 
 ## Como eu saberia que errei
 
-Se o refresh aparecer em algum JSON, no `localStorage` ou em alguma variável do front: o compromisso da Decisão foi quebrado. Se o front e a API precisarem ficar em domínios diferentes em produção. O `SameSite=Strict` deixaria de funcionar, e a escolha teria de ser revista: CORS com credenciais e `SameSite=None`, ou o BFF. Se o F5 continuar pedindo login: o cookie não está chegando, exigindo olhar primeiro o `Path` e a origem.
+Se o refresh aparecer em algum JSON, no `localStorage` ou em alguma variável do front: o compromisso da Decisão foi quebrado. Se o front e a API precisarem ficar em sites diferentes em produção, como `reservare.com` e `reservare-api.com`: o `SameSite=Strict` deixaria de enviar o cookie, e a escolha teria de ser revista: CORS com credenciais e `SameSite=None`, ou o BFF. Se o F5 continuar pedindo login: o cookie não está chegando, exigindo olhar primeiro o `Path` e o site.

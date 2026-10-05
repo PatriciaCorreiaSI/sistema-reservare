@@ -310,6 +310,23 @@ compromissos sobre código que ainda não existe, e armadilhas.
 2026-10-05; ROADMAP e README já dizem "concluída". O primeiro push com `validar_segredo` deu CI
 verde com `104 passed` e só o aviso do `httpx` — os 131 `InsecureKeyLengthWarning` sumiram.
 
+Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
+
+1. ✅ **O que acontece no F5** — ADR 0023 (2026-10-05): refresh num cookie `HttpOnly; Secure;
+   SameSite=Strict; Path=/auth`, fora do corpo das respostas; access como no ADR 0013, que
+   registra a substituição parcial. **Ainda não implementado:** muda as três rotas de `/auth`, os
+   schemas de refresh e logout e os testes de `test_auth.py` que leem `["refresh_token"]`.
+   `Path=/auth`, não `/auth/refresh`: o logout também precisa ler o cookie.
+2. **Como o front alcança a API** — proxy do Vite × CORS. O `SameSite=Strict` do 0023 pede front
+   e API na mesma origem.
+3. **Gerador de tipos a partir do OpenAPI.**
+4. **Roteador** — React Router × TanStack Router (fora da stack decidida).
+5. **Fuso na tela** — o do sistema (ADR 0018) ou o do navegador.
+
+Formulários, os quatro estados de tela, acessibilidade e o Playwright são de desenho, não de ADR.
+A autora pediu para decidir pelo mercado quando não tem parâmetro: trazer a prática de mercado
+com a fonte, ela confirma e escreve o ADR.
+
 **Fatos da Etapa 6 que não se leem de primeira:** a regra do segredo mora em
 `validar_segredo(segredo) -> str`, função pura chamada na importação (`JWT_SEGREDO =
 validar_segredo(os.environ[...])`) — por isso é testável sem mexer em `os.environ`, e por isso um
