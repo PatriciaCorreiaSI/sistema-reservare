@@ -1,7 +1,7 @@
 # ADR 0013 — Transportar o token no cabeçalho `Authorization: Bearer <token>`
 
 - **Data:** 2026-09-17
-- **Situação:** aceita
+- **Situação:** aceita; o transporte do refresh foi substituído pelo [ADR 0023](0023-guardar-refresh-em-cookie-httponly.md) (2026-10-05)
 
 ## Contexto
 

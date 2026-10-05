@@ -307,9 +307,8 @@ compromissos sobre código que ainda não existe, e armadilhas.
 ### Próximo passo
 
 **Etapa 7 (front-end) — retomar por aqui, pela fase de decidir.** A Etapa 6 fechou em
-2026-10-05; ROADMAP e README já dizem "concluída". Pendente antes de abrir a Etapa 7: no
-`.env.example` (é dela), mencionar o mínimo de 32 bytes ao lado do comando que gera o
-`JWT_SEGREDO`.
+2026-10-05; ROADMAP e README já dizem "concluída". O primeiro push com `validar_segredo` deu CI
+verde com `104 passed` e só o aviso do `httpx` — os 131 `InsecureKeyLengthWarning` sumiram.
 
 **Fatos da Etapa 6 que não se leem de primeira:** a regra do segredo mora em
 `validar_segredo(segredo) -> str`, função pura chamada na importação (`JWT_SEGREDO =
