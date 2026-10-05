@@ -1,10 +1,11 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
 
 from app.models import RefreshToken
-from app.security import hash_refresh_token
+from app.security import criar_access_token, hash_refresh_token
 
 SENHA = "senha123"  # a mesma que gerou SENHA_HASH no conftest
 
@@ -167,12 +168,31 @@ def test_refresh_de_usuario_inativo_devolve_401(client, sessao, usuario):
     assert resposta.status_code == 401
 
 
-@pendente
-def test_access_assinado_com_outra_chave_devolve_401(client):
-    """GET /recursos com um JWT feito por jwt.encode com outRa chave (32+ bytes)
-    -> 401, com WWW-Authenticate: Bearer."""
+def test_access_assinado_com_outra_chave_devolve_401(client, usuario):
+    # GET /recursos com um JWT feito por jwt.encode com outra chave (32+ bytes)
+    # -> 401, com WWW-Authenticate: Bearer.
+    # Preparar: um token igual ao verdadeiro em tudo, menos na chave que o assinou.
+    payload = {
+        "sub": str(usuario.id_usuario),
+        "exp": datetime.now(UTC) + timedelta(minutes=15),
+        "privilegio_usuario": usuario.privilegio_usuario,
+    }
+    token = jwt.encode(
+        payload, "chave-falsa-de-quem-quer-se-passar-pela-ana", algorithm="HS256"
+    )
+    resposta = client.get("/recursos", headers={"Authorization": f"Bearer {token}"})
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
 
 
-@pendente
 def test_access_vencido_devolve_401(client, usuario):
-    """GET /recursos com criar_access_token(..., agora=um instante de 2020) -> 401."""
+    # GET /recursos com criar_access_token(..., agora=um instante de 2020)
+    # -> 401.
+    token = criar_access_token(
+        usuario.id_usuario,
+        usuario.privilegio_usuario,
+        datetime(2020, 1, 1, tzinfo=UTC),
+    )
+    resposta = client.get("/recursos", headers={"Authorization": f"Bearer {token}"})
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
