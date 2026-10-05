@@ -11,7 +11,7 @@ O CI do GitHub Actions roda num runner: uma máquina Linux temporária que nasce
 ## Decisão
 
 Escolhi usar "Container de serviço do Actions" para o Postgres. O workflow declara o banco na seção chamada `services`, com a mesma imagem do compose, `postgres:16`. O Actions sobe o banco antes dos passos e espera ele ficar saudável. A variável `POSTGRES_DB=reservare_test` faz o banco de teste nascer junto, sem o passo manual que o [ADR 0011](0011-isolar-teste-em-transacao-desfeita-no-fim.md) exige na máquina local.
-Os valores das seis variáveis de ambiente serão escritos no próprio **workflow**. São valores de teste, visíveis no repositório público, com nomes que deixam isso claro, como `JWT_SEGREDO: segredo-so-de-ci`. Nenhum valor de produção entra ali. Quando a Etapa 8 chegar, os segredos reais vão para o cofre do GitHub. 
+Os valores das seis variáveis de ambiente serão escritos no próprio **workflow**. São valores de teste, visíveis no repositório público, com nomes que deixam isso claro, como `JWT_SEGREDO: segredo-do-ci-de-32-bytes-testes`. Nenhum valor de produção entra ali. Quando a Etapa 8 chegar, os segredos reais vão para o cofre do GitHub. 
 O push fica vermelho se qualquer um destes passos falhar, nesta ordem: `uv sync --locked`, que falha se o `uv.lock` estiver desatualizado; `ruff check` e `ruff format --check`; `mypy app`; `pytest`; e, nas migrations, `alembic check` e um vaivém de `downgrade base` seguido de `upgrade head`. O `upgrade head` a partir do banco vazio já acontece no `conftest.py`. O relatório de cobertura do `pytest-cov` aparece na saída e nunca reprova ([ADR 0021](0021-testar-pelo-que-a-coisa-testada-depende.md)). 
 
 ## Alternativas consideradas

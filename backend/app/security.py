@@ -10,7 +10,22 @@ from pwdlib import PasswordHash
 ACCESS_MINUTOS = 15
 REFRESH_DIAS = 7
 JWT_ALGORITMO = "HS256"
-JWT_SEGREDO = os.environ["JWT_SEGREDO"]
+
+JWT_SEGREDO_MIN_BYTES = 32
+
+
+def validar_segredo(segredo: str) -> str:
+    tamanho = len(segredo.encode())
+    if tamanho < JWT_SEGREDO_MIN_BYTES:
+        raise ValueError(
+            f"JWT_SEGREDO precisa de pelo menos {JWT_SEGREDO_MIN_BYTES} bytes "
+            f"em UTF-8; recebeu {tamanho}."
+        )
+    return segredo
+
+
+JWT_SEGREDO = validar_segredo(os.environ["JWT_SEGREDO"])
+
 
 hasher = PasswordHash.recommended()
 

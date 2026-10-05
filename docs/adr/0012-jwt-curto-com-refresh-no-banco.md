@@ -26,3 +26,31 @@ O custo é que o JWT é *stateless*. Portanto, o servidor não guarda estado sob
 ## Como eu saberia que errei
 
 Se o admin desativa um usuário e ele continua operando no sistema por até 15 minutos com o access que já tem. Se algum dia a exigência virar "desativação no instante", **token opaco** ou **lista de revogados** se tornam a solução melhor. Se eu mudar de ideia, alterar para a escolha de **token opaco** custa pouco. A tabela de refresh já é uma tabela de sessão; bastaria abandonar o *access* e consultá-la a cada requisição.
+
+
+## Emenda (2026-10-05): o segredo precisa de 32 bytes
+
+### Problema
+
+O ADR diz que o token é assinado com chave secreta, mas não diz que tipo de chave serve. O HS256 é um HMAC-SHA256; a RFC 7518 §3.2 exige uma chave de pelo menos 32 bytes, o tamanho da saída do hash. Com chave curta, adivinhar o segredo fica mais barato que atacar o algoritmo, e quem acerta fabrica tokens de admin. O PyJWT só avisa e assina mesmo assim. O CI rodou com 16 bytes e ninguém foi barrado. O `os.environ[...]` recusa a chave ausente, mas não a vazia.
+
+
+### Decisão
+
+`validar_segredo` em `security.py` recusa, com `ValueError`, um segredo com menos de 32 bytes em UTF-8. O app não sobe nesse caso, como já não sobe sem a variável. A medida é em bytes porque o HMAC opera em bytes. A mensagem não mostra o segredo.
+
+
+### Alternativas descartadas
+
+- **Só trocar o valor do CI** — por que descartei: resolve o sintoma, mas produção continua aceitando chave fraca, e o aviso se perde no log.
+
+- **Transformar o aviso do PyJWT em erro com `warnings.filterwarnings("error", ...)`** — por que descartei: prende a regra a um detalhe de uma biblioteca, que pode mudar o aviso ou deixar de emiti-lo.
+
+
+### Consequências
+
+O ganho: configuração fraca falha alto e cedo, e a chave vazia é pega de brinde. O custo: mais uma regra a manter, e todo ambiente precisa de um segredo de 32+ bytes: `.env`, CI e, na Etapa 8, o cofre de produção.
+
+
+### Como eu saberia que errei
+Se o PyJWT voltar a emitir `InsecureKeyLengthWarning` em algum ambiente, a regra não está segurando. Ou se o mínimo mudar: se o algoritmo deixar de ser HS256, 32 bytes deixa de ser o número certo.
