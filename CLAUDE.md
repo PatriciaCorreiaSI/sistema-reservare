@@ -306,20 +306,35 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 6 — fechar, retomar por aqui.** O CI está verde e o badge está no README. Faltam três
-coisas antes de declarar a etapa concluída:
+**Etapa 6 — fechar, retomar por aqui.** O CI está verde e o badge está no README.
 
-1. **Aviso de chave curta no CI.** O `JWT_SEGREDO` do workflow (`segredo-do-de-ci`) tem 16 bytes,
-   e o PyJWT emite `InsecureKeyLengthWarning` (o HMAC-SHA256 pede no mínimo 32, RFC 7518 §3.2) —
-   são os 131 avisos a mais do CI em relação à máquina local. O conserto é um valor de teste com
-   32 bytes ou mais. Pergunta que fica: o app deveria recusar no startup uma chave curta, como já
-   recusa uma ausente?
-2. **Ler o primeiro relatório de cobertura** (ADR 0021: alarme, não meta). Linhas não
-   executadas na execução de 2026-10-02: `comandos/criar_admin.py` 36–49 e 53 (a casca `main()`;
-   a lógica é testada), `db.py` 29–37, `dependencies.py` 26–27, 41 e 45, `repositories/reserva.py`
-   43 e 47–49, `services/auth.py` 36, 44, 51 e 54. Para cada uma, decidir: regra sem teste
-   (escrever o teste) ou código que não precisa de teste (registrar por quê).
+- **Feito em 2026-10-05:** chave curta recusada no startup (`validar_segredo` em `security.py`,
+  emenda ao ADR 0012; segredo do CI com 32 bytes). Cobertura lida: as linhas sem teste de
+  propósito estão no ROADMAP (Etapa 6, "Linhas sem teste, de propósito"), sem `# pragma: no
+  cover`. Seis testes novos em `test_auth.py` (login com senha errada, e-mail inexistente e
+  usuário inativo; refresh desconhecido, vencido e de usuário inativo), cada um com contra-teste.
+
+Faltam, nesta ordem:
+
+1. **Dois testes de access token** em `test_auth.py` (já com `@pendente`): assinado com outra
+   chave (`jwt.encode` com chave falsa de 32+ bytes) e vencido (`criar_access_token` com `agora`
+   em 2020), ambos `GET /recursos` → `401` com `WWW-Authenticate`. Cobrem `dependencies.py`
+   26–27: os `401` de hoje mandam pedido **sem** token, que o `HTTPBearer` barra antes.
+2. **Um teste de repository** em `test_reserva_repositorio.py` (já com `@pendente`): `criar` com
+   `id_recurso` inexistente → `RecursoNaoEncontrado`. Prova o nome da constante `FK_RECURSO`; o
+   contra-teste é estragar uma letra dela. Fixture é `sessao`, não `client`.
 3. **Comparar com o mercado** e atualizar ROADMAP, README e este arquivo para "concluída".
+
+**Lições do contra-teste (2026-10-05):** contra-teste estraga a **regra** (no service), não a
+preparação — comentar o `sessao.commit()` da preparação não muda um `401` que sai antes do
+`rollback` (o autoflush grava a pendência antes do `SELECT`). Desfazer com `git restore`, não à
+mão: um espaço a menos de indentação passou nos testes e só o `ruff format --check` acusaria.
+Teste que copia outro herda o motivo dele: o "refresh vencido" copiado do de logout passava pela
+revogação, sem tocar a regra do prazo.
+
+**Proposto para o backlog (a autora ainda não confirmou):** com e-mail inexistente o login não roda o Argon2 (o `or` para antes) e responde
+mais rápido que com senha errada — dá para enumerar e-mails pelo tempo. O mercado verifica um hash
+falso mesmo sem usuário.
 
 **Fatos do workflow que não se leem de primeira:**
 

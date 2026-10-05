@@ -403,8 +403,10 @@ E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem canc
 > depende; dublê só para relógio e fuso; cobertura como alarme) e CI no
 > [ADR 0022](adr/0022-container-de-servico-e-variaveis-no-workflow.md) (Postgres de serviço,
 > variáveis de teste no workflow, `alembic check` e vaivém das migrations). O CI está verde e o
-> badge está no README: o critério de pronto foi atingido. Falta o fechamento — ler o primeiro
-> relatório de cobertura e limpar o aviso de chave curta do JWT no CI.
+> badge está no README: o critério de pronto foi atingido. O aviso de chave curta do JWT virou
+> regra: o app recusa no startup segredo com menos de 32 bytes (emenda ao
+> [ADR 0012](adr/0012-jwt-curto-com-refresh-no-banco.md)). Falta o fechamento — os testes que a
+> leitura do primeiro relatório de cobertura pediu, e a comparação com o mercado.
 
 **Objetivo:** parar de "escrever uns testes" e passar a ter uma **estratégia** de qualidade.
 
@@ -420,6 +422,19 @@ E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem canc
 
 **Critério de pronto**
 `pytest` roda contra Postgres em container. O CI roda tudo a cada push e o badge está verde.
+
+**Linhas sem teste, de propósito** — o relatório de cobertura continua mostrando estas linhas;
+elas ficam fora dos testes por decisão, não por esquecimento. Nenhuma leva `# pragma: no cover`,
+que desligaria o alarme também para quando a linha ganhar regra.
+
+- `main()` do `criar_admin` — casca separada de propósito: lê o ambiente, imprime e sai; a lógica
+  (`criar_admin()`) é testada.
+- `obter_agora` e `obter_fuso` — são o ponto que o ADR 0021 manda trocar por dublê; rodarem num
+  teste seria sinal de dublê falhando.
+- Os dois `raise` defensivos de `ReservaRepository.criar` — erro que não vem do driver e
+  constraint desconhecida; existem para não engolir o erro, e chegam ao cliente como `500`.
+- `obter_sessao` — os testes rodam as cópias dele (`conftest.py` e teste de concorrência), nunca o
+  original: é o custo admitido no ADR 0011, e o motivo da regra "mudar um exige mudar os três".
 
 **Armadilhas** — testar implementação em vez de comportamento · testes que dependem da ordem ou do relógio real · perseguir percentual de cobertura
 

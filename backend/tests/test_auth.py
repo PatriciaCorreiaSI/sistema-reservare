@@ -1,4 +1,14 @@
+import uuid
+from datetime import UTC, datetime
+
+import pytest
+
+from app.models import RefreshToken
+from app.security import hash_refresh_token
+
 SENHA = "senha123"  # a mesma que gerou SENHA_HASH no conftest
+
+pendente = pytest.mark.skip(reason="ainda não escrito")
 
 
 def test_refresh_apos_logout_devolve_401(client, usuario):
@@ -78,3 +88,91 @@ def test_refresh_reusado_devolve_401_e_revoga_familia(client, usuario):
     # Verificado pela interface (o que o cliente vê), não pela coluna revogado_em.
     resposta = client.post("/auth/refresh", json={"refresh_token": refresh_r2})
     assert resposta.status_code == 401
+
+
+def test_login_com_senha_errada_devolve_401(client, usuario):
+    # POST /auth/login com e-mail da Ana e senha diferente de SENHA -> 401.
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": usuario.email_usuario, "senha": "senha-errada"},
+    )
+    assert resposta.status_code == 401
+
+
+def test_login_com_email_inexistente_devolve_401(client):
+    # POST /auth/login com e-mail que nenhum usuário tem -> 401.
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": "inexistente@teste.com", "senha": SENHA},
+    )
+    assert resposta.status_code == 401
+
+
+def test_login_de_usuario_inativo_devolve_401(client, sessao, usuario):
+    # Preparar: usuario.status_usuario = "inativo". sessao.commit().
+    # Login com e-mail e senha certos -> 401.
+    usuario.status_usuario = "inativo"
+    sessao.commit()
+
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": usuario.email_usuario, "senha": SENHA},
+    )
+    assert resposta.status_code == 401
+
+
+def test_refresh_desconhecido_devolve_401(client):
+    # POST /auth/refresh com um texto que nunca foi emitido -> 401.
+    refresh = "refresh_token_desconhecido"
+    resposta = client.post("/auth/refresh", json={"refresh_token": refresh})
+    # Conferir
+    assert resposta.status_code == 401
+
+
+def test_refresh_vencido_devolve_401(client, sessao, usuario):
+    # Preparar pelo modelo: RefreshToken da Ana com hash_token =
+    # hash_refresh_token("refresh-vencido") e criado_em/expira_em no passado.
+    # POST /auth/refresh com "refresh-vencido"-> 401.
+    sessao.add(
+        RefreshToken(
+            id_usuario=usuario.id_usuario,
+            hash_token=hash_refresh_token("refresh-vencido"),
+            familia_token=uuid.uuid4(),
+            criado_em=datetime(2020, 1, 1, tzinfo=UTC),
+            expira_em=datetime(2020, 1, 8, tzinfo=UTC),
+        )
+    )
+    sessao.commit()
+    resposta = client.post("/auth/refresh", json={"refresh_token": "refresh-vencido"})
+    assert resposta.status_code == 401
+
+
+def test_refresh_de_usuario_inativo_devolve_401(client, sessao, usuario):
+    # Preparar: login (assert 200), depois usuario.status_usuario = "inativo";
+    # sessao.commit(). Refresh com o token do login -> 401.
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": usuario.email_usuario, "senha": SENHA},
+    )
+    assert resposta.status_code == 200
+
+    usuario.status_usuario = "inativo"
+    sessao.commit()
+
+    refresh = resposta.json()["refresh_token"]
+    resposta = client.post(
+        "/auth/refresh",
+        json={"refresh_token": refresh},
+    )
+    assert resposta.status_code == 401
+
+
+@pendente
+def test_access_assinado_com_outra_chave_devolve_401(client):
+    """GET /recursos com um JWT feito por jwt.encode com outRa chave (32+ bytes)
+    -> 401, com WWW-Authenticate: Bearer."""
+
+
+@pendente
+def test_access_vencido_devolve_401(client, usuario):
+    """GET /recursos com criar_access_token(..., agora=um instante de 2020) -> 401."""
