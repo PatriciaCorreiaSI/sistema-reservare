@@ -213,7 +213,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔜 **é a próxima** — front-end consumindo a API real                      |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0025 decididos, faltam roteador e fuso na tela |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -398,18 +398,11 @@ E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem canc
 
 ### 🧪 Etapa 6 — QA/QC: estratégia de testes e CI
 
-> **✅ Concluída em 2026-10-05.** Estratégia decidida no
-> [ADR 0021](adr/0021-testar-pelo-que-a-coisa-testada-depende.md) (nível do teste pelo que ele
-> depende; dublê só para relógio e fuso; cobertura como alarme) e CI no
-> [ADR 0022](adr/0022-container-de-servico-e-variaveis-no-workflow.md) (Postgres de serviço,
-> variáveis de teste no workflow, `alembic check` e vaivém das migrations). O CI está verde a
-> cada push desde 2026-10-02, com badge no README. O aviso de chave curta do JWT virou regra: o
-> app recusa no startup segredo com menos de 32 bytes (emenda ao
-> [ADR 0012](adr/0012-jwt-curto-com-refresh-no-banco.md)). A leitura do primeiro relatório de
-> cobertura achou oito linhas de regra de segurança sem teste — os `401` de login, refresh e
-> access token, e a tradução da FK de recurso —, que ganharam nove testes, cada um com
-> contra-teste. 104 testes verdes, cobertura em 96%; o que sobrou está listado abaixo, com o
-> porquê.
+> **✅ Concluída em 2026-10-05.** CI verde a cada push, com lint, tipos, testes e migrations
+> contra Postgres de serviço ([ADR 0021](adr/0021-testar-pelo-que-a-coisa-testada-depende.md) e
+> [ADR 0022](adr/0022-container-de-servico-e-variaveis-no-workflow.md)). A cobertura, lida como
+> alarme, achou regras de segurança sem teste, que ganharam nove testes. 104 testes verdes; as
+> linhas sem teste que sobraram estão abaixo, com o porquê.
 
 **Objetivo:** parar de "escrever uns testes" e passar a ter uma **estratégia** de qualidade.
 
@@ -446,6 +439,14 @@ que desligaria o alarme também para quando a linha ganhar regra.
 ---
 
 ### 🖥️ Etapa 7 — Front-end
+
+> **🔨 Em andamento desde 2026-10-05, na fase de decidir.** Refresh num cookie `httpOnly`, para a
+> sessão sobreviver ao F5 ([ADR 0023](adr/0023-guardar-refresh-em-cookie-httponly.md)); front
+> alcança a API pelo proxy do Vite, com todas as rotas sob `/api`
+> ([ADR 0024](adr/0024-alcancar-api-pelo-proxy-do-vite.md)); tipos gerados do OpenAPI, com os
+> hooks do TanStack Query escritos à mão
+> ([ADR 0025](adr/0025-gerar-tipos-do-front-pelo-openapi.md)). Faltam o roteador e o fuso na
+> tela.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 

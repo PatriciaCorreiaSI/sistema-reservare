@@ -96,6 +96,10 @@ Antes de escrever implementação, verifique em que fase ela está:
   recusado no startup). CI verde a cada push desde 2026-10-02, badge no README. Suíte em
   `104 passed`, cobertura em 96%; as linhas não executadas que sobraram estão no ROADMAP, com o
   porquê.
+- **Etapa 7 (front-end): em andamento desde 2026-10-05, na fase de decidir** — ADRs 0023
+  (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`) e 0025 (tipos gerados
+  do OpenAPI, hooks à mão). Nenhum código ainda: nem o `frontend/`, nem as mudanças que os ADRs
+  pedem ao back-end.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -306,17 +310,18 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — retomar por aqui, pela fase de decidir.** A Etapa 6 fechou em
-2026-10-05; ROADMAP e README já dizem "concluída". O primeiro push com `validar_segredo` deu CI
-verde com `104 passed` e só o aviso do `httpx` — os 131 `InsecureKeyLengthWarning` sumiram.
+**Etapa 7 (front-end) — retomar pela decisão 4 (roteador).** A Etapa 6 fechou em 2026-10-05; o
+primeiro push com `validar_segredo` deu CI verde com `104 passed` e só o aviso do `httpx` — os 131
+`InsecureKeyLengthWarning` sumiram.
 
 Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
 1. ✅ **O que acontece no F5** — ADR 0023 (2026-10-05): refresh num cookie `HttpOnly; Secure;
-   SameSite=Strict; Path=/auth`, fora do corpo das respostas; access como no ADR 0013, que
+   SameSite=Strict; Path=/api/auth`, fora do corpo das respostas; access como no ADR 0013, que
    registra a substituição parcial. **Ainda não implementado:** muda as três rotas de `/auth`, os
    schemas de refresh e logout e os testes de `test_auth.py` que leem `["refresh_token"]`.
-   `Path=/auth`, não `/auth/refresh`: o logout também precisa ler o cookie.
+   `Path` não pode ser só o do refresh: o logout também precisa ler o cookie. A opção C (BFF) é o
+   topo da recomendação do IETF e ficou descartada de propósito.
 2. ✅ **Como o front alcança a API** — ADR 0024 (2026-10-05): proxy do Vite (`server.proxy`
    para `http://127.0.0.1:8000`, nunca `localhost`), sem CORS; todas as rotas sob `/api` **no
    back-end**, sem reescrita, menos o `/health`; o cookie do 0023 vira `Path=/api/auth`. **Ainda
@@ -324,11 +329,18 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    `conftest.py` **e** no do teste de concorrência, `docs/api.md`. Origem inclui a porta (é o que
    o CORS olha); site ignora porta e subdomínio (é o que o `SameSite` olha) — `localhost:5173` e
    `:8000` são origens diferentes e o mesmo site. Os ADRs 0013 e 0023 foram corrigidos nisso.
-3. **Gerador de tipos a partir do OpenAPI.**
+3. ✅ **Gerador de tipos** — ADR 0025 (2026-10-05): `openapi-typescript` (só tipos) +
+   `openapi-fetch`; hooks do TanStack Query **à mão**, porque são o conceito da etapa (o
+   `@hey-api/openapi-ts`, escolha do template oficial do FastAPI, os geraria). Contrato exportado
+   de `app.openapi()` para arquivo, tipos gerados no repositório, nunca editados à mão; o CI vai
+   gerar de novo e falhar se divergir (como o `alembic check`). Exercício no fim da etapa: gerar
+   os hooks com o `@hey-api` num rascunho e comparar com os dela.
 4. **Roteador** — React Router × TanStack Router (fora da stack decidida).
-5. **Fuso na tela** — o do sistema (ADR 0018) ou o do navegador.
+5. **Fuso na tela** — o do sistema (ADR 0018) ou o do navegador. Talvez baste uma emenda ao 0018.
 
 Formulários, os quatro estados de tela, acessibilidade e o Playwright são de desenho, não de ADR.
+Quando o front entrar no CI, pode surgir uma decisão sobre o que ele confere (tipos, lint, tipos
+gerados atualizados, Playwright) — provavelmente emenda ao ADR 0022.
 A autora pediu para decidir pelo mercado quando não tem parâmetro: trazer a prática de mercado
 com a fonte, ela confirma e escreve o ADR.
 
