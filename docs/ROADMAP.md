@@ -212,8 +212,8 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
-| 9      | **Etapa 6**         | 🔨 **é aqui que estamos** — ADRs 0021 e 0022; CI verde a cada push desde 2026-10-02, 91 testes; falta o fechamento |
-| 10–12  | Etapa 7             | Front-end consumindo a API real                                           |
+| 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
+| 10–12  | **Etapa 7**         | 🔜 **é a próxima** — front-end consumindo a API real                      |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -398,15 +398,18 @@ E, herdado da Etapa 3: existe teste provando que **um usuário não lê nem canc
 
 ### 🧪 Etapa 6 — QA/QC: estratégia de testes e CI
 
-> **🔨 Em andamento desde 2026-10-02.** Estratégia decidida no
+> **✅ Concluída em 2026-10-05.** Estratégia decidida no
 > [ADR 0021](adr/0021-testar-pelo-que-a-coisa-testada-depende.md) (nível do teste pelo que ele
 > depende; dublê só para relógio e fuso; cobertura como alarme) e CI no
 > [ADR 0022](adr/0022-container-de-servico-e-variaveis-no-workflow.md) (Postgres de serviço,
-> variáveis de teste no workflow, `alembic check` e vaivém das migrations). O CI está verde e o
-> badge está no README: o critério de pronto foi atingido. O aviso de chave curta do JWT virou
-> regra: o app recusa no startup segredo com menos de 32 bytes (emenda ao
-> [ADR 0012](adr/0012-jwt-curto-com-refresh-no-banco.md)). Falta o fechamento — os testes que a
-> leitura do primeiro relatório de cobertura pediu, e a comparação com o mercado.
+> variáveis de teste no workflow, `alembic check` e vaivém das migrations). O CI está verde a
+> cada push desde 2026-10-02, com badge no README. O aviso de chave curta do JWT virou regra: o
+> app recusa no startup segredo com menos de 32 bytes (emenda ao
+> [ADR 0012](adr/0012-jwt-curto-com-refresh-no-banco.md)). A leitura do primeiro relatório de
+> cobertura achou oito linhas de regra de segurança sem teste — os `401` de login, refresh e
+> access token, e a tradução da FK de recurso —, que ganharam nove testes, cada um com
+> contra-teste. 104 testes verdes, cobertura em 96%; o que sobrou está listado abaixo, com o
+> porquê.
 
 **Objetivo:** parar de "escrever uns testes" e passar a ter uma **estratégia** de qualidade.
 

@@ -89,13 +89,13 @@ Antes de escrever implementação, verifique em que fase ela está:
   (`GET /recursos/{id}/disponibilidade?dia=`). Suíte em `77 passed`, nenhum `skip`.
 - **Pendências da Etapa 4: concluídas em 2026-10-02** — ADR 0020 (token nas rotas de
   `/recursos`) e a faixa de `limite` e `deslocamento` nas duas listagens. Suíte em `91 passed`.
-- **Etapa 6 (estratégia de testes e CI): em andamento desde 2026-10-02.** Fase de decidir
-  concluída: ADR 0021 (nível do teste pelo que ele depende; dublê só para relógio e fuso;
-  cobertura como alarme, sem mínimo) e ADR 0022 (Postgres como container de serviço do Actions,
-  variáveis de teste escritas no workflow, `alembic check` e vaivém das migrations). O
-  `.github/workflows/ci.yml` está **verde desde 2026-10-02** (commit `73cba87`): 91 testes,
-  cobertura total de 95%, em menos de um minuto. Badge no README. Critério de pronto atingido;
-  falta o fechamento (ver "Próximo passo").
+- **Etapa 6 (estratégia de testes e CI): concluída em 2026-10-05** — ADR 0021 (nível do teste
+  pelo que ele depende; dublê só para relógio e fuso; cobertura como alarme, sem mínimo) e ADR
+  0022 (Postgres como container de serviço do Actions, variáveis de teste escritas no workflow,
+  `alembic check` e vaivém das migrations); emenda ao ADR 0012 (segredo do JWT com 32+ bytes,
+  recusado no startup). CI verde a cada push desde 2026-10-02, badge no README. Suíte em
+  `104 passed`, cobertura em 96%; as linhas não executadas que sobraram estão no ROADMAP, com o
+  porquê.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -306,35 +306,30 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 6 — fechar, retomar por aqui.** O CI está verde e o badge está no README.
+**Etapa 7 (front-end) — retomar por aqui, pela fase de decidir.** A Etapa 6 fechou em
+2026-10-05; ROADMAP e README já dizem "concluída". Pendente antes de abrir a Etapa 7: no
+`.env.example` (é dela), mencionar o mínimo de 32 bytes ao lado do comando que gera o
+`JWT_SEGREDO`.
 
-- **Feito em 2026-10-05:** chave curta recusada no startup (`validar_segredo` em `security.py`,
-  emenda ao ADR 0012; segredo do CI com 32 bytes). Cobertura lida: as linhas sem teste de
-  propósito estão no ROADMAP (Etapa 6, "Linhas sem teste, de propósito"), sem `# pragma: no
-  cover`. Seis testes novos em `test_auth.py` (login com senha errada, e-mail inexistente e
-  usuário inativo; refresh desconhecido, vencido e de usuário inativo), cada um com contra-teste.
-
-Faltam, nesta ordem:
-
-1. **Dois testes de access token** em `test_auth.py` (já com `@pendente`): assinado com outra
-   chave (`jwt.encode` com chave falsa de 32+ bytes) e vencido (`criar_access_token` com `agora`
-   em 2020), ambos `GET /recursos` → `401` com `WWW-Authenticate`. Cobrem `dependencies.py`
-   26–27: os `401` de hoje mandam pedido **sem** token, que o `HTTPBearer` barra antes.
-2. **Um teste de repository** em `test_reserva_repositorio.py` (já com `@pendente`): `criar` com
-   `id_recurso` inexistente → `RecursoNaoEncontrado`. Prova o nome da constante `FK_RECURSO`; o
-   contra-teste é estragar uma letra dela. Fixture é `sessao`, não `client`.
-3. **Comparar com o mercado** e atualizar ROADMAP, README e este arquivo para "concluída".
+**Fatos da Etapa 6 que não se leem de primeira:** a regra do segredo mora em
+`validar_segredo(segredo) -> str`, função pura chamada na importação (`JWT_SEGREDO =
+validar_segredo(os.environ[...])`) — por isso é testável sem mexer em `os.environ`, e por isso um
+`NotImplementedError` no corpo derrubaria a suíte inteira na coleta. Mede `len(segredo.encode())`:
+o HMAC opera em bytes. Os `401` de `test_recurso.py` mandam pedido **sem** token, que o
+`HTTPBearer` barra antes de `obter_usuario_atual`; quem prova a assinatura e o `exp` são os dois
+testes de access em `test_auth.py`. O `AuthService` lê `datetime.now(UTC)` direto (não o
+`obter_agora`): teste de refresh vencido usa instante no passado real (2020), preparado pelo
+modelo. `test_reserva_repository.py` é o único teste que chama um repository direto.
 
 **Lições do contra-teste (2026-10-05):** contra-teste estraga a **regra** (no service), não a
 preparação — comentar o `sessao.commit()` da preparação não muda um `401` que sai antes do
 `rollback` (o autoflush grava a pendência antes do `SELECT`). Desfazer com `git restore`, não à
 mão: um espaço a menos de indentação passou nos testes e só o `ruff format --check` acusaria.
 Teste que copia outro herda o motivo dele: o "refresh vencido" copiado do de logout passava pela
-revogação, sem tocar a regra do prazo.
-
-**Proposto para o backlog (a autora ainda não confirmou):** com e-mail inexistente o login não roda o Argon2 (o `or` para antes) e responde
-mais rápido que com senha errada — dá para enumerar e-mails pelo tempo. O mercado verifica um hash
-falso mesmo sem usuário.
+revogação, sem tocar a regra do prazo. `ruff check` **antes** de dar o teste por pronto, não só
+antes do commit: um `"Bearer {token}"` sem o `f` deixou um teste verde sem mandar o token, e só o
+`F841` acusou. O `mypy` roda em `app`, não em `tests` — argumento posicional trocado numa chamada
+de teste só aparece ao rodar (prefira o argumento nomeado: `agora=...`).
 
 **Fatos do workflow que não se leem de primeira:**
 
@@ -405,12 +400,21 @@ falso mesmo sem usuário.
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`91 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+`104 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
 
 **Backlog** (regra 7 — nenhum é v1):
 
 - **Limite de tentativas no `/auth/login`** — nada impede mil tentativas por minuto, e o Argon2,
   caro de propósito, vira vetor de negação de serviço. O mercado limita por IP e por conta.
+- **Login em tempo constante** — com e-mail inexistente o `or` para antes do Argon2, e a resposta
+  sai mais rápido que com senha errada: dá para descobrir quais e-mails existem medindo o tempo.
+  O mercado verifica um hash falso mesmo quando o usuário não existe.
+- **Teste de mutação** (`mutmut`) — o contra-teste automatizado: a ferramenta estraga o código
+  aos milhares (`<` → `<=`, condição apagada) e aponta o estrago que nenhum teste pegou. Vindo da
+  comparação com o mercado no fechamento da Etapa 6.
+- **Teste baseado em propriedades** (`Hypothesis`) para `calcular_lacunas` e `cabe_no_horario` —
+  em vez de exemplos escolhidos, uma regra ("lacuna nunca cruza reserva") e centenas de entradas
+  geradas. Mesma origem.
 - **Mínimo de senha 8 × 15** — o `min_length=8` vem da revisão de 2017 do NIST SP 800-63B; a
   revisão 4 (2025) exige 15 quando a senha é o único fator, o caso daqui, e pede recusar senhas de
   listas vazadas. Mudar exige trocar `"senha456"` nos testes e a senha do admin de desenvolvimento.

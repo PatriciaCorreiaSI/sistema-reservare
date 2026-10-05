@@ -5,10 +5,10 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 6 — estratégia de testes e CI**. As reservas funcionam pela API, o teste
-> de concorrência está verde e a consulta de horários livres devolve as lacunas do dia. O CI do
-> GitHub Actions roda lint, tipos, os 91 testes e as migrations a cada push, contra um Postgres
-> próprio.
+> Próxima fase: **Etapa 7 — front-end**. O back-end está completo para a versão 1: as reservas
+> funcionam pela API, o teste de concorrência está verde e a consulta de horários livres devolve
+> as lacunas do dia. O CI do GitHub Actions roda lint, tipos, os 104 testes e as migrations a
+> cada push, contra um Postgres próprio.
 
 ---
 
@@ -60,7 +60,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | API em camadas | ✅ concluída — CRUD de `recurso` em router → service → repository, com testes isolados por transação num banco próprio |
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
-| Testes e integração contínua | 🔨 CI verde a cada push — lint, tipos, 91 testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); falta o fechamento da etapa |
+| Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, 104 testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
 | Front-end | ⏳ |
 | Deploy | ⏳ |
 
