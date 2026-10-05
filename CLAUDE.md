@@ -317,8 +317,13 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    registra a substituição parcial. **Ainda não implementado:** muda as três rotas de `/auth`, os
    schemas de refresh e logout e os testes de `test_auth.py` que leem `["refresh_token"]`.
    `Path=/auth`, não `/auth/refresh`: o logout também precisa ler o cookie.
-2. **Como o front alcança a API** — proxy do Vite × CORS. O `SameSite=Strict` do 0023 pede front
-   e API na mesma origem.
+2. ✅ **Como o front alcança a API** — ADR 0024 (2026-10-05): proxy do Vite (`server.proxy`
+   para `http://127.0.0.1:8000`, nunca `localhost`), sem CORS; todas as rotas sob `/api` **no
+   back-end**, sem reescrita, menos o `/health`; o cookie do 0023 vira `Path=/api/auth`. **Ainda
+   não implementado:** `prefix="/api"` nos routers, `base_url` com `/api` no `TestClient` do
+   `conftest.py` **e** no do teste de concorrência, `docs/api.md`. Origem inclui a porta (é o que
+   o CORS olha); site ignora porta e subdomínio (é o que o `SameSite` olha) — `localhost:5173` e
+   `:8000` são origens diferentes e o mesmo site. Os ADRs 0013 e 0023 foram corrigidos nisso.
 3. **Gerador de tipos a partir do OpenAPI.**
 4. **Roteador** — React Router × TanStack Router (fora da stack decidida).
 5. **Fuso na tela** — o do sistema (ADR 0018) ou o do navegador.
