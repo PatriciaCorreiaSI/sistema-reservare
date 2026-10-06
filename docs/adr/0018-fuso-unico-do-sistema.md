@@ -27,3 +27,29 @@ O ganho: o admin cadastra a hora que vê no relógio da sala. Custos: todos os r
 ## Como eu saberia que errei
 
 Se aparecer um recurso em outra cidade ou outro fuso. Esse é o sinal para migrar para um fuso por recurso.
+
+## Emenda (2026-10-06): o fuso vale também para a tela, e a API o publica
+
+### Problema:
+O banco guarda instantes (`TIMESTAMPTZ`, UTC): "2026-10-02T13:00Z" é um ponto da linha do tempo, igual para o mundo inteiro. A tela mostra horas de relógio: "10h". Entre um e outro há sempre uma conversão, e a pergunta é: o relógio é de quem? O navegador tem uma resposta pronta: ele sabe o fuso do sistema operacional e, por padrão, todo `Date` se formata nele. O problema é que o Reservare já tem um terceiro relógio: o do recurso. Este ADR decidiu que `hora_func_inicio = 08:00` é 8h em `FUSO_FUNCIONAMENTO`, porque "o horário de funcionamento pertence ao lugar, não a quem reserva". E o `dia` da disponibilidade também é local a esse fuso ([api.md](../api.md)). Para alguém com navegador em Lisboa (UTC+1), a tela do recurso mostraria "funciona das 8h às 18h (o `time`, como veio) e, logo abaixo, as lacunas formatadas pelo navegador: "livre das 12h às 22h". Duas verdades incompatíveis na mesma tela. E o `dia`: às 21h de Brasília do dia 2 já é dia 3 em Lisboa. Se o front calcular "hoje" pelo navegador, pede a disponibilidade do dia errado. Isso acontece sem ninguém viajar: o Playwright roda no fuso da máquina, e o runner do CI é UTC.
+
+### Decisão:
+O front formata todo instante nesse fuso e calcula o `dia` nele. O fuso único vale também para a apresentação, e a API o publica para o front não precisar adivinhar. Onde a API publica: um campo `fuso: str` (nome IANA, `"America/Sao_Paulo"`) em `RecursoResposta`. Três motivos: é ao lado de `hora_func_inicio` que ele dá sentido. Um `time` sem fuso é a metade de uma informação; a tela do recurso é onde os dois relógios se encontram; e o contrato já fica com a forma do backlog "um fuso por recurso". Hoje o valor vem de `FUSO_FUNCIONAMENTO` para todos, amanhã viria de uma coluna, sem mudar o front.
+
+### Alternativas descartadas
+
+- **Fuso do navegador** — por que descartei: nenhuma mudança na API, mas é a tela de Lisboa acima: `hora_func` e lacunas em relógios diferentes, `dia` errado na virada, e o Playwright precisando de `timezoneId` fixado. O que é escolher o fuso do recurso dentro do teste e o do navegador fora.
+
+- **Fuso do recurso por padrão com troca pelo usuário** — por que descartei: é o que o Google Calendar e o Microsoft Bookings fazem para reuniões. Mas é um estado de interface a mais, e o `hora_func` continuaria sem conversão (é `time`, não instante). Faz sentido para recurso remoto, que ninguém pediu (regra 7: backlog).
+
+- **Uma rota `/api/config`** — por que descartei: uma rota para um valor só.
+
+- **O campo em `DisponibilidadeResposta`** — por que descartei: resolve o `dia`, mas não o `hora_func`, que mora em `RecursoResposta`.
+
+
+### Consequências
+
+O ganho: tudo na tela fala o mesmo relógio: `hora_func`, lacunas e `dia`, e o Playwright passa a ser determinístico com o `timezoneId` fixado no fuso do recurso. O custo: `RecursoResposta` deixa de ser espelho do modelo (`from_attributes`), e quem monta a resposta precisa compor o campo; e quem acessa de outro fuso vê horário de Brasília, não o seu. Aceitável porque o recurso é físico, e só usa o horário estando lá. A tela dizer isso: a etiqueta "horários em America/Sao_Paulo" é desenho, não decisão.
+
+### Como eu saberia que errei
+Se aparecer recurso remoto (reunião online, licença de software). O fuso do navegador passa a fazer sentido e a opção do fuso do recurso por padrão, com troca do usuário sai do backlog.

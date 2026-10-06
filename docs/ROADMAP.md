@@ -213,7 +213,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0025 decididos, faltam roteador e fuso na tela |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 decididos, fase de desenho a começar |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -445,8 +445,11 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > alcança a API pelo proxy do Vite, com todas as rotas sob `/api`
 > ([ADR 0024](adr/0024-alcancar-api-pelo-proxy-do-vite.md)); tipos gerados do OpenAPI, com os
 > hooks do TanStack Query escritos à mão
-> ([ADR 0025](adr/0025-gerar-tipos-do-front-pelo-openapi.md)). Faltam o roteador e o fuso na
-> tela.
+> ([ADR 0025](adr/0025-gerar-tipos-do-front-pelo-openapi.md)); React Router v7 em modo
+> declarativo, sem *loaders* ([ADR 0026](adr/0026-rotear-com-react-router-declarativo.md)); a tela
+> fala o fuso do recurso, que a API passa a publicar em `RecursoResposta` (emenda ao
+> [ADR 0018](adr/0018-fuso-unico-do-sistema.md)). Decisões fechadas em 2026-10-06; nenhum código
+> ainda.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 
@@ -458,7 +461,7 @@ que desligaria o alarme também para quando a linha ganhar regra.
 - Os quatro estados de toda tela: carregando, vazio, erro, sucesso
 - Formulários com react-hook-form + zod, exibindo os erros vindos do back
 - Rotas protegidas e renovação silenciosa de token
-- Calendário no fuso do usuário
+- Calendário no fuso do recurso, publicado pela API (emenda ao [ADR 0018](adr/0018-fuso-unico-do-sistema.md))
 - **Atualização otimista** e como desfazer quando o servidor recusa
 - Acessibilidade básica: rótulos, foco, teclado, contraste
 - Um teste Playwright de ponta a ponta

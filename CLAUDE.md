@@ -96,10 +96,11 @@ Antes de escrever implementação, verifique em que fase ela está:
   recusado no startup). CI verde a cada push desde 2026-10-02, badge no README. Suíte em
   `104 passed`, cobertura em 96%; as linhas não executadas que sobraram estão no ROADMAP, com o
   porquê.
-- **Etapa 7 (front-end): em andamento desde 2026-10-05, na fase de decidir** — ADRs 0023
-  (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`) e 0025 (tipos gerados
-  do OpenAPI, hooks à mão). Nenhum código ainda: nem o `frontend/`, nem as mudanças que os ADRs
-  pedem ao back-end.
+- **Etapa 7 (front-end): em andamento desde 2026-10-05; decisões fechadas em 2026-10-06** —
+  ADRs 0023 (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`), 0025 (tipos
+  gerados do OpenAPI, hooks à mão), 0026 (React Router v7 declarativo, sem *loaders*) e emenda ao
+  0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). Nenhum código ainda:
+  nem o `frontend/`, nem as mudanças que os ADRs pedem ao back-end.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -310,9 +311,13 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — retomar pela decisão 4 (roteador).** A Etapa 6 fechou em 2026-10-05; o
-primeiro push com `validar_segredo` deu CI verde com `104 passed` e só o aviso do `httpx` — os 131
-`InsecureKeyLengthWarning` sumiram.
+**Etapa 7 (front-end) — as cinco decisões estão tomadas; começar a fase 2 (desenhar) pelo
+back-end.** Os ADRs 0023, 0024 e a emenda ao 0018 mudam código que já existe e tem teste — é
+território conhecido para a primeira tentativa dela. Desenhar aqui é listar: quais rotas de
+`/auth` mudam e como (cookie no lugar do `refresh_token` no corpo); quais schemas perdem o
+campo; quais testes de `test_auth.py` passam a ler o cookie; o `prefix="/api"` e os dois
+`base_url`; e como `RecursoResposta` ganha `fuso` sem o schema ler `os.environ` (quem compõe é o
+service ou o router — decisão de desenho). Só depois o `frontend/`.
 
 Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
@@ -335,8 +340,25 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    de `app.openapi()` para arquivo, tipos gerados no repositório, nunca editados à mão; o CI vai
    gerar de novo e falhar se divergir (como o `alembic check`). Exercício no fim da etapa: gerar
    os hooks com o `@hey-api` num rascunho e comparar com os dela.
-4. **Roteador** — React Router × TanStack Router (fora da stack decidida).
-5. **Fuso na tela** — o do sistema (ADR 0018) ou o do navegador. Talvez baste uma emenda ao 0018.
+4. ✅ **Roteador** — ADR 0026 (2026-10-06): React Router v7 em **modo declarativo** — URL →
+   componente, URL como estado, navegação; **nenhum *loader***, o estado de servidor é todo do
+   TanStack Query. Modos *framework* (assume build e servidor; o 0024 já decidiu SPA atrás do
+   proxy) e *data* (loaders disputam com o Query) descartados; TanStack Router descartado por
+   mercado (2,5–5× menos downloads) e por empurrar o carregamento para o roteador. Custo aceito:
+   `useParams()` é `string | undefined`, `?dia=` chega como texto — a URL é entrada do usuário e
+   se interpreta na borda, como o `Query(ge=1, le=100)`. A guarda das rotas protegidas é uma
+   **rota de layout**: chama o refresh antes de renderizar e decide entre a tela e `/login`.
+   Exercício no fim da etapa: portar as rotas para o TanStack Router num rascunho.
+5. ✅ **Fuso na tela** — emenda ao ADR 0018 (2026-10-06): a tela fala o **fuso do recurso**, não
+   o do navegador (recurso físico: o horário pertence ao lugar — convenção da IATA para voos, opção
+   "fuso do negócio" do Microsoft Bookings). A API publica `fuso: str` (IANA) em
+   `RecursoResposta`, ao lado do `hora_func` que ele dá sentido; hoje vem de `FUSO_FUNCIONAMENTO`
+   para todos, e o contrato já tem a forma do backlog "um fuso por recurso". **Ainda não
+   implementado:** o campo, o `docs/api.md`, o teste. O front formata com `Intl` nativo
+   (`timeZone:`), sem biblioteca, e calcula o `dia` nesse fuso; o Playwright fixa `timezoneId`
+   (o runner do CI é UTC). Etiqueta "horários em America/Sao_Paulo" é desenho. Reservar
+   **clicando numa lacuna** evita construir instante a partir de hora local em JS: o front manda
+   os instantes que a API devolveu.
 
 Formulários, os quatro estados de tela, acessibilidade e o Playwright são de desenho, não de ADR.
 Quando o front entrar no CI, pode surgir uma decisão sobre o que ele confere (tipos, lint, tipos
@@ -469,8 +491,8 @@ compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura).
 
 Python 3.14 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 (+ `email-validator`) · Alembic ·
 PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · `PyJWT` · pytest + httpx ·
-Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query ·
-Playwright.
+Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v7
+(declarativo) · `openapi-typescript` + `openapi-fetch` · Playwright.
 
 As escolhas já foram decididas com critério em
 [`docs/ROADMAP.md`](docs/ROADMAP.md#4-stack-e-por-quê) — não as reabra sem
