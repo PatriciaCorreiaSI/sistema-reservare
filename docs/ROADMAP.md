@@ -212,6 +212,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 3–4    | Etapa 2             | ✅ **concluída** — CRUD de `recurso` em camadas; 11 testes isolados por transação num banco `reservare_test`, com o `409` do `DELETE` provado |
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
+| —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
 | 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 decididos e implementados no back-end; `frontend/` a começar |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
