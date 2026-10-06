@@ -71,6 +71,7 @@ def test_remover_recurso(client, recurso_criado, usuario, cabecalho_de, admin):
 def test_buscar_recurso_inexistente(client, usuario, cabecalho_de):
     resposta = client.get("/recursos/999999", headers=cabecalho_de(usuario))
     assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Recurso não encontrado"
 
 
 def test_atualizar_recurso_inexistente(client, usuario, cabecalho_de, admin):
@@ -80,11 +81,13 @@ def test_atualizar_recurso_inexistente(client, usuario, cabecalho_de, admin):
         headers=cabecalho_de(admin),
     )
     assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Recurso não encontrado"
 
 
 def test_remover_recurso_inexistente(client, cabecalho_de, admin):
     resposta = client.delete("/recursos/999999", headers=cabecalho_de(admin))
     assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Recurso não encontrado"
 
 
 def test_remover_recurso_em_uso(

@@ -329,11 +329,17 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    topo da recomendação do IETF e ficou descartada de propósito.
 2. ✅ **Como o front alcança a API** — ADR 0024 (2026-10-05): proxy do Vite (`server.proxy`
    para `http://127.0.0.1:8000`, nunca `localhost`), sem CORS; todas as rotas sob `/api` **no
-   back-end**, sem reescrita, menos o `/health`; o cookie do 0023 vira `Path=/api/auth`. **Ainda
-   não implementado:** `prefix="/api"` nos routers, `base_url` com `/api` no `TestClient` do
-   `conftest.py` **e** no do teste de concorrência, `docs/api.md`. Origem inclui a porta (é o que
-   o CORS olha); site ignora porta e subdomínio (é o que o `SameSite` olha) — `localhost:5173` e
-   `:8000` são origens diferentes e o mesmo site. Os ADRs 0013 e 0023 foram corrigidos nisso.
+   back-end**, sem reescrita, menos o `/health`; o cookie do 0023 vira `Path=/api/auth`.
+   **Implementado em 2026-10-06** (commit `c462c9d`): um `APIRouter(prefix="/api")` pai no
+   `main.py` inclui os quatro routers e o `health` fica fora dele — a decisão mora num lugar só e a
+   estrutura mostra a exceção. Os dois `TestClient` usam `base_url="https://testserver/api"`
+   (`https` porque o pote de cookies do `httpx` não envia cookie `Secure` em `http://`; sem barra
+   no fim, o `httpx` cola `/api` + `/auth/login`); o `test_health` usa a URL absoluta
+   `https://testserver/health`, que ignora a `base_url`. Nenhum teste novo: os 104 provam o
+   prefixo ao passar. `/docs` e `/openapi.json` também ficam na raiz (registrado no `api.md`).
+   Origem inclui a porta (é o que o CORS olha); site ignora porta e subdomínio (é o que o
+   `SameSite` olha) — `localhost:5173` e `:8000` são origens diferentes e o mesmo site. Os ADRs
+   0013 e 0023 foram corrigidos nisso.
 3. ✅ **Gerador de tipos** — ADR 0025 (2026-10-05): `openapi-typescript` (só tipos) +
    `openapi-fetch`; hooks do TanStack Query **à mão**, porque são o conceito da etapa (o
    `@hey-api/openapi-ts`, escolha do template oficial do FastAPI, os geraria). Contrato exportado
@@ -375,6 +381,17 @@ o HMAC opera em bytes. Os `401` de `test_recurso.py` mandam pedido **sem** token
 testes de access em `test_auth.py`. O `AuthService` lê `datetime.now(UTC)` direto (não o
 `obter_agora`): teste de refresh vencido usa instante no passado real (2020), preparado pelo
 modelo. `test_reserva_repository.py` é o único teste que chama um repository direto.
+
+**Lições do contra-teste do `/api` (2026-10-06):** tirar o `prefix` do pai deu `28 failed, 33
+passed, 43 errors`, não os "103 failed" previstos. `ERROR` ≠ `FAILED`: `ERROR` é a **preparação**
+que quebrou (a fixture `recurso_criado` tem `assert` do `201`, e o teste nem roda); `FAILED` é o
+ato. Os 33 verdes: 27 testes que não tocam HTTP, o `test_health`, e **cinco que conferem só
+`status_code == 404`** (`test_recurso.py:73,82,87`, `test_reserva.py:209,355`) — passam num app
+sem nenhuma rota, porque não distinguem o `404` do service do `404` do FastAPI. Ganharam o
+`assert` do `detail` no mesmo dia, em commit próprio; o contra-teste deles é tirar o `prefix` e
+ver `28 passed`. Regra que fica: **teste de `404` confere o `detail`**, sempre. Antes de um
+contra-teste, `git add` do arquivo: `git restore` volta à versão adicionada, não à do último
+commit.
 
 **Lições do contra-teste (2026-10-05):** contra-teste estraga a **regra** (no service), não a
 preparação — comentar o `sessao.commit()` da preparação não muda um `401` que sai antes do

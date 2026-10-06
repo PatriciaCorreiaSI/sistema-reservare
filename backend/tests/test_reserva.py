@@ -207,6 +207,7 @@ def test_criar_reserva_em_recurso_inexistente_devolve_404(
 
     # Conferir
     assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Recurso não encontrado"
 
 
 def test_criar_reserva_em_recurso_inativo_devolve_409(
@@ -353,6 +354,7 @@ def test_buscar_reserva_inexistente_devolve_404(client, usuario, cabecalho_de):
 
     # Conferir
     assert resposta.status_code == 404
+    assert resposta.json()["detail"] == "Reserva não encontrada"
 
 
 def test_buscar_reserva_alheia_como_admin_devolve_200(
