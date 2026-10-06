@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.routers import auth, health, recurso, reserva, usuario
@@ -16,11 +16,15 @@ from app.services.excecoes import (
 )
 
 app = FastAPI()
+
+api = APIRouter(prefix="/api")
+api.include_router(recurso.router)
+api.include_router(auth.router)
+api.include_router(usuario.router)
+api.include_router(reserva.router)
+
 app.include_router(health.router)
-app.include_router(recurso.router)
-app.include_router(auth.router)
-app.include_router(usuario.router)
-app.include_router(reserva.router)
+app.include_router(api)
 
 
 @app.exception_handler(RecursoNaoEncontrado)

@@ -60,7 +60,7 @@ def client(sessao):
             raise
 
     app.dependency_overrides[obter_sessao] = obter_sessao_de_teste
-    yield TestClient(app)
+    yield TestClient(app, base_url="https://testserver/api")
     app.dependency_overrides.clear()
 
 

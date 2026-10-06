@@ -6,7 +6,7 @@ from app.models import Reserva
 
 
 def test_health(client):
-    resposta = client.get("/health")
+    resposta = client.get("https://testserver/health")
     assert resposta.status_code == 200
 
 

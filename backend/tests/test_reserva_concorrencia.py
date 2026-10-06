@@ -90,7 +90,7 @@ def api_com_sessao_real(fabrica_de_teste):
 def reservar(corpo, cabecalho, barreira, status):
     # O que cada thread executa. guarda o status numa lista, porque o
     # retorno e as exceções de uma thread não chegam ao teste
-    cliente = TestClient(app)
+    cliente = TestClient(app, base_url="https://testserver/api")
     barreira.wait()
     resposta = cliente.post("/reservas", json=corpo, headers=cabecalho)
     status.append(resposta.status_code)
