@@ -76,17 +76,13 @@ LoginEntrada
 ```
 
 ```
-RefreshEntrada
-    refresh_token: str    
-```
-
-```
 TokenResposta
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
 ```
 
+
+- **O refresh viaja num cookie, nunca no JSON ([ADR 0023](./adr/0023-guardar-refresh-em-cookie-httponly.md)):** `refresh_token`, com `HttpOnly`; `Secure`; `SameSite=Strict`; `Path=/api/auth`; `Max-Age=` igual a `REFRESH_DIAS` em segundos. O login e o refresh o gravam pelo `Set-Cookie`; o refresh e o logout o leem do cabeçalho `Cookie`, que o navegador manda sozinho; o logout o apaga com `Max-Age=0`, no mesmo `Path`. Sem o cookie, o refresh responde `401` e o logout `204`. Clientes fora do navegador precisam guardar cookies (`curl -c / -b`).
 
 - **Payload do JWT:** só entra no payload o que se mostraria ao próprio usuário na tela. O padrão tem dois obrigatórios: 
     - `sub` (*subject*, quem é: `id_usuario`): para identifica a quem pertence;
@@ -99,9 +95,9 @@ TokenResposta
 
 | **Rota**  |  **Sucesso** |  **Erros** | **Porquê** |
 |-----------|--------------|------------|------------|
-|`POST /api/auth/login`| `200` + `TokenResposta` | `401` | Única rota que não recebe token: ela que os cria. `status_usuario = inativo`, `email_inexistente` e senha errada recebem a mesma resposta `401`: mesmo código e texto idêntico para API não servir de lista de quem está cadastrado. |
-|`POST /api/auth/refresh`| `200` + `TokenResposta` | `401` | Cliente chama `/api/auth/refresh` quando o access expira para continuar logado. Access não autentica nada aqui. Refresh que autentica no corpo. Servidor procura SHA-256 dele em `hash_token` e confere `expira_em` e `revogado_em`. Rotação devolve access e refresh novos e marca o antigo `revogado_em `. Refresh revogado reapresentado devolve `401` e revoga a família toda. Cliente legítimo também cai e precisa fazer login de novo. Custo aceito porque o servidor não sabe qual dos dois é o ladrão. | 
-|`POST /api/auth/logout`| `204` | `401` | Recebe o refresh no corpo e marca `revogado_em`. Idempotente: se o refresh já estava revogado ou não existe devolve `204` também. O objetivo já está atingido: este refresh não funciona mais. |
+|`POST /api/auth/login`| `200` + `TokenResposta` + cookie `refresh_token` | `401` | Única rota que não recebe token: ela que os cria. O access vai no corpo; o refresh vai no `Set-Cookie`. `status_usuario = inativo`, `email_inexistente` e senha errada recebem a mesma resposta `401`: mesmo código e texto idêntico para API não servir de lista de quem está cadastrado. |
+|`POST /api/auth/refresh`| `200` + `TokenResposta` + cookie novo | `401` | Cliente chama `/api/auth/refresh` quando o access expira para continuar logado. Sem corpo: o refresh vem no cookie, e sem cookie é `401`. Servidor procura o SHA-256 dele em `hash_token` e confere `expira_em` e `revogado_em`. Rotação devolve access novo no corpo e refresh novo no `Set-Cookie`, e marca o antigo `revogado_em`. Refresh revogado reapresentado devolve `401` e revoga a família toda. Cliente legítimo cai e precisa fazer login de novo. Custo aceito porque o servidor não sabe qual dos dois é o ladrão. | 
+|`POST /api/auth/logout`| `204` + cookie apagado | — | Lê o refresh do cookie, marca `revogado_em` e manda `Max-Age=0`. Idempotente: refresh já revogado, desconhecido ou cookie ausente devolvem `204` também. O objetivo já está atingido: este refresh não funciona mais. |
 
 
 ### Dependências

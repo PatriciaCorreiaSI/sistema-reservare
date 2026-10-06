@@ -5,11 +5,20 @@ import jwt
 import pytest
 
 from app.models import RefreshToken
-from app.security import criar_access_token, hash_refresh_token
+from app.security import REFRESH_DIAS, criar_access_token, hash_refresh_token
 
 SENHA = "senha123"  # a mesma que gerou SENHA_HASH no conftest
+COOKIE = "refresh_token"
 
 pendente = pytest.mark.skip(reason="ainda não escrito")
+
+
+def usar_refresh(client, valor):
+    # O pote de cookies do TestClient guarda o que o servidor mandou, como um
+    # navegador. Para reapresentar um valor específico (reuso, vencido,
+    # e desconhecido), esvazia o pote e põe só ele: senão iriam os dois.
+    client.cookies.clear()
+    client.cookies.set(COOKIE, valor)
 
 
 def test_refresh_apos_logout_devolve_401(client, usuario):
@@ -18,13 +27,16 @@ def test_refresh_apos_logout_devolve_401(client, usuario):
         "/auth/login",
         json={"email_usuario": usuario.email_usuario, "senha": SENHA},
     )
-    refresh = resposta.json()["refresh_token"]
+    assert resposta.status_code == 200
+    refresh = resposta.cookies[COOKIE]
 
-    # Preparar: sair, mandando o refresh que o login devolveu.
-    client.post("/auth/logout", json={"refresh_token": refresh})
+    # Preparar: sair. O pote manda o cookie; a resposta o apaga do pote.
+    resposta = client.post("/auth/logout")
+    assert resposta.status_code == 204
 
-    # Agir: tentar renovar o refresh que acabou de ser revogado.
-    resposta = client.post("/auth/refresh", json={"refresh_token": refresh})
+    # Agir: quem copiou o valor antes do logout reapresenta o refresh revogado.
+    usar_refresh(client, refresh)
+    resposta = client.post("/auth/refresh")
 
     # Conferir
     assert resposta.status_code == 401
@@ -36,9 +48,35 @@ def test_login_com_credenciais_validas_devolve_200(client, usuario):
         json={"email_usuario": usuario.email_usuario, "senha": SENHA},
     )
     assert resposta.status_code == 200
-    corpo = resposta.json()
-    assert corpo["access_token"]
-    assert corpo["refresh_token"]
+    assert resposta.json()["access_token"]
+    assert resposta.cookies[COOKIE]
+
+
+def test_login_nao_devolve_refresh_no_corpo(client, usuario):
+    # ADR 0023: se o refresh aparecesse no JSON, o JavaScript o leria e o
+    # ganho do HttpOnly acabaria.
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": usuario.email_usuario, "senha": SENHA},
+    )
+    assert resposta.status_code == 200
+    assert "refresh_token" not in resposta.json()
+
+
+def test_cookie_do_refresh_tem_os_atributos_do_adr_0023(client, usuario):
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": usuario.email_usuario, "senha": SENHA},
+    )
+    assert resposta.status_code == 200
+
+    # O Set-Cookie cru, com os atributos; minúsculo porque a caixa é livre.
+    set_cookie = resposta.headers["set-cookie"].lower()
+    assert "httponly" in set_cookie
+    assert "secure" in set_cookie
+    assert "samesite=strict" in set_cookie
+    assert "path=/api/auth" in set_cookie
+    assert f"max-age={REFRESH_DIAS * 24 * 60 * 60}" in set_cookie
 
 
 def test_refresh_devolve_200_com_refresh_novo(client, usuario):
@@ -47,18 +85,15 @@ def test_refresh_devolve_200_com_refresh_novo(client, usuario):
         "/auth/login",
         json={"email_usuario": usuario.email_usuario, "senha": SENHA},
     )
-    refresh_r1 = resposta.json()["refresh_token"]
-
-    # Agir
-    resposta = client.post(
-        "/auth/refresh",
-        json={"refresh_token": refresh_r1},
-    )
-
-    # Conferir
     assert resposta.status_code == 200
-    corpo = resposta.json()
-    assert corpo["refresh_token"] != refresh_r1
+    refresh_r1 = resposta.cookies[COOKIE]
+
+    # Agir: sem corpo; o pote manda o cookie do login.
+    resposta = client.post("/auth/refresh")
+
+    # Conferir: rotação → o cookie novo é outro valor
+    assert resposta.status_code == 200
+    assert resposta.cookies[COOKIE] != refresh_r1
 
 
 def test_refresh_reusado_devolve_401_e_revoga_familia(client, usuario):
@@ -68,18 +103,15 @@ def test_refresh_reusado_devolve_401_e_revoga_familia(client, usuario):
         "/auth/login",
         json={"email_usuario": usuario.email_usuario, "senha": SENHA},
     )
-    refresh_r1 = resposta.json()["refresh_token"]
-    resposta = client.post(
-        "/auth/refresh",
-        json={"refresh_token": refresh_r1},
-    )
-    refresh_r2 = resposta.json()["refresh_token"]
+    assert resposta.status_code == 200
+    refresh_r1 = resposta.cookies[COOKIE]
+    resposta = client.post("/auth/refresh")
+    assert resposta.status_code == 200
+    refresh_r2 = resposta.cookies[COOKIE]
 
     # Agir: alguém reapresenta r1 já revogado. Isso é o reuso
-    resposta = client.post(
-        "/auth/refresh",
-        json={"refresh_token": refresh_r1},
-    )
+    usar_refresh(client, refresh_r1)
+    resposta = client.post("/auth/refresh")
 
     # Conferir: o reuso é recusado...
     assert resposta.status_code == 401
@@ -87,7 +119,8 @@ def test_refresh_reusado_devolve_401_e_revoga_familia(client, usuario):
     # ...e a família inteira cai, ou seja, refresh_r1
     # está revogado e refresh_r2 também não vale mais
     # Verificado pela interface (o que o cliente vê), não pela coluna revogado_em.
-    resposta = client.post("/auth/refresh", json={"refresh_token": refresh_r2})
+    usar_refresh(client, refresh_r2)
+    resposta = client.post("/auth/refresh")
     assert resposta.status_code == 401
 
 
@@ -122,10 +155,17 @@ def test_login_de_usuario_inativo_devolve_401(client, sessao, usuario):
     assert resposta.status_code == 401
 
 
+def test_refresh_sem_cookie_devolve_401(client):
+    # Pedido sem cookie nenhum: sem credencial, não pedido mal formado
+    resposta = client.post("/auth/refresh")
+    assert resposta.status_code == 401
+    assert resposta.headers["WWW-Authenticate"] == "Bearer"
+
+
 def test_refresh_desconhecido_devolve_401(client):
     # POST /auth/refresh com um texto que nunca foi emitido -> 401.
-    refresh = "refresh_token_desconhecido"
-    resposta = client.post("/auth/refresh", json={"refresh_token": refresh})
+    usar_refresh(client, "refresh_token_desconhecido")
+    resposta = client.post("/auth/refresh")
     # Conferir
     assert resposta.status_code == 401
 
@@ -144,7 +184,8 @@ def test_refresh_vencido_devolve_401(client, sessao, usuario):
         )
     )
     sessao.commit()
-    resposta = client.post("/auth/refresh", json={"refresh_token": "refresh-vencido"})
+    usar_refresh(client, "refresh-vencido")
+    resposta = client.post("/auth/refresh")
     assert resposta.status_code == 401
 
 
@@ -160,12 +201,31 @@ def test_refresh_de_usuario_inativo_devolve_401(client, sessao, usuario):
     usuario.status_usuario = "inativo"
     sessao.commit()
 
-    refresh = resposta.json()["refresh_token"]
-    resposta = client.post(
-        "/auth/refresh",
-        json={"refresh_token": refresh},
-    )
+    resposta = client.post("/auth/refresh")
     assert resposta.status_code == 401
+
+
+def test_logout_apaga_o_cookie(client, usuario):
+    # Preparar: entra; o pote guarda o cookie
+    resposta = client.post(
+        "/auth/login",
+        json={"email_usuario": usuario.email_usuario, "senha": SENHA},
+    )
+    assert resposta.status_code == 200
+    assert COOKIE in client.cookies
+
+    # Agir
+    resposta = client.post("/auth/logout")
+
+    # Conferir: Max-Age=0 é a ordem de apagar. o pote obedece como um navegador
+    assert resposta.status_code == 204
+    assert COOKIE not in client.cookies
+
+
+def test_logout_sem_cookie_devolve_204(client):
+    # Idempotente: não há o que revogar, e o objetivo já está etingido
+    resposta = client.post("auth/logout")
+    assert resposta.status_code == 204
 
 
 def test_access_assinado_com_outra_chave_devolve_401(client, usuario):

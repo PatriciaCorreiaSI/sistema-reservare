@@ -61,6 +61,11 @@ Antes de escrever implementação, verifique em que fase ela está:
   decisão dela — escreva, e explique cada trecho.
 - Escrever _para ela ler e reescrever_ é diferente de escrever no lugar dela.
   Deixe claro qual dos dois está acontecendo.
+- **Território novo (acordado em 2026-10-06):** para o que ela nunca fez — cookies no FastAPI,
+  todo o front-end — a fase 3 não se aplica: traga o **código pronto no chat, com o conceito ao
+  lado de cada trecho**; ela copia para o arquivo, roda e explica em voz alta. Adivinhar o que
+  nunca se viu não ensina. A fase 3 continua valendo para o que ela já domina (teste pytest,
+  service, repository, ADR), e o contra-teste continua sendo dela.
 
 ### As sete regras do projeto
 
@@ -99,8 +104,9 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 7 (front-end): em andamento desde 2026-10-05; decisões fechadas em 2026-10-06** —
   ADRs 0023 (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`), 0025 (tipos
   gerados do OpenAPI, hooks à mão), 0026 (React Router v7 declarativo, sem *loaders*) e emenda ao
-  0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). Nenhum código ainda:
-  nem o `frontend/`, nem as mudanças que os ADRs pedem ao back-end.
+  0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). Back-end: os blocos
+  do 0024 (`/api`) e do 0023 (cookie) estão implementados; falta o `fuso` em `RecursoResposta`.
+  Nenhum `frontend/` ainda.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -323,10 +329,20 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
 1. ✅ **O que acontece no F5** — ADR 0023 (2026-10-05): refresh num cookie `HttpOnly; Secure;
    SameSite=Strict; Path=/api/auth`, fora do corpo das respostas; access como no ADR 0013, que
-   registra a substituição parcial. **Ainda não implementado:** muda as três rotas de `/auth`, os
-   schemas de refresh e logout e os testes de `test_auth.py` que leem `["refresh_token"]`.
-   `Path` não pode ser só o do refresh: o logout também precisa ler o cookie. A opção C (BFF) é o
-   topo da recomendação do IETF e ficou descartada de propósito.
+   registra a substituição parcial. **Implementado em 2026-10-06.** O service devolve
+   `ParDeTokens` (`dataclass` em `services/auth.py` — nasce no service, nunca vira JSON; em
+   `schemas/` viraria tipo TypeScript pelo 0025) e recebe o refresh como `str | None`; o router
+   separa: `_responder` grava o cookie e devolve `TokenResposta` só com o access. `COOKIE_REFRESH`
+   e `CAMINHO_DO_COOKIE` são constantes do router: o `delete_cookie` só apaga com o **mesmo
+   `path`** do `set_cookie`. `Cookie(default=None, alias=COOKIE_REFRESH)`: ausente não é `422`;
+   o service traduz — refresh `401`, logout `204` (idempotente). `RefreshEntrada` apagado.
+   **Testes:** `resposta.cookies[COOKIE]` lê; o pote do `httpx` manda e **substitui** o cookie
+   sozinho (o teste de rotação não manda nada); `usar_refresh(client, valor)` faz `cookies.clear()`
+   + `set()` para reapresentar um valor específico — é o atacante com a cópia; sem o `clear`, dois
+   cookies de mesmo nome e qual o servidor lê é implementação. `Max-Age=0` apaga do pote
+   (`COOKIE not in client.cookies`). Suíte em `109 passed`. `Path` não pode ser só o do refresh:
+   o logout também precisa ler o cookie. A opção C (BFF) é o topo da recomendação do IETF e ficou
+   descartada de propósito.
 2. ✅ **Como o front alcança a API** — ADR 0024 (2026-10-05): proxy do Vite (`server.proxy`
    para `http://127.0.0.1:8000`, nunca `localhost`), sem CORS; todas as rotas sob `/api` **no
    back-end**, sem reescrita, menos o `/health`; o cookie do 0023 vira `Path=/api/auth`.

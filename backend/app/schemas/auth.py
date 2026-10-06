@@ -6,11 +6,6 @@ class LoginEntrada(BaseModel):
     senha: str
 
 
-class RefreshEntrada(BaseModel):
-    refresh_token: str
-
-
 class TokenResposta(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"

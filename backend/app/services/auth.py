@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends
@@ -8,7 +9,7 @@ from app.db import obter_sessao
 from app.models import RefreshToken, Usuario
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.usuario import UsuarioRepository
-from app.schemas.auth import LoginEntrada, RefreshEntrada, TokenResposta
+from app.schemas.auth import LoginEntrada
 from app.security import (
     REFRESH_DIAS,
     criar_access_token,
@@ -19,13 +20,19 @@ from app.security import (
 from app.services.excecoes import CredenciaisInvalidas
 
 
+@dataclass(frozen=True)
+class ParDeTokens:
+    access: str
+    refresh: str
+
+
 class AuthService:
     def __init__(self, sessao: Session = Depends(obter_sessao)) -> None:
         self._sessao = sessao
         self._refresh_tokens = RefreshTokenRepository(sessao)
         self._usuarios = UsuarioRepository(sessao)
 
-    def login(self, dados: LoginEntrada) -> TokenResposta:
+    def login(self, dados: LoginEntrada) -> ParDeTokens:
         agora = datetime.now(UTC)
         usuario = self._usuarios.buscar_por_email(dados.email_usuario)
         if (
@@ -36,9 +43,11 @@ class AuthService:
             raise CredenciaisInvalidas()
         return self._emitir_tokens(usuario, uuid.uuid4(), agora)
 
-    def renovar(self, dados: RefreshEntrada) -> TokenResposta:
+    def renovar(self, refresh_token: str | None) -> ParDeTokens:
         agora = datetime.now(UTC)
-        hash_token = hash_refresh_token(dados.refresh_token)
+        if refresh_token is None:
+            raise CredenciaisInvalidas()
+        hash_token = hash_refresh_token(refresh_token)
         token = self._refresh_tokens.buscar_por_hash(hash_token)
         if token is None:
             raise CredenciaisInvalidas()
@@ -55,16 +64,18 @@ class AuthService:
         self._refresh_tokens.revogar(token, agora)
         return self._emitir_tokens(usuario, token.familia_token, agora)
 
-    def logout(self, dados: RefreshEntrada) -> None:
+    def logout(self, refresh_token: str | None) -> None:
+        if refresh_token is None:
+            return
         agora = datetime.now(UTC)
-        hash_token = hash_refresh_token(dados.refresh_token)
+        hash_token = hash_refresh_token(refresh_token)
         token = self._refresh_tokens.buscar_por_hash(hash_token)
         if token is not None and token.revogado_em is None:
             self._refresh_tokens.revogar(token, agora)
 
     def _emitir_tokens(
         self, usuario: Usuario, familia_token: uuid.UUID, agora: datetime
-    ) -> TokenResposta:
+    ) -> ParDeTokens:
         access = criar_access_token(
             usuario.id_usuario, usuario.privilegio_usuario, agora
         )
@@ -78,4 +89,4 @@ class AuthService:
                 expira_em=agora + timedelta(days=REFRESH_DIAS),
             )
         )
-        return TokenResposta(access_token=access, refresh_token=refresh)
+        return ParDeTokens(access=access, refresh=refresh)
