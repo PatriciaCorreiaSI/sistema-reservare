@@ -213,7 +213,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 5–6    | Etapa 3             | ✅ **concluída** — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, `POST /usuarios` só para admin, comando `criar_admin`; 22 testes verdes. A metade IDOR do critério de pronto passou para a Etapa 4, junto com as rotas de `reserva` |
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 decididos, fase de desenho a começar |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 decididos e implementados no back-end; `frontend/` a começar |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -448,8 +448,9 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > ([ADR 0025](adr/0025-gerar-tipos-do-front-pelo-openapi.md)); React Router v7 em modo
 > declarativo, sem *loaders* ([ADR 0026](adr/0026-rotear-com-react-router-declarativo.md)); a tela
 > fala o fuso do recurso, que a API passa a publicar em `RecursoResposta` (emenda ao
-> [ADR 0018](adr/0018-fuso-unico-do-sistema.md)). Decisões fechadas em 2026-10-06; nenhum código
-> ainda.
+> [ADR 0018](adr/0018-fuso-unico-do-sistema.md)). Decisões fechadas em 2026-10-06, e no mesmo dia
+> o back-end que elas pedem: rotas sob `/api`, refresh em cookie, `fuso` em `RecursoResposta`
+> (suíte em 110). Falta o `frontend/` inteiro.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 

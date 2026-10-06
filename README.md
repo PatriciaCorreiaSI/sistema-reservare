@@ -5,7 +5,7 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 7 — front-end**, decisões de arquitetura fechadas, desenho a começar. As reservas funcionam pela
+> Fase atual: **Etapa 7 — front-end**, back-end adaptado (rotas sob `/api`, refresh em cookie `httpOnly`), `frontend/` a começar. As reservas funcionam pela
 > API, o teste de concorrência está verde e a consulta de horários livres devolve as lacunas do
 > dia. O CI do GitHub Actions roda lint, tipos, os 104 testes e as migrations a cada push, contra
 > um Postgres próprio.
@@ -61,7 +61,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, 104 testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
-| Front-end | 🔨 decidido, em desenho — refresh em cookie `httpOnly`, proxy do Vite sob `/api`, tipos gerados do OpenAPI, React Router declarativo ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0026](docs/adr/0026-rotear-com-react-router-declarativo.md)) e fuso do recurso na tela (emenda ao [ADR 0018](docs/adr/0018-fuso-unico-do-sistema.md)); nada implementado ainda |
+| Front-end | 🔨 decidido, em desenho — refresh em cookie `httpOnly`, proxy do Vite sob `/api`, tipos gerados do OpenAPI, React Router declarativo ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0026](docs/adr/0026-rotear-com-react-router-declarativo.md)) e fuso do recurso na tela (emenda ao [ADR 0018](docs/adr/0018-fuso-unico-do-sistema.md)); back-end pronto, `frontend/` ainda não existe |
 | Deploy | ⏳ |
 
 Nada é listado como pronto antes de estar funcionando.

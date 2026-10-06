@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.dialects.postgresql import Range
 
+from app.dependencies import obter_fuso
+from app.main import app
 from app.models import Reserva
 
 
@@ -242,3 +245,23 @@ def test_listar_recurso_com_deslocamento_negativo_devolve_422(
         headers=cabecalho_de(usuario),
     )
     assert resposta.status_code == 422
+
+
+def test_recurso_devolve_o_fuso_de_funcionamento(
+    client,
+    recurso_criado,
+    usuario,
+    cabecalho_de,
+):
+    # Emenda ao ADr 0018: o fuso vai na resposta para hora_func fazer sentido na
+    # tela. Troca obter_fuso por um fuso qualquer: o teste prova que o campo vem
+    # da dependência, não que o .env tem certo valor. A fixture client faz
+    # dependency_overrides.clear() no fim, então a troca não vaza.
+    app.dependency_overrides[obter_fuso] = lambda: ZoneInfo("Europe/Lisbon")
+
+    resposta = client.get(
+        f"/recursos/{recurso_criado['id_recurso']}", headers=cabecalho_de(usuario)
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json()["fuso"] == "Europe/Lisbon"

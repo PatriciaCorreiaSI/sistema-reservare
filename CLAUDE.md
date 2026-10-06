@@ -104,9 +104,9 @@ Antes de escrever implementação, verifique em que fase ela está:
 - **Etapa 7 (front-end): em andamento desde 2026-10-05; decisões fechadas em 2026-10-06** —
   ADRs 0023 (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`), 0025 (tipos
   gerados do OpenAPI, hooks à mão), 0026 (React Router v7 declarativo, sem *loaders*) e emenda ao
-  0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). Back-end: os blocos
-  do 0024 (`/api`) e do 0023 (cookie) estão implementados; falta o `fuso` em `RecursoResposta`.
-  Nenhum `frontend/` ainda.
+  0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). **Back-end da etapa
+  concluído em 2026-10-06** (`/api`, cookie, `fuso`); suíte em `110 passed`. Nenhum `frontend/`
+  ainda.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -317,13 +317,16 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — as cinco decisões estão tomadas; começar a fase 2 (desenhar) pelo
-back-end.** Os ADRs 0023, 0024 e a emenda ao 0018 mudam código que já existe e tem teste — é
-território conhecido para a primeira tentativa dela. Desenhar aqui é listar: quais rotas de
-`/auth` mudam e como (cookie no lugar do `refresh_token` no corpo); quais schemas perdem o
-campo; quais testes de `test_auth.py` passam a ler o cookie; o `prefix="/api"` e os dois
-`base_url`; e como `RecursoResposta` ganha `fuso` sem o schema ler `os.environ` (quem compõe é o
-service ou o router — decisão de desenho). Só depois o `frontend/`.
+**Etapa 7 (front-end) — back-end pronto; começar o `frontend/`.** Os três blocos do back-end
+fecharam em 2026-10-06 (commits `c462c9d`, `49f5438` e o do `fuso`). O que vem é território que
+ela nunca fez — vale o acordo de 2026-10-06: código pronto no chat, conceito ao lado. Ordem
+sugerida, do chão para cima: (1) `npm create vite@latest frontend -- --template react-ts` e o
+`server.proxy` do ADR 0024; o primeiro pedido de prova é `POST /api/auth/login` — não o
+`/health`, que está fora do `/api` e o proxy não encaminha; (2) exportar o
+`openapi.json` de `app.openapi()` e gerar os tipos (ADR 0025); (3) `openapi-fetch` + o primeiro
+hook do TanStack Query à mão; (4) React Router declarativo com a rota de layout que chama o
+refresh antes de renderizar (ADR 0026 + 0023); (5) as telas, com os quatro estados cada. Antes
+de tudo: a decisão sobre o que o CI confere do front (provável emenda ao ADR 0022).
 
 Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
@@ -375,8 +378,12 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    o do navegador (recurso físico: o horário pertence ao lugar — convenção da IATA para voos, opção
    "fuso do negócio" do Microsoft Bookings). A API publica `fuso: str` (IANA) em
    `RecursoResposta`, ao lado do `hora_func` que ele dá sentido; hoje vem de `FUSO_FUNCIONAMENTO`
-   para todos, e o contrato já tem a forma do backlog "um fuso por recurso". **Ainda não
-   implementado:** o campo, o `docs/api.md`, o teste. O front formata com `Intl` nativo
+   para todos, e o contrato já tem a forma do backlog "um fuso por recurso". **Implementado em
+   2026-10-06:** o router compõe a resposta campo a campo em `_resposta(recurso, fuso)`, com
+   `fuso: ZoneInfo = Depends(obter_fuso)` nas quatro rotas (o schema não lê ambiente, o modelo não
+   tem a coluna); `RecursoResposta` perdeu o `from_attributes` — deixou de ser espelho do modelo.
+   O teste troca `obter_fuso` por Lisboa e lê Lisboa: prova que o valor vem da dependência, não
+   do `.env`. O front formata com `Intl` nativo
    (`timeZone:`), sem biblioteca, e calcula o `dia` nesse fuso; o Playwright fixa `timezoneId`
    (o runner do CI é UTC). Etiqueta "horários em America/Sao_Paulo" é desenho. Reservar
    **clicando numa lacuna** evita construir instante a partir de hora local em JS: o front manda

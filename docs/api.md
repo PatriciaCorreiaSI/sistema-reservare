@@ -32,6 +32,7 @@ RecursoResposta
     hora_func_inicio: time
     hora_func_fim: time
     status_recurso: str
+    fuso: str
 ```
 
 ```
@@ -50,6 +51,7 @@ DisponibilidadeResposta
 
 - **O `dia` é local; as lacunas, em UTC** ([ADR 0019](./adr/0019-disponibilidade-como-lacunas-livres.md)). A resposta devolve o `dia` junto porque uma lacuna às 23h UTC do dia 2 ainda pertence ao dia 2 em Brasília: sem ele, a lista não diz de que dia fala.
 
+- **`fuso` é o nome IANA do fuso de funcionamento** (emenda ao [ADR 0018](./adr/0018-fuso-unico-do-sistema.md)): `hora_func_inicio` e `hora_func_fim` são horas de relógio nesse fuso, e a tela formata as lacunas nele. Hoje é `FUSO_FUNCIONAMENTO` para todos os recursos; o campo já tem a forma de "um fuso por recurso".
 
 ### Rotas de `/api/recursos`
 

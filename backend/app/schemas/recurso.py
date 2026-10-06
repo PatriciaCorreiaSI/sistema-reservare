@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class RecursoCriar(BaseModel):
@@ -19,14 +19,13 @@ class RecursoAtualizar(BaseModel):
 
 
 class RecursoResposta(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id_recurso: int
     nome_recurso: str
     ocupacao: int
     hora_func_inicio: time
     hora_func_fim: time
     status_recurso: str
+    fuso: str
 
 
 class Lacuna(BaseModel):

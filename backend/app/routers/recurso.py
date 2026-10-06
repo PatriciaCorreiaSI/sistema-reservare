@@ -1,8 +1,10 @@
 from datetime import date
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query
 
-from app.dependencies import exigir_admin, obter_usuario_atual
+from app.dependencies import exigir_admin, obter_fuso, obter_usuario_atual
+from app.models import Recurso
 from app.schemas.recurso import (
     DisponibilidadeResposta,
     RecursoAtualizar,
@@ -15,15 +17,32 @@ from app.services.reserva import ReservaService
 router = APIRouter(prefix="/recursos", tags=["Recursos"])
 
 
+def _resposta(recurso: Recurso, fuso: ZoneInfo) -> RecursoResposta:
+    # Emenda ao ADR 0018: o fuso vai junto, porque hora_func em fuso é meia
+    # informação. Composto aqui porque o schema não lê e o modelo não
+    # tem a coluna; o valor vem da mesma dependência que o ReservaService usa.
+    return RecursoResposta(
+        id_recurso=recurso.id_recurso,
+        nome_recurso=recurso.nome_recurso,
+        ocupacao=recurso.ocupacao,
+        hora_func_inicio=recurso.hora_func_inicio,
+        hora_func_fim=recurso.hora_func_fim,
+        status_recurso=recurso.status_recurso,
+        fuso=fuso.key,
+    )
+
+
 @router.get(
     "/{id_recurso}",
     response_model=RecursoResposta,
     dependencies=[Depends(obter_usuario_atual)],
 )
 def buscar_por_id(
-    id_recurso: int, service: RecursoService = Depends()
+    id_recurso: int,
+    service: RecursoService = Depends(),
+    fuso: ZoneInfo = Depends(obter_fuso),
 ) -> RecursoResposta:
-    return RecursoResposta.model_validate(service.buscar_por_id(id_recurso))
+    return _resposta(service.buscar_por_id(id_recurso), fuso)
 
 
 # 201 = criado com sucesso
@@ -33,8 +52,12 @@ def buscar_por_id(
     response_model=RecursoResposta,
     dependencies=[Depends(exigir_admin)],
 )
-def criar(dados: RecursoCriar, service: RecursoService = Depends()) -> RecursoResposta:
-    return RecursoResposta.model_validate(service.criar(dados))
+def criar(
+    dados: RecursoCriar,
+    service: RecursoService = Depends(),
+    fuso: ZoneInfo = Depends(obter_fuso),
+) -> RecursoResposta:
+    return _resposta(service.criar(dados), fuso)
 
 
 @router.get(
@@ -46,10 +69,9 @@ def listar(
     limite: int = Query(20, ge=1, le=100),
     deslocamento: int = Query(0, ge=0),
     service: RecursoService = Depends(),
+    fuso: ZoneInfo = Depends(obter_fuso),
 ) -> list[RecursoResposta]:
-    return [
-        RecursoResposta.model_validate(r) for r in service.listar(limite, deslocamento)
-    ]
+    return [_resposta(r, fuso) for r in service.listar(limite, deslocamento)]
 
 
 @router.patch(
@@ -58,9 +80,12 @@ def listar(
     dependencies=[Depends(exigir_admin)],
 )
 def atualizar(
-    id_recurso: int, dados: RecursoAtualizar, service: RecursoService = Depends()
+    id_recurso: int,
+    dados: RecursoAtualizar,
+    service: RecursoService = Depends(),
+    fuso: ZoneInfo = Depends(obter_fuso),
 ) -> RecursoResposta:
-    return RecursoResposta.model_validate(service.atualizar(id_recurso, dados))
+    return _resposta(service.atualizar(id_recurso, dados), fuso)
 
 
 # 204 = removido com sucesso e não retorna dados
