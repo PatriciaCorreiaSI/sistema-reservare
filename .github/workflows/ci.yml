@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  verificar:
+  backend:
     runs-on: ubuntu-latest
 
     services:
@@ -64,3 +64,33 @@ jobs:
         run: |
           uv run alembic downgrade base
           uv run alembic upgrade head
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Instalar o Node da versão do .nvmrc
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar as dependências do package-lock.json
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatação
+        run: npm run format:check
+
+      - name: Tipos e empacotamento
+        run: npm run build
