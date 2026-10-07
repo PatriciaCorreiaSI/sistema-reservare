@@ -108,8 +108,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   concluído em 2026-10-06** (`/api`, cookie, `fuso`). **`frontend/` criado em 2026-10-07:** Vite +
   React + TypeScript com o proxy do 0024, ESLint + Prettier, contrato exportado
   (`frontend/openapi.json`) e tipos gerados (`src/api/tipos.ts`); emenda ao ADR 0022 pôs o CI em
-  dois jobs (`backend`, `frontend`), cada um conferindo o seu arquivo gerado. Suíte em
-  `111 passed`. Ainda sem `openapi-fetch`, hooks, roteador nem telas.
+  dois jobs (`backend`, `frontend`), cada um conferindo o seu arquivo gerado; cliente
+  `openapi-fetch` tipado (`src/api/cliente.ts`) e `QueryClientProvider` no `main.tsx`. Suíte em
+  `111 passed`. Ainda sem hooks, sessão (access em memória), roteador nem telas.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -332,18 +333,23 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — chão pronto; o próximo bloco é o `openapi-fetch` e o primeiro hook do
-TanStack Query, escrito à mão (ADR 0025).** Em 2026-10-07 fecharam, em três commits, a emenda ao
-ADR 0022 (CI em dois jobs), o `frontend/` com Vite e proxy (prova: `POST /api/auth/login` pelo
-console do navegador, `200` e cookie `HttpOnly` na aba Application) e o par contrato + tipos
-gerados, conferidos pelo CI. Território novo continua: código pronto no chat, conceito ao lado.
-Ordem do que falta: (1) `openapi-fetch` com `createClient<paths>()` apontando para `/api`, e o
-primeiro hook (`useQuery` da listagem de recursos) à mão — o conceito da etapa; (2) React Router
-declarativo com a rota de layout que chama o refresh antes de renderizar (ADR 0026 + 0023), o
-access só em memória (ADR 0013); (3) as telas, com os quatro estados cada; (4) o teste Playwright
-e o job `e2e` (já decidido na emenda ao 0022, entra no commit do primeiro teste). Pendente do dia:
-o contra-teste do `git diff --exit-code` (trocar o `title` em `main.py`, rodar o passo do
-`backend`, ver `1`; desfazer com `git restore`).
+**Etapa 7 (front-end) — chão pronto; o próximo bloco é a sessão e o primeiro hook do TanStack
+Query, escrito à mão (ADR 0025).** Em 2026-10-07 fecharam, em cinco commits, a emenda ao ADR
+0022 (CI em dois jobs), o `frontend/` com Vite e proxy (prova: `POST /api/auth/login` pelo console
+do navegador, `200` e cookie `HttpOnly` na aba Application), o par contrato + tipos gerados
+conferidos pelo CI (contra-teste do `git diff --exit-code` feito: `title` trocado → `1`), e o
+cliente `openapi-fetch` + `QueryClientProvider` (prova: `cliente.POST("/api/auth/login")` num bloco
+temporário do `main.tsx` deu `200` com `data` tipado; contra-teste: `email_usuari` ficou vermelho
+no `tsc`, a promessa do ADR 0025). Território novo continua: código pronto no chat, conceito ao
+lado; o conceito já dado é **estado de servidor × estado de interface** (cache × `useState`).
+Ordem do que falta, e por quê nessa ordem: (1) **sessão antes de qualquer `useQuery`**, porque
+toda rota de leitura exige token (ADR 0020): o access em memória num módulo só (ADR 0013), um
+*middleware* do `openapi-fetch` que põe o `Authorization: Bearer` em toda chamada, e o
+`useMutation` do login — o primeiro hook é de escrita, não de leitura; (2) o primeiro `useQuery`
+(listagem de recursos) com os quatro estados numa tela crua; (3) React Router declarativo com a
+rota de layout que chama o refresh antes de renderizar (ADR 0026 + 0023), e o `401` → refresh →
+repetir no middleware; (4) as telas de verdade, com react-hook-form + zod; (5) o Playwright e o
+job `e2e` (decidido na emenda ao 0022, entra no commit do primeiro teste).
 
 **Decisões do front fora dos ADRs (2026-10-07):**
 
@@ -363,6 +369,12 @@ o contra-teste do `git diff --exit-code` (trocar o `title` em `main.py`, rodar o
   ferramentas em `localhost` (um `ajs_anonymous_id` da Segment apareceu) são vizinhos, não defeito.
 - **O Vite responde `index.html` a toda URL que não conhece** (`/health` dá `200`/`304` com HTML):
   por isso a prova do proxy é uma rota sob `/api`. API parada = `502` do proxy.
+- **`createClient<paths>()` sem `baseUrl`:** as chaves de `paths` já começam com `/api` (o prefixo
+  é do back-end, ADR 0024), e a URL relativa resolve na origem da página. `import type { paths }`
+  é obrigatório pelo `verbatimModuleSyntax` do `tsconfig`. O `openapi-fetch` devolve `{ data,
+  error, response }`: `data` só em 2xx, `error` só em 4xx/5xx, os dois tipados pelo contrato; o
+  `Content-Type` e o `JSON.stringify` ele deduz. O `QueryClient` nasce fora de qualquer
+  componente (um por app) e o `Provider` o entrega por contexto — é o `Depends()` do front.
 
 Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
