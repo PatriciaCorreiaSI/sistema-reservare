@@ -47,7 +47,7 @@ O ADR decidiu um job só, com `working-directory: backend`. A Etapa 7 traz uma s
 | Backend hoje | Front | O que pega |
 |--------------|-------|------------|
 | `uv sync --locked` | `npm ci` | lock desatualizado ou ausente (o ci recusa instalar sem o package-lock.json bater) |
-| `ruff check` | `npx eslint .` | lint (o template react-ts do Vite já traz o eslint.config.js) |
+| `ruff check` | `npx eslint .` | lint (o `create-vite` oferece o ESLint na criação, pela flag `--eslint`) |
 | `ruff format --check` | `npx prettier --check .` | formatação. O ESLint deixou de formatar; o par ESLint + Prettier é o padrão do mercado |
 | `mypy app` | `npm run build` | tipos e empacotamento: o script do template é tsc -b && vite build, então um passo cobre os dois. Na Etapa 8 o deploy vai precisar do build de qualquer jeito |
 
@@ -60,7 +60,7 @@ O ADR decidiu um job só, com `working-directory: backend`. A Etapa 7 traz uma s
 
 - **Um script só que exporta e gera, como o `generate-client.sh` do template, com o CI comitando a correção** — por que descartei: exige token de escrita e esconde de quem fez o push que esqueceu de gerar. Aqui o CI fica vermelho e a pessoa gera na máquina, como com as migrations.
 
-- **Biome no lugar de ESLint + Prettier** — por que descartei: um binário só e mais rápido, adotado pelo template oficial, mas menos adotado no mercado, e o template do Vite já traz o ESLint.
+- **Oxlint + oxfmt (o padrão novo do `create-vite`) Biome no lugar de ESLint + Prettier** — por que descartei: ferramentas em Rust, um binário só e mais rápidas; o Biome é a escolha do template oficial do FastAPI, e o Oxlint virou o padrão do `create-vite`. Mas ESLint + Prettier continua sendo o par que o mercado usa, e o `oxfmt` ainda está em versão 0.x.
 
 ### Consequências
 
