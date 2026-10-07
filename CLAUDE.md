@@ -330,6 +330,11 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **PowerShell não tem `head`**: `git add --dry-run frontend | head` imprime só `frontend/`.
   Usar `Select-Object -First 40`. O `npm` recusa conflito de *peer dependency* (`ERESOLVE`): é
   erro, não aviso, e a saída diz qual pacote pede qual versão.
+- **`npm run format:check` antes de todo commit do front** (o pre-commit ainda não cobre o
+  `frontend/`): uma linha em branco a mais no `main.tsx` deixou o CI vermelho em 2026-10-07. E o
+  Prettier local pode reprovar um arquivo que o CI aceita: o VS Code cria arquivo novo com CRLF,
+  o Prettier exige LF (`endOfLine`), e no runner o checkout já é LF. `npm run format` resolve os
+  dois; o `git diff` não mostra a troca de final de linha porque o repositório guarda LF.
 
 ### Próximo passo
 
