@@ -31,3 +31,42 @@ O ganho: o Actions resolve sozinho a espera e a criação do banco, no padrão d
 ## Como eu saberia que errei
 
 Se o CI ficar verde e a máquina local vermelha, ou o contrário, por diferença entre as versões da imagem. Se uma constraint faltar no banco com o `alembic check` passando. Se um valor de produção aparecer no workflow. Ou se o CI demorar a ponto de eu precisar fazer push sem esperar o resultado.
+
+
+## Emenda (2026-10-07): o CI passa a conferir o frontend
+
+### Problema
+
+O ADR decidiu um job só, com `working-directory: backend`. A Etapa 7 traz uma segunda cadeia de ferramentas (Node, `npm`, `tsc`, ESLint), o compromisso do [ADR 0025](0025-gerar-tipos-do-front-pelo-openapi.md) (gerar e comparar os tipos no CI) e, no fim, um teste Playwright que precisa de banco, API, front e navegador juntos.
+
+### Decisão
+
+- Dois jobs no mesmo `ci.yml`, `backend` e `frontend`, em paralelo: o `backend` fica como está.
+- O que reprova no `frontend`, na ordem: `npm ci`, `eslint`, `prettier --check`, `npm run build`:
+
+| Backend hoje | Front | O que pega |
+|--------------|-------|------------|
+| `uv sync --locked` | `npm ci` | lock desatualizado ou ausente (o ci recusa instalar sem o package-lock.json bater) |
+| `ruff check` | `npx eslint .` | lint (o template react-ts do Vite já traz o eslint.config.js) |
+| `ruff format --check` | `npx prettier --check .` | formatação. O ESLint deixou de formatar; o par ESLint + Prettier é o padrão do mercado |
+| `mypy app` | `npm run build` | tipos e empacotamento: o script do template é tsc -b && vite build, então um passo cobre os dois. Na Etapa 8 o deploy vai precisar do build de qualquer jeito |
+
+- Dois arquivos gerados no repositório, cada job confere o seu com `git diff --exit-code`: o `backend` exporta `app.openapi()` e compara o `openapi.json`; o `frontend` gera os tipos desse JSON e compara. O porquê da divisão: exportar exige importar o app, e o app exige as seis variáveis, que só o `backend` tem. Arquivo gerado fica fora do lint e do formatador.
+- Terceiro job, `e2e`, independente e paralelo, com os passos do workflow oficial do Playwright, entrando no commit do primeiro teste. Node fixado em `frontend/.nvmrc` (`24`), lido pelo `setup-node` com cache do `npm`.
+
+### Alternativas descartadas
+
+- **Filtro por caminho (`paths:`)** — por que descartei: job pulado não fica verde, e a suíte é curta demais para compensar.
+
+- **Um script só que exporta e gera, como o `generate-client.sh` do template, com o CI comitando a correção** — por que descartei: exige token de escrita e esconde de quem fez o push que esqueceu de gerar. Aqui o CI fica vermelho e a pessoa gera na máquina, como com as migrations.
+
+- **Biome no lugar de ESLint + Prettier** — por que descartei: um binário só e mais rápido, adotado pelo template oficial, mas menos adotado no mercado, e o template do Vite já traz o ESLint.
+
+### Consequências
+
+O ganho: cada camada reprova pelo seu próprio motivo, em paralelo, e um contrato desatualizado fica vermelho antes de virar `undefined` na tela. O custo: dois arquivos gerados que precisam ser regerados a cada mudança de schema (um passo a mais no fluxo, como o `autogenerate`); a versão do Node passa a morar num arquivo a mais para manter; o `e2e` será o job mais lento e mais frágil do workflow.
+Mudar de ideia custa pouco: trocar ESLint + Prettier por Biome muda dois passos e um arquivo de configuração; juntar os jobs de volta é mover passos de lugar. O que não volta atrás sem dor é o `openapi.json` no repositório; quem o remover precisa achar outro jeito de o job `frontend` conhecer o contrato sem importar.
+
+### Como eu saberia que errei
+
+O job `frontend` vermelho por mudança só no backend sem o `openapi.json` ter mudado. Alguém editando o `tipos.ts` à mão para calar o diff. O `e2e` virando o job que todo mundo espera e ninguém olha.
