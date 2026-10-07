@@ -105,8 +105,11 @@ Antes de escrever implementação, verifique em que fase ela está:
   ADRs 0023 (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`), 0025 (tipos
   gerados do OpenAPI, hooks à mão), 0026 (React Router v7 declarativo, sem *loaders*) e emenda ao
   0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). **Back-end da etapa
-  concluído em 2026-10-06** (`/api`, cookie, `fuso`); suíte em `110 passed`. Nenhum `frontend/`
-  ainda.
+  concluído em 2026-10-06** (`/api`, cookie, `fuso`). **`frontend/` criado em 2026-10-07:** Vite +
+  React + TypeScript com o proxy do 0024, ESLint + Prettier, contrato exportado
+  (`frontend/openapi.json`) e tipos gerados (`src/api/tipos.ts`); emenda ao ADR 0022 pôs o CI em
+  dois jobs (`backend`, `frontend`), cada um conferindo o seu arquivo gerado. Suíte em
+  `111 passed`. Ainda sem `openapi-fetch`, hooks, roteador nem telas.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -314,19 +317,52 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **Sequência do Postgres nunca volta atrás**, nem com `rollback` — buraco em `id` não é erro.
 - Pre-commit que corrige um arquivo interrompe o commit (`MM`/`AM`): `git add` de novo e repetir.
   Rodar `ruff format` antes do `add` evita.
+- **Commit que já subiu não se reescreve.** `reset HEAD~1` + commit novo com a mesma mensagem, em
+  cima de um commit já no `origin`, dá `non-fast-forward` no push (2026-10-07). Corrige-se com um
+  commit **por cima**; `--force` e `amend` são para o que ainda não saiu da máquina. E `git reset
+  --hard` descarta tudo o que não foi commitado: `git status` antes, sempre.
+- **No workflow, os `with:` das actions não respeitam `defaults.run.working-directory`**: só os
+  `run:` respeitam. `node-version-file` e `cache-dependency-path` levam `frontend/` na frente.
+  `git diff --exit-code` só vê arquivo **rastreado**: gerado sem `git add` passa calado. E o
+  contra-teste dele estraga a **origem** (um schema, o `title`), não o arquivo gerado, que a
+  primeira linha do passo reescreve antes do `diff` olhar.
+- **PowerShell não tem `head`**: `git add --dry-run frontend | head` imprime só `frontend/`.
+  Usar `Select-Object -First 40`. O `npm` recusa conflito de *peer dependency* (`ERESOLVE`): é
+  erro, não aviso, e a saída diz qual pacote pede qual versão.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — back-end pronto; começar o `frontend/`.** Os três blocos do back-end
-fecharam em 2026-10-06 (commits `c462c9d`, `49f5438` e o do `fuso`). O que vem é território que
-ela nunca fez — vale o acordo de 2026-10-06: código pronto no chat, conceito ao lado. Ordem
-sugerida, do chão para cima: (1) `npm create vite@latest frontend -- --template react-ts` e o
-`server.proxy` do ADR 0024; o primeiro pedido de prova é `POST /api/auth/login` — não o
-`/health`, que está fora do `/api` e o proxy não encaminha; (2) exportar o
-`openapi.json` de `app.openapi()` e gerar os tipos (ADR 0025); (3) `openapi-fetch` + o primeiro
-hook do TanStack Query à mão; (4) React Router declarativo com a rota de layout que chama o
-refresh antes de renderizar (ADR 0026 + 0023); (5) as telas, com os quatro estados cada. Antes
-de tudo: a decisão sobre o que o CI confere do front (provável emenda ao ADR 0022).
+**Etapa 7 (front-end) — chão pronto; o próximo bloco é o `openapi-fetch` e o primeiro hook do
+TanStack Query, escrito à mão (ADR 0025).** Em 2026-10-07 fecharam, em três commits, a emenda ao
+ADR 0022 (CI em dois jobs), o `frontend/` com Vite e proxy (prova: `POST /api/auth/login` pelo
+console do navegador, `200` e cookie `HttpOnly` na aba Application) e o par contrato + tipos
+gerados, conferidos pelo CI. Território novo continua: código pronto no chat, conceito ao lado.
+Ordem do que falta: (1) `openapi-fetch` com `createClient<paths>()` apontando para `/api`, e o
+primeiro hook (`useQuery` da listagem de recursos) à mão — o conceito da etapa; (2) React Router
+declarativo com a rota de layout que chama o refresh antes de renderizar (ADR 0026 + 0023), o
+access só em memória (ADR 0013); (3) as telas, com os quatro estados cada; (4) o teste Playwright
+e o job `e2e` (já decidido na emenda ao 0022, entra no commit do primeiro teste). Pendente do dia:
+o contra-teste do `git diff --exit-code` (trocar o `title` em `main.py`, rodar o passo do
+`backend`, ver `1`; desfazer com `git restore`).
+
+**Decisões do front fora dos ADRs (2026-10-07):**
+
+- **TypeScript fixado em `~5.9`**, não o 6 que o template trouxe: o `openapi-typescript` declara
+  `peer typescript ^5.x` e o `npm` recusa instalar (`ERESOLVE`); issue aberta
+  (`openapi-ts/openapi-typescript#2723`). Soltar o pino quando ela fechar. `--legacy-peer-deps`
+  descartado: esconde o conflito a cada `npm ci`.
+- **Arquivos gerados** (`frontend/openapi.json`, `frontend/src/api/tipos.ts`) ficam **fora** do
+  Prettier (`.prettierignore`) e do ESLint (`globalIgnores`), mas **dentro** do `tsc`, que é quem
+  os confere. Nunca se editam; mudou a API: `uv run python -m app.comandos.exportar_openapi` (de
+  `backend/`) e `npm run gerar-tipos` (de `frontend/`), nessa ordem, e os dois vão no commit.
+- **`FastAPI(title="Reservare")`** no `main.py`: o título vai para o contrato, o `/docs` e o
+  cabeçalho do gerado. `version` fica no padrão `0.1.0`.
+- **Abrir sempre `http://localhost:5173`**, nunca `127.0.0.1:5173`: o cookie é `Secure`, e os
+  navegadores só tratam `localhost` como contexto seguro em `http://`. O alvo do proxy continua
+  `127.0.0.1:8000` (lado do servidor, outra regra). Cookie ignora porta: cookies de outras
+  ferramentas em `localhost` (um `ajs_anonymous_id` da Segment apareceu) são vizinhos, não defeito.
+- **O Vite responde `index.html` a toda URL que não conhece** (`/health` dá `200`/`304` com HTML):
+  por isso a prova do proxy é uma rota sob `/api`. API parada = `502` do proxy.
 
 Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
@@ -389,9 +425,17 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    **clicando numa lacuna** evita construir instante a partir de hora local em JS: o front manda
    os instantes que a API devolveu.
 
+6. ✅ **O que o CI confere do front** — emenda ao ADR 0022 (2026-10-07): dois jobs no mesmo
+   `ci.yml` (`backend`, `frontend`), em paralelo, sem filtro por caminho; no `frontend`, `npm ci`
+   → `eslint` → `prettier --check` → `npm run build` (`tsc -b && vite build`, tipos e
+   empacotamento num passo); dois arquivos gerados no repositório, cada job gera o seu de novo e
+   compara com `git diff --exit-code` (o `backend` exporta `app.openapi()`, porque importar o app
+   exige as seis variáveis; o `frontend` gera os tipos do JSON); terceiro job `e2e` com os passos
+   do workflow oficial do Playwright, entrando no commit do primeiro teste; Node fixado em
+   `frontend/.nvmrc` (`24`), lido pelo `setup-node@v7` com `cache: npm`. Oxlint + oxfmt (o padrão
+   novo do `create-vite`) e Biome descartados pelo mercado.
+
 Formulários, os quatro estados de tela, acessibilidade e o Playwright são de desenho, não de ADR.
-Quando o front entrar no CI, pode surgir uma decisão sobre o que ele confere (tipos, lint, tipos
-gerados atualizados, Playwright) — provavelmente emenda ao ADR 0022.
 A autora pediu para decidir pelo mercado quando não tem parâmetro: trazer a prática de mercado
 com a fonte, ela confirma e escreve o ADR.
 
@@ -495,7 +539,9 @@ de teste só aparece ao rodar (prefira o argumento nomeado: `agora=...`).
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`104 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa.
+`111 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa. Para a API à
+mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia no
+`.env` passa pelo `os.environ` e cai no `min_length=8` — chave vazia não é chave ausente).
 
 **Backlog** (regra 7 — nenhum é v1):
 
@@ -577,6 +623,20 @@ Rodar de dentro de `backend/`, onde está o `pyproject.toml`:
 - `uv run mypy app` — verificação de tipos
 - `uv run python -m app.comandos.criar_admin` — cria o primeiro admin a partir de `ADMIN_NOME`,
   `ADMIN_EMAIL` e `ADMIN_SENHA` do `.env`; sai com código `1` se o e-mail já existir
+- `uv run python -m app.comandos.exportar_openapi` — grava `app.openapi()` em
+  `frontend/openapi.json` (JSON com `indent=2`, UTF-8, LF); importa o app, logo precisa do `.env`
+
+Front, de dentro de `frontend/` (Node 24, versão em `.nvmrc`):
+
+- `npm install` — instala o `package-lock.json`; `npm ci` é a forma do CI, que recusa lock
+  desatualizado. `npm install -D <pacote>` é o `uv add --dev`
+- `npm run dev` — sobe o Vite em `http://localhost:5173`, com o proxy de `/api` para a API, que
+  precisa estar no ar (`uvicorn`, em outro terminal)
+- `npm run lint` — ESLint; `npm run format` — Prettier reescreve; `npm run format:check` — só
+  confere (o do CI)
+- `npm run build` — `tsc -b && vite build`: tipos e empacotamento em `dist/` (ignorado)
+- `npm run gerar-tipos` — `openapi-typescript openapi.json -o src/api/tipos.ts`; rodar depois do
+  `exportar_openapi`
 
 Da **raiz** do repositório, porque o `pre-commit` não está no `PATH` (ele vive
 em `backend/.venv/`):

@@ -214,7 +214,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 decididos e implementados no back-end; `frontend/` a começar |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 implementados no back-end; `frontend/` com Vite, proxy e tipos gerados, conferidos pelo CI em dois jobs (emenda ao 0022); faltam `openapi-fetch`, hooks, roteador, telas e Playwright |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -441,7 +441,7 @@ que desligaria o alarme também para quando a linha ganhar regra.
 
 ### 🖥️ Etapa 7 — Front-end
 
-> **🔨 Em andamento desde 2026-10-05, na fase de decidir.** Refresh num cookie `httpOnly`, para a
+> **🔨 Em andamento desde 2026-10-05; decisões fechadas, chão do `frontend/` pronto.** Refresh num cookie `httpOnly`, para a
 > sessão sobreviver ao F5 ([ADR 0023](adr/0023-guardar-refresh-em-cookie-httponly.md)); front
 > alcança a API pelo proxy do Vite, com todas as rotas sob `/api`
 > ([ADR 0024](adr/0024-alcancar-api-pelo-proxy-do-vite.md)); tipos gerados do OpenAPI, com os
@@ -451,7 +451,13 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > fala o fuso do recurso, que a API passa a publicar em `RecursoResposta` (emenda ao
 > [ADR 0018](adr/0018-fuso-unico-do-sistema.md)). Decisões fechadas em 2026-10-06, e no mesmo dia
 > o back-end que elas pedem: rotas sob `/api`, refresh em cookie, `fuso` em `RecursoResposta`
-> (suíte em 110). Falta o `frontend/` inteiro.
+> (suíte em 110). Em 2026-10-07, a emenda ao
+> [ADR 0022](adr/0022-container-de-servico-e-variaveis-no-workflow.md) decidiu o que o CI confere
+> do front (dois jobs, `backend` e `frontend`; arquivos gerados comparados com `git diff
+> --exit-code`; job `e2e` quando o Playwright existir), e o `frontend/` nasceu: Vite + React +
+> TypeScript 5.9, proxy de `/api`, ESLint + Prettier, contrato exportado de `app.openapi()` e tipos
+> gerados pelo `openapi-typescript` (suíte em 111). Faltam `openapi-fetch`, os hooks do TanStack
+> Query à mão, o roteador, as telas e o Playwright.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 
