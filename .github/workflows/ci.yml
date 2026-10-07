@@ -54,6 +54,11 @@ jobs:
       - name: Tipos
         run: uv run mypy app
 
+      - name: Contrato OpenAPI atualizado
+        run: |
+          uv run python -m app.comandos.exportar_openapi
+          git diff --exit-code -- ../frontend/openapi.json
+
       - name: Testes com relatório de cobertura
         run: uv run pytest --cov=app  --cov-report=term-missing
 
@@ -85,6 +90,11 @@ jobs:
 
       - name: Instalar as dependências do package-lock.json
         run: npm ci
+
+      - name: Tipos gerados atualizados
+        run: |
+          npm run gerar-tipos
+          git diff --exit-code -- src/api/tipos.ts
 
       - name: Lint
         run: npm run lint

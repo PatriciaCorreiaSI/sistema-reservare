@@ -1,0 +1,1169 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Reservare",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Health verifica se a API está em execução.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recursos/{id_recurso}": {
+      "get": {
+        "tags": [
+          "Recursos"
+        ],
+        "summary": "Buscar Por Id",
+        "operationId": "buscar_por_id_api_recursos__id_recurso__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_recurso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Recurso"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecursoResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Recursos"
+        ],
+        "summary": "Atualizar",
+        "operationId": "atualizar_api_recursos__id_recurso__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_recurso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Recurso"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecursoAtualizar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecursoResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Recursos"
+        ],
+        "summary": "Remover",
+        "operationId": "remover_api_recursos__id_recurso__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_recurso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Recurso"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recursos": {
+      "post": {
+        "tags": [
+          "Recursos"
+        ],
+        "summary": "Criar",
+        "operationId": "criar_api_recursos_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecursoCriar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecursoResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Recursos"
+        ],
+        "summary": "Listar",
+        "operationId": "listar_api_recursos_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limite"
+            }
+          },
+          {
+            "name": "deslocamento",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Deslocamento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecursoResposta"
+                  },
+                  "title": "Response Listar Api Recursos Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recursos/{id_recurso}/disponibilidade": {
+      "get": {
+        "tags": [
+          "Recursos"
+        ],
+        "summary": "Disponibilidade",
+        "operationId": "disponibilidade_api_recursos__id_recurso__disponibilidade_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_recurso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Recurso"
+            }
+          },
+          {
+            "name": "dia",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Dia"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisponibilidadeResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginEntrada"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "summary": "Renovar",
+        "operationId": "renovar_api_auth_refresh_post",
+        "parameters": [
+          {
+            "name": "refresh_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Refresh Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_auth_logout_post",
+        "parameters": [
+          {
+            "name": "refresh_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Refresh Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/usuarios": {
+      "post": {
+        "tags": [
+          "Usuários"
+        ],
+        "summary": "Criar",
+        "operationId": "criar_api_usuarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioCriar"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/reservas/{id_reserva}": {
+      "get": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Buscar Por Id",
+        "operationId": "buscar_por_id_api_reservas__id_reserva__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_reserva",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Reserva"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reservas": {
+      "post": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Criar",
+        "operationId": "criar_api_reservas_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservaCriar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Listar",
+        "operationId": "listar_api_reservas_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limite"
+            }
+          },
+          {
+            "name": "deslocamento",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Deslocamento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReservaResposta"
+                  },
+                  "title": "Response Listar Api Reservas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reservas/{id_reserva}/cancelar": {
+      "post": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Cancelar",
+        "operationId": "cancelar_api_reservas__id_reserva__cancelar_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_reserva",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Reserva"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservaResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DisponibilidadeResposta": {
+        "properties": {
+          "id_recurso": {
+            "type": "integer",
+            "title": "Id Recurso"
+          },
+          "dia": {
+            "type": "string",
+            "format": "date",
+            "title": "Dia"
+          },
+          "lacunas": {
+            "items": {
+              "$ref": "#/components/schemas/Lacuna"
+            },
+            "type": "array",
+            "title": "Lacunas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_recurso",
+          "dia",
+          "lacunas"
+        ],
+        "title": "DisponibilidadeResposta"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Lacuna": {
+        "properties": {
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inicio",
+          "fim"
+        ],
+        "title": "Lacuna"
+      },
+      "LoginEntrada": {
+        "properties": {
+          "email_usuario": {
+            "type": "string",
+            "title": "Email Usuario"
+          },
+          "senha": {
+            "type": "string",
+            "title": "Senha"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email_usuario",
+          "senha"
+        ],
+        "title": "LoginEntrada"
+      },
+      "RecursoAtualizar": {
+        "properties": {
+          "nome_recurso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Recurso"
+          },
+          "ocupacao": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocupacao"
+          },
+          "hora_func_inicio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hora Func Inicio"
+          },
+          "hora_func_fim": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hora Func Fim"
+          },
+          "status_recurso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Recurso"
+          }
+        },
+        "type": "object",
+        "title": "RecursoAtualizar"
+      },
+      "RecursoCriar": {
+        "properties": {
+          "nome_recurso": {
+            "type": "string",
+            "title": "Nome Recurso"
+          },
+          "ocupacao": {
+            "type": "integer",
+            "title": "Ocupacao"
+          },
+          "hora_func_inicio": {
+            "type": "string",
+            "format": "time",
+            "title": "Hora Func Inicio"
+          },
+          "hora_func_fim": {
+            "type": "string",
+            "format": "time",
+            "title": "Hora Func Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nome_recurso",
+          "ocupacao",
+          "hora_func_inicio",
+          "hora_func_fim"
+        ],
+        "title": "RecursoCriar"
+      },
+      "RecursoResposta": {
+        "properties": {
+          "id_recurso": {
+            "type": "integer",
+            "title": "Id Recurso"
+          },
+          "nome_recurso": {
+            "type": "string",
+            "title": "Nome Recurso"
+          },
+          "ocupacao": {
+            "type": "integer",
+            "title": "Ocupacao"
+          },
+          "hora_func_inicio": {
+            "type": "string",
+            "format": "time",
+            "title": "Hora Func Inicio"
+          },
+          "hora_func_fim": {
+            "type": "string",
+            "format": "time",
+            "title": "Hora Func Fim"
+          },
+          "status_recurso": {
+            "type": "string",
+            "title": "Status Recurso"
+          },
+          "fuso": {
+            "type": "string",
+            "title": "Fuso"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_recurso",
+          "nome_recurso",
+          "ocupacao",
+          "hora_func_inicio",
+          "hora_func_fim",
+          "status_recurso",
+          "fuso"
+        ],
+        "title": "RecursoResposta"
+      },
+      "ReservaCriar": {
+        "properties": {
+          "id_recurso": {
+            "type": "integer",
+            "title": "Id Recurso"
+          },
+          "convidados": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Convidados"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_recurso",
+          "convidados",
+          "inicio",
+          "fim"
+        ],
+        "title": "ReservaCriar"
+      },
+      "ReservaResposta": {
+        "properties": {
+          "id_reserva": {
+            "type": "integer",
+            "title": "Id Reserva"
+          },
+          "id_usuario": {
+            "type": "integer",
+            "title": "Id Usuario"
+          },
+          "id_recurso": {
+            "type": "integer",
+            "title": "Id Recurso"
+          },
+          "convidados": {
+            "type": "integer",
+            "title": "Convidados"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fim"
+          },
+          "status_reserva": {
+            "type": "string",
+            "title": "Status Reserva"
+          },
+          "cancelada_por_id_usuario": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelada Por Id Usuario"
+          },
+          "cancelada_em": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelada Em"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_reserva",
+          "id_usuario",
+          "id_recurso",
+          "convidados",
+          "inicio",
+          "fim",
+          "status_reserva",
+          "cancelada_por_id_usuario",
+          "cancelada_em"
+        ],
+        "title": "ReservaResposta"
+      },
+      "TokenResposta": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "TokenResposta"
+      },
+      "UsuarioCriar": {
+        "properties": {
+          "nome_usuario": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Nome Usuario"
+          },
+          "email_usuario": {
+            "type": "string",
+            "format": "email",
+            "title": "Email Usuario"
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Senha"
+          },
+          "privilegio_usuario": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "usuario"
+            ],
+            "title": "Privilegio Usuario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nome_usuario",
+          "email_usuario",
+          "senha",
+          "privilegio_usuario"
+        ],
+        "title": "UsuarioCriar"
+      },
+      "UsuarioResposta": {
+        "properties": {
+          "id_usuario": {
+            "type": "integer",
+            "title": "Id Usuario"
+          },
+          "nome_usuario": {
+            "type": "string",
+            "title": "Nome Usuario"
+          },
+          "email_usuario": {
+            "type": "string",
+            "title": "Email Usuario"
+          },
+          "privilegio_usuario": {
+            "type": "string",
+            "title": "Privilegio Usuario"
+          },
+          "status_usuario": {
+            "type": "string",
+            "title": "Status Usuario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_usuario",
+          "nome_usuario",
+          "email_usuario",
+          "privilegio_usuario",
+          "status_usuario"
+        ],
+        "title": "UsuarioResposta"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

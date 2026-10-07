@@ -15,7 +15,7 @@ from app.services.excecoes import (
     ReservaNaoEncontrada,
 )
 
-app = FastAPI()
+app = FastAPI(title="Reservare")
 
 api = APIRouter(prefix="/api")
 api.include_router(recurso.router)
