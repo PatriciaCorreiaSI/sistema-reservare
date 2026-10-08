@@ -1,13 +1,23 @@
 from datetime import date, datetime, time
+from typing import Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class RecursoCriar(BaseModel):
     nome_recurso: str
-    ocupacao: int
+    ocupacao: int = Field(gt=0)
     hora_func_inicio: time
     hora_func_fim: time
+
+    @model_validator(mode="after")
+    def validar_periodo(self) -> Self:
+        if self.hora_func_inicio >= self.hora_func_fim:
+            raise ValueError(
+                "Período de funcionamento inválido: "
+                "hora_func_inicio precisa ser anterior a hora_func_fim."
+            )
+        return self
 
 
 class RecursoAtualizar(BaseModel):

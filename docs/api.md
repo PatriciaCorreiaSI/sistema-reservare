@@ -10,9 +10,10 @@ Todas as rotas ficam sob `/api` ([ADR 0024](./adr/0024-alcancar-api-pelo-proxy-d
 ```
 RecursoCriar
     nome_recurso: str
-    ocupacao: int
+    ocupacao: int = Field(gt=0)
     hora_func_inicio: time
     hora_func_fim: time
+    valida: hora_func_inicioo < hora_func_fim (model_validator) → 422
 ```
 
 ```

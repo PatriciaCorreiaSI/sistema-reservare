@@ -135,6 +135,39 @@ def test_criar_recurso_sem_campo_obrigatorio(client, usuario, cabecalho_de, admi
     assert resposta.status_code == 422
 
 
+def test_criar_recurso_com_ocupacao_zero_devolve_422(client, cabecalho_de, admin):
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 0,
+        "hora_func_inicio": "08:00:00",
+        "hora_func_fim": "18:00:00",
+    }
+    resposta = client.post("/recursos", json=dados, headers=cabecalho_de(admin))
+    assert resposta.status_code == 422
+
+
+def test_criar_recurso_com_fim_antes_do_inicio_devolve_422(client, cabecalho_de, admin):
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 10,
+        "hora_func_inicio": "18:00:00",
+        "hora_func_fim": "08:00:00",
+    }
+    resposta = client.post("/recursos", json=dados, headers=cabecalho_de(admin))
+    assert resposta.status_code == 422
+
+
+def test_criar_recurso_com_fim_igual_ao_inicio_devolve_422(client, cabecalho_de, admin):
+    dados = {
+        "nome_recurso": "Sala 1",
+        "ocupacao": 10,
+        "hora_func_inicio": "08:00:00",
+        "hora_func_fim": "08:00:00",
+    }
+    resposta = client.post("/recursos", json=dados, headers=cabecalho_de(admin))
+    assert resposta.status_code == 422
+
+
 def test_listar_recursos_sem_token_devolve_401(client, recurso_criado):
     resposta = client.get("/recursos")
     assert resposta.status_code == 401
