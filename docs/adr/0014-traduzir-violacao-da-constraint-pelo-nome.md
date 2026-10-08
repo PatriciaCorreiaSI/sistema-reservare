@@ -42,3 +42,34 @@ O ganho é que identificar a constraint pelo nome é preciso e estável. O custo
 ## Como eu saberia que errei
 
 Se o mesmo método do repository precisar traduzir a mesma constraint em respostas diferentes, conforme uma regra de negócios que ele não conhece. O repository não conhece o contexto do negócio, então nesse caso a tradução teria de voltar para o service.
+
+
+## Emenda (2026-10-08): a validação mora onde a regra enxerga os dados
+
+### Problema
+
+O ADR diz que o conserto de uma `CHECK` que dispara é validar no schema. No `PATCH`, a regra `hora_func_inicio < hora_func_fim` depende de um valor que pode estar só no banco. Um pedido com só `hora_func_fim` não leva o início, e o schema não enxerga o banco.
+
+Como apareceu: em 2026-10-08, o exemplo automático do `/docs` mandou `ocupacao` zero e horários iguais, e o `POST /api/recursos` deu `500`. O `ReservaCriar` valida, mas o `RecursoCriar` e o `RecursoAtualizar` não.
+
+### Decisão
+
+A `CHECK` que dispara continua sendo validação faltando. O que muda é onde a validação mora. 
+- Se a regra depende só do pedido, ela fica no schema. É o caso da `ocupacao`, do `status_recurso` e dos dois horários no `POST`.
+- Se a regra depende também do que está gravado, ela fica no service, depois de aplicar o patch sobre o recurso lido. É o caso dos horários do `PATCH`.
+
+O service lança uma exceção de domínio nova, e um handler a traduz para `422`. A fonte de mercado é a RFC 7396, do *JSON Merge Patch*: aplica-se o patch ao recurso atual e valida-se o resultado. A tabela do ADR continua valendo: nenhuma `CHECK` é traduzida, e a que escapar sobe como `500`.
+
+### Alternativas descartadas
+
+- **Traduzir a `CHECK` para `422` no repository** — por que descartei: é o menor código, mas o banco deixa de ser a última defesa e vira a validação. Contradiz a própria decisão do ADR.
+
+- **Exigir no schema que os dois horários venham juntos** — por que descartei: tudo ficaria no schema, mas o `PATCH` perderia o sentido de mandar só o que muda, que é o porquê registrado no `api.md`.
+
+### Consequências
+
+O ganho: o `PATCH` continua parcial, e o banco continua sendo só a última defesa. O custo: a mesma regra mora em dois lugares, no schema no `POST` e no service do `PATCH`. O projeto ganha mais uma exceção e mais um handler.
+
+### Como eu saberia que errei
+
+Se um `PATCH` voltar a dar `500` por uma `CHECK`, existe uma combinação de campos que o service não confere. Se o `POST` e o `PATCH` divergirem, a duplicação cobrou o seu preço. Exemplo: um aceita horários iguais e o outro recusa.
