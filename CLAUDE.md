@@ -109,8 +109,12 @@ Antes de escrever implementação, verifique em que fase ela está:
   React + TypeScript com o proxy do 0024, ESLint + Prettier, contrato exportado
   (`frontend/openapi.json`) e tipos gerados (`src/api/tipos.ts`); emenda ao ADR 0022 pôs o CI em
   dois jobs (`backend`, `frontend`), cada um conferindo o seu arquivo gerado; cliente
-  `openapi-fetch` tipado (`src/api/cliente.ts`) e `QueryClientProvider` no `main.tsx`. Suíte em
-  `111 passed`. Ainda sem hooks, sessão (access em memória), roteador nem telas.
+  `openapi-fetch` tipado (`src/api/cliente.ts`) e `QueryClientProvider` no `main.tsx`. **Em
+  2026-10-08:** sessão (access em memória em `src/api/sessao.ts`, middleware do Bearer no
+  `cliente.ts`), o primeiro hook de escrita (`useLogin`, `src/api/auth.ts`) e o primeiro de
+  leitura (`useRecursos`, `src/api/recurso.ts`); e, no back-end, a dívida da Etapa 2 paga para
+  `recurso` (emenda ao ADR 0014). Suíte em `117 passed`. Ainda sem roteador, refresh no front nem
+  telas.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -169,9 +173,18 @@ compromissos sobre código que ainda não existe, e armadilhas.
   corpo: até o teste de `422` do schema constrói o service. Toda variável nova que o app lê
   entra também no `environment:` do `api` no `docker-compose.yml` — o container não vê o `.env`
   (o `JWT_SEGREDO` faltou lá da Etapa 3 até 2026-09-25).
-- **Dívida da Etapa 2:** `criar` e `atualizar` de recurso deixam `IntegrityError` subir → `500`
-  (o `TestClient` o mostra como traceback). A Etapa 4 paga pelo ADR 0014: tradução pelo nome da
-  constraint, no repository, e `CHECK` que dispara é validação faltando no schema.
+- **Dívida da Etapa 2, paga em 2026-10-08** (achada pelo exemplo automático do `/docs`, `ocupacao`
+  `0` e horários iguais → `500`): `CHECK` que dispara é validação faltando **na entrada**, e a
+  emenda ao ADR 0014 decide onde — no schema se a regra depende só do pedido (`Field(gt=0)`,
+  `Literal["ativo", "inativo"]`, `model_validator` dos horários no `RecursoCriar`); no service, se
+  depende do gravado: o `atualizar` aplica o patch e confere `hora_func_inicio >= hora_func_fim`
+  **antes** do `self._repo.atualizar`, porque é no `flush` dele que a `CHECK` dispara
+  (`HorarioDeFuncionamentoInvalido` → `422`, filha direta de `ErroDeDominio`). O objeto mudado
+  pelo `setattr` não chega ao banco porque o `obter_sessao` faz `rollback` na exceção, não pela
+  ordem. **A regra mora em dois lugares** (schema do `POST`, service do `PATCH`), com a mesma
+  mensagem — mudar uma exige mudar a outra. No service se lança a exceção de domínio; `ValueError`
+  só dentro de validador do Pydantic, que é quem o traduz em `422` (`raise
+  ValueError(MinhaExcecao)` lança um `ValueError` e nenhum handler o pega).
 - **Validação só na entrada:** `UsuarioCriar` leva `nome_usuario` com `min_length=1`, `EmailStr`
   (exige `email-validator`) e `senha` com `min_length=8`, e `privilegio_usuario:
   Literal["admin", "usuario"]`. `UsuarioResposta` e `UsuarioAtual` não repetem — o que sai do banco
@@ -334,29 +347,42 @@ compromissos sobre código que ainda não existe, e armadilhas.
   `frontend/`): uma linha em branco a mais no `main.tsx` deixou o CI vermelho em 2026-10-07. E o
   Prettier local pode reprovar um arquivo que o CI aceita: o VS Code cria arquivo novo com CRLF,
   o Prettier exige LF (`endOfLine`), e no runner o checkout já é LF. `npm run format` resolve os
-  dois; o `git diff` não mostra a troca de final de linha porque o repositório guarda LF.
+  dois; o `git diff` não mostra a troca de final de linha porque o repositório guarda LF. O VS
+  Code também cria `.ts` novo com **quatro** espaços de recuo, e o Prettier exige dois: o
+  `auth.ts` subiu assim em 2026-10-08 e deixou o CI vermelho.
+- **Restrição nova num schema muda o contrato.** `Field(gt=0)` vira `exclusiveMinimum` e
+  `Literal` vira `enum` no `openapi.json`: o job `backend` fica vermelho até o
+  `exportar_openapi` + `gerar-tipos` irem no mesmo commit (2026-10-08, dois commits vermelhos).
+  O `enum` vira tipo no `tipos.ts` (`"ativo" | "inativo"`); o mínimo não — o TypeScript descreve
+  forma, não tamanho.
+- **O Pydantic ignora chave desconhecida em silêncio** (`extra="ignore"` é o padrão): um `PATCH`
+  com `"shora_func_fim"` responde `200` sem mudar nada. Teste de regra que dá `200` onde se
+  esperava o vermelho do defeito = nome de campo errado no corpo.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — chão pronto; o próximo bloco é a sessão e o primeiro hook do TanStack
-Query, escrito à mão (ADR 0025).** Em 2026-10-07 fecharam, em cinco commits, a emenda ao ADR
-0022 (CI em dois jobs), o `frontend/` com Vite e proxy (prova: `POST /api/auth/login` pelo console
-do navegador, `200` e cookie `HttpOnly` na aba Application), o par contrato + tipos gerados
-conferidos pelo CI (contra-teste do `git diff --exit-code` feito: `title` trocado → `1`), e o
-cliente `openapi-fetch` + `QueryClientProvider` (prova: `cliente.POST("/api/auth/login")` num bloco
-temporário do `main.tsx` deu `200` com `data` tipado; contra-teste: `email_usuari` ficou vermelho
-no `tsc`, a promessa do ADR 0025). Território novo continua: código pronto no chat, conceito ao
-lado; o conceito já dado é **estado de servidor × estado de interface** (cache × `useState`).
-Ordem do que falta, e por quê nessa ordem: (1) **sessão antes de qualquer `useQuery`**, porque
-toda rota de leitura exige token (ADR 0020): o access em memória num módulo só (ADR 0013), um
-*middleware* do `openapi-fetch` que põe o `Authorization: Bearer` em toda chamada, e o
-`useMutation` do login — o primeiro hook é de escrita, não de leitura; (2) o primeiro `useQuery`
-(listagem de recursos) com os quatro estados numa tela crua; (3) React Router declarativo com a
+**Etapa 7 (front-end) — sessão e primeiros hooks prontos; o próximo bloco é o `null` explícito no
+`PATCH` de recurso, e depois o roteador com o refresh.** Em 2026-10-08 fecharam: (1) a sessão
+(access em memória, middleware do Bearer, `useLogin`; prova num bloco temporário do `main.tsx`,
+`login 200` + `recursos 200`; contra-teste certo: comentar o `cliente.use(...)` → `recursos 401`
+com o login ainda `200`) e (2) o `useRecursos` com os quatro estados numa tela temporária do
+`App.tsx` (desfeita com `git restore`; a lista só monta depois do login, porque sem refresh no
+front a query sairia sem token). No caminho, o `/docs` revelou a dívida da Etapa 2 e ela foi paga
+para `recurso` (emenda ao ADR 0014, três commits). Território novo continua: código pronto no
+chat, conceito ao lado; conceitos já dados: estado de servidor × de interface, **query ×
+mutation**, componente e *re-render*, middleware.
+
+Ordem do que falta: **(0) `null` explícito no `PATCH /api/recursos/{id}`** — o tipo `X | None`
+aceita `{"nome_recurso": null}`, o `exclude_unset=True` só descarta o que **não veio**, e o
+`setattr` grava `None` numa coluna `NOT NULL` → `IntegrityError` → `500`; com
+`{"hora_func_fim": null}` o `>=` do service compara `time` com `None` → `TypeError` → `500`. É
+bug (regra 6: teste vermelho primeiro), e a fase 3 é dela: o que o mercado faz para "campo
+opcional mas não anulável" no Pydantic, e se é decisão de ADR. (3) React Router declarativo com a
 rota de layout que chama o refresh antes de renderizar (ADR 0026 + 0023), e o `401` → refresh →
 repetir no middleware; (4) as telas de verdade, com react-hook-form + zod; (5) o Playwright e o
 job `e2e` (decidido na emenda ao 0022, entra no commit do primeiro teste).
 
-**Decisões do front fora dos ADRs (2026-10-07):**
+**Decisões do front fora dos ADRs (2026-10-07 e 2026-10-08):**
 
 - **TypeScript fixado em `~5.9`**, não o 6 que o template trouxe: o `openapi-typescript` declara
   `peer typescript ^5.x` e o `npm` recusa instalar (`ERESOLVE`); issue aberta
@@ -380,6 +406,21 @@ job `e2e` (decidido na emenda ao 0022, entra no commit do primeiro teste).
   error, response }`: `data` só em 2xx, `error` só em 4xx/5xx, os dois tipados pelo contrato; o
   `Content-Type` e o `JSON.stringify` ele deduz. O `QueryClient` nasce fora de qualquer
   componente (um por app) e o `Provider` o entrega por contexto — é o `Depends()` do front.
+- **Hooks moram em `src/api/<módulo>.ts`, com o nome do router do back-end** (`auth.ts`,
+  `recurso.ts`); o nome começa com `use` (regra do React), o resto em português. Os tipos de
+  entrada vêm de `components["schemas"][...]`, nunca reescritos.
+- **Toda `queryFn`/`mutationFn` lança quando `data` falta** (`if (!data) throw new Error(...)`):
+  o `fetch` só rejeita em falha de rede, e o `openapi-fetch` devolve `401`/`422` em `error` sem
+  lançar; sem o `throw`, o TanStack Query trata o erro como sucesso com `undefined`. Sem ele, o
+  `onSuccess` ainda quebraria lendo `undefined` e a tela mostraria `error` — **pelo motivo
+  errado**; só a mensagem distingue. A mensagem leva só o status por enquanto; muda quando uma
+  tela precisar distinguir `401` de `422`.
+- **O access fica numa variável do módulo `sessao.ts`, sem `export`**, lida por
+  `obterAccessToken()` a cada chamada (lida uma vez só, ficaria congelada em `null`). Nem
+  `localStorage` (XSS lê) nem `useState` (o middleware não é componente, e trocar o token não deve
+  redesenhar nada). O `useLogin` guarda no `onSuccess`: o hook cuida da sessão, a tela só mostra.
+- **O `npm run dev` não confere tipos** (o Vite só apaga as anotações): código com o `tsc`
+  vermelho roda no navegador. Quem confere é o editor, o `npm run build` e o CI.
 
 Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
 
@@ -556,7 +597,7 @@ de teste só aparece ao rodar (prefira o argumento nomeado: `agora=...`).
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`111 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa. Para a API à
+`117 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa. Para a API à
 mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia no
 `.env` passa pelo `os.environ` e cai no `min_length=8` — chave vazia não é chave ausente).
 
@@ -584,6 +625,9 @@ mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADM
 - **Encerrar a reserva mais cedo** (ADR 0016) — o "check-out" dos sistemas comerciais: encurta o
   `periodo` e libera só o resto do horário. Na v1, cancelar em andamento libera o período inteiro e
   a reserva usada pela metade fica como "cancelada".
+- **Chave desconhecida vira `422`** (`model_config = ConfigDict(extra="forbid")` nos schemas de
+  entrada) — hoje um `PATCH` com campo de nome errado responde `200` sem mudar nada, e quem chama
+  acha que atualizou. Achado em 2026-10-08. Muda o contrato (`additionalProperties: false`).
 - `str_strip_whitespace` para o nome feito só de espaços; `httpx2` no lugar de `httpx`
   (`uv remove httpx` + `uv add --dev httpx2`).
 

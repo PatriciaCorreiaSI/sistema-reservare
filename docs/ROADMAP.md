@@ -214,7 +214,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 implementados no back-end; `frontend/` com Vite, proxy e tipos gerados, conferidos pelo CI em dois jobs (emenda ao 0022); cliente `openapi-fetch` e TanStack Query ligados; faltam sessão, hooks, roteador, telas e Playwright |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — front-end consumindo a API real; ADRs 0023 a 0026 e emenda ao 0018 implementados no back-end; `frontend/` com Vite, proxy e tipos gerados, conferidos pelo CI em dois jobs (emenda ao 0022); cliente `openapi-fetch` e TanStack Query ligados; sessão (access em memória, Bearer por middleware) e os primeiros hooks (`useLogin`, `useRecursos`); faltam roteador com refresh, telas e Playwright |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -457,8 +457,15 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > --exit-code`; job `e2e` quando o Playwright existir), e o `frontend/` nasceu: Vite + React +
 > TypeScript 5.9, proxy de `/api`, ESLint + Prettier, contrato exportado de `app.openapi()` e tipos
 > gerados pelo `openapi-typescript` (suíte em 111); cliente `openapi-fetch` tipado pelo contrato e
-> `QueryClientProvider` ligados no mesmo dia. Faltam a sessão (access em memória), os hooks do
-> TanStack Query à mão, o roteador, as telas e o Playwright.
+> `QueryClientProvider` ligados no mesmo dia. Em 2026-10-08, a sessão: access em memória num
+> módulo só, um *middleware* do `openapi-fetch` que põe o `Authorization: Bearer` em toda chamada,
+> e os dois primeiros hooks escritos à mão — `useLogin` (mutation, guarda o access no sucesso) e
+> `useRecursos` (query, provada numa tela crua com os quatro estados). No caminho, o `/docs`
+> revelou que a dívida da Etapa 2 seguia aberta para `recurso` (`CHECK` → `500`); paga no mesmo
+> dia pela emenda ao [ADR 0014](adr/0014-traduzir-violacao-da-constraint-pelo-nome.md): regra que
+> depende só do pedido no schema, regra que depende do gravado no service, depois do patch (suíte
+> em 117). Faltam o `null` explícito no `PATCH` de recurso (ainda `500`), o roteador com o refresh,
+> as telas e o Playwright.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 
