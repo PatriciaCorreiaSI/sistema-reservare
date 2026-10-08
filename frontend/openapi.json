@@ -809,7 +809,8 @@
           "ocupacao": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "exclusiveMinimum": 0.0
               },
               {
                 "type": "null"
@@ -844,7 +845,11 @@
           "status_recurso": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "ativo",
+                  "inativo"
+                ]
               },
               {
                 "type": "null"
@@ -864,6 +869,7 @@
           },
           "ocupacao": {
             "type": "integer",
+            "exclusiveMinimum": 0.0,
             "title": "Ocupacao"
           },
           "hora_func_inicio": {

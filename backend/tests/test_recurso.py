@@ -168,6 +168,28 @@ def test_criar_recurso_com_fim_igual_ao_inicio_devolve_422(client, cabecalho_de,
     assert resposta.status_code == 422
 
 
+def test_atualizar_recurso_com_ocupacao_zero_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"ocupacao": 0},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
+def test_atualizar_recurso_com_status_mal_formado_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"status_recurso": "arivo"},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
 def test_listar_recursos_sem_token_devolve_401(client, recurso_criado):
     resposta = client.get("/recursos")
     assert resposta.status_code == 401

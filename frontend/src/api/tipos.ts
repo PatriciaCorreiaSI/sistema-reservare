@@ -250,7 +250,7 @@ export interface components {
             /** Hora Func Fim */
             hora_func_fim?: string | null;
             /** Status Recurso */
-            status_recurso?: string | null;
+            status_recurso?: ("ativo" | "inativo") | null;
         };
         /** RecursoCriar */
         RecursoCriar: {

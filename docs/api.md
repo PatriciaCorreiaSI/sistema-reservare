@@ -19,10 +19,10 @@ RecursoCriar
 ```
 RecursoAtualizar
     nome_recurso: str | None = None
-    ocupacao: int | None = None
+    ocupacao: int | None = Field(default=None, gt=0)
     hora_func_inicio: time | None = None
     hora_func_fim: time | None = None
-    status_recurso: str | None = None
+    status_recurso: Literal["ativo", "inativo"] | None = None
 ```
 
 ```
