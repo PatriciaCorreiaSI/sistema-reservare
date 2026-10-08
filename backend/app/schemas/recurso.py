@@ -15,7 +15,7 @@ class RecursoCriar(BaseModel):
         if self.hora_func_inicio >= self.hora_func_fim:
             raise ValueError(
                 "Período de funcionamento inválido: "
-                "hora_func_inicio precisa ser anterior a hora_func_fim."
+                "hora_func_inicio precisa ser anterior à hora_func_fim."
             )
         return self
 

@@ -190,6 +190,17 @@ def test_atualizar_recurso_com_status_mal_formado_devolve_422(
     assert resposta.status_code == 422
 
 
+def test_atualizar_recurso_com_hora_func_fim_antes_de_hora_func_inicio_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"hora_func_fim": "07:00:00"},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
 def test_listar_recursos_sem_token_devolve_401(client, recurso_criado):
     resposta = client.get("/recursos")
     assert resposta.status_code == 401

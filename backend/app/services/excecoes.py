@@ -10,6 +10,19 @@ class RecursoEmUso(ErroDeDominio):
     pass
 
 
+class HorarioDeFuncionamentoInvalido(ErroDeDominio):
+    """Recurso atualizado com hora_func_inicio igual ou posterior a hora_func_fim.
+
+    O PATCH pode mandar só um dos horários; a regra confere o recurso depois
+    do patch, antes do flush (emenda ao ADR 0014). Vira 422.
+    """
+
+    detalhe = (
+        "Período de funcionamento inválido: "
+        "hora_func_inicio precisa ser anterior à hora_func_fim."
+    )
+
+
 class CredenciaisInvalidas(ErroDeDominio):
     """Login ou refresh recusado.
 

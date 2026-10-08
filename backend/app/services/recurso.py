@@ -8,7 +8,11 @@ from app.db import obter_sessao
 from app.models import Recurso
 from app.repositories.recurso import RecursoRepository
 from app.schemas.recurso import RecursoAtualizar, RecursoCriar
-from app.services.excecoes import RecursoEmUso, RecursoNaoEncontrado
+from app.services.excecoes import (
+    HorarioDeFuncionamentoInvalido,
+    RecursoEmUso,
+    RecursoNaoEncontrado,
+)
 
 
 class RecursoService:
@@ -32,6 +36,8 @@ class RecursoService:
         recurso = self.buscar_por_id(id_recurso)
         for campo, valor in dados.model_dump(exclude_unset=True).items():
             setattr(recurso, campo, valor)
+        if recurso.hora_func_inicio >= recurso.hora_func_fim:
+            raise HorarioDeFuncionamentoInvalido
         return self._repo.atualizar(recurso)
 
     def remover(self, id_recurso: int) -> None:

@@ -5,6 +5,7 @@ from app.routers import auth, health, recurso, reserva, usuario
 from app.services.excecoes import (
     CredenciaisInvalidas,
     EmailJaCadastrado,
+    HorarioDeFuncionamentoInvalido,
     HorarioOcupado,
     PrivilegioInsuficiente,
     RecursoEmUso,
@@ -121,4 +122,14 @@ def traduzir_reserva_nao_cancelavel(
     return JSONResponse(
         status_code=409,
         content={"detail": "A reserva já foi cancelada ou já terminou"},
+    )
+
+
+@app.exception_handler(HorarioDeFuncionamentoInvalido)
+def traduzir_horario_de_funcionamento_invalido(
+    request: Request, exc: HorarioDeFuncionamentoInvalido
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.detalhe},
     )
