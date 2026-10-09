@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router";
+import { Moldura } from "./components/Moldura";
 import { RotaProtegida } from "./components/RotaProtegida";
 import { TelaLogin } from "./pages/login";
 
@@ -15,7 +16,9 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<TelaLogin />} />
       <Route element={<RotaProtegida />}>
-        <Route path="/recursos" element={<TelaRecursos />} />
+        <Route element={<Moldura />}>
+          <Route path="/recursos" element={<TelaRecursos />} />
+        </Route>
       </Route>
       <Route path="/" element={<Navigate to="/recursos" replace />} />
       <Route path="*" element={<TelaNaoEncontrada />} />

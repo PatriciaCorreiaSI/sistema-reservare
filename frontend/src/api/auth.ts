@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Middleware } from "openapi-fetch";
 import { cliente } from "./cliente";
 import { ErroDaApi } from "./erro";
@@ -24,6 +24,26 @@ export function useLogin() {
     },
     onSuccess: (token) => {
       guardarAccessToken(token.access_token);
+    },
+  });
+}
+
+// Sair: o servidor revoga o refresh e apaga o cookie (204, idempotente). A limpeza local
+// roda mesmo se a chamada falhar: a pessoa pediu para sair, e a tela não deve seguir
+// mostrando dados. O cache inteiro sai junto: o próximo login, talvez de outra pessoa,
+// não pode ver nada do anterior, nem a entrada ["sessao"] da guarda.
+export function useLogout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { response } = await cliente.POST("/api/auth/logout");
+      if (!response.ok) {
+        throw new ErroDaApi(response.status, "Logout recusado");
+      }
+    },
+    onSettled: () => {
+      esquecerAccessToken();
+      queryClient.clear();
     },
   });
 }
