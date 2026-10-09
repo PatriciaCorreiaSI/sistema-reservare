@@ -201,6 +201,61 @@ def test_atualizar_recurso_com_hora_func_fim_antes_de_hora_func_inicio_devolve_4
     assert resposta.status_code == 422
 
 
+def test_atualizar_recurso_com_nome_recurso_null_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"nome_recurso": None},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
+def test_atualizar_recurso_com_ocupacao_null_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"ocupacao": None},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
+def test_atualizar_recurso_com_hora_func_inicio_null_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"hora_func_inicio": None},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
+def test_atualizar_recurso_com_hora_func_fim_null_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"hora_func_fim": None},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
+def test_atualizar_recurso_com_status_recurso_null_devolve_422(
+    client, recurso_criado, cabecalho_de, admin
+):
+    resposta = client.patch(
+        f"/recursos/{recurso_criado['id_recurso']}",
+        json={"status_recurso": None},
+        headers=cabecalho_de(admin),
+    )
+    assert resposta.status_code == 422
+
+
 def test_listar_recursos_sem_token_devolve_401(client, recurso_criado):
     resposta = client.get("/recursos")
     assert resposta.status_code == 401

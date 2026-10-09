@@ -1,7 +1,7 @@
 from datetime import date, datetime, time
 from typing import Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RecursoCriar(BaseModel):
@@ -26,6 +26,19 @@ class RecursoAtualizar(BaseModel):
     hora_func_inicio: time | None = None
     hora_func_fim: time | None = None
     status_recurso: Literal["ativo", "inativo"] | None = None
+
+    @field_validator(
+        "nome_recurso",
+        "ocupacao",
+        "hora_func_inicio",
+        "hora_func_fim",
+        "status_recurso",
+    )
+    @classmethod
+    def recusar_nulo[T](cls, valor: T | None) -> T:
+        if valor is None:
+            raise ValueError("Valor inválido: o valor informado não pode ser nulo.")
+        return valor
 
 
 class RecursoResposta(BaseModel):
