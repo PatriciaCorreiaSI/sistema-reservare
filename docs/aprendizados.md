@@ -131,3 +131,17 @@
 |👣 **Job**:| É um conjunto de steps (passos) que rodam em ordem no mesmo runner. Se um passo falha, o job falha, e o commit fica marcado em vermelho. Jobs diferentes do mesmo workflow rodam em paralelo, cada um no seu runner, a menos que um declare que depende do outro. |
 |🔐 **GitHub Secrets**:| É um cofre do repositório do GitHub para valores que não podem aparecer no código. O workflow os lê por nome, e o GitHub os esconde nos logs, trocando o valor por `***`. Por segurança, não os entrega a *pull requests* vindos de forks: senão, qualquer pessoa poderia escrever um workflow que os imprimisse. |
 |🥊 **Fixture × Factory**:| 1. **Fixture:** entrega o dado pronto, sempre igual. Quem decide a forma do dado é a fixture, não o teste (no pytest, o teste pede pelo nome do parâmetro e recebe o que ela preparou). 2. **Factory:** é uma função que fabrica o dado. Ela tem valores padrão para tudo, e o teste sobrescreve só o que importa para ele. **Quando usar:** fixture quando quase todos os testes querem o mesmo dado; factory quando cada teste quer uma variação. O sinal é o teste desfazer o que a fixture fez, ou fixtures quase iguais copiadas. As duas se combinam: uma fixture pode entregar uma factory. |
+
+
+### 🖥️ Etapa 7 — Front-end
+
+| **Conceitos** | **Novo aprendizado** |
+|---------------|----------------------|
+|🤫 **Renovação silenciosa:** |*Silent refresh*. Quando o access vence, o cliente renova pelo refresh e repete o pedido sem a pessoa perceber. Vale para qualquer cliente com token de vida curta, não só React. |
+|✈️ **Single-flight:** | Quando várias chamadas pedem a mesma operação cara ou sensível ao mesmo tempo, só a primeira executa e as outras esperam o mesmo resultado. |
+|🚪**Redirecionamento aberto:** | *Open redirect*. Um link legítimo do seu site que manda a pessoa, depois do login, para um destino escolhido por um atacante, porque o site aceita o destino como parâmetro da URL (`?proximo=...`). Defesa: não aceitar destino vindo de fora, ou validá-lo. |
+|🚰 **Vazamento entre sessões no cache:** | Dado guardado no cliente sobrevive à troca de usuário se ninguém o apagar. Logout limpa tudo, não só o token. |
+|🥊 **Roteamento no cliente × no servidor:** | Numa *single-page application* (SPA), trocar de tela não pede nada ao servidor (History API). O F5, sim, e por isso o servidor precisa responder o mesmo `index.html` a qualquer rota que não conhece (o *SPA fallback*). |
+|👮‍♂️**Guarda de rota é conveniência, não segurança:** |  A tela protegida só evita mostrar algo vazio. Quem protege o dado é o `401` da API. Vale também para a validação no cliente: ela poupa uma ida à API, mas a garantia é do servidor. |
+|✍️ **Opcional × anulável:** | O "campo pode faltar" e o "campo pode ser `null`" são promessas diferentes. Num `PATCH`, ausente quer dizer "não mexer", e `null` quer dizer "apagar o valor", que coluna `NOT NULL` não aceita. |
+|📃 **Final de linha (LF × CRLF) e `.gitattributes`:** | O mesmo arquivo pode ter finais de linha diferentes no repositório e no disco. O `.gitattributes` fixa a regra no repositório, para valer em qualquer máquina. |
