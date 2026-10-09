@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router";
+import { RotaProtegida } from "./components/RotaProtegida";
 
 function TelaLogin() {
   return <h1>Login</h1>;
@@ -16,7 +17,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<TelaLogin />} />
-      <Route path="/recursos" element={<TelaRecursos />} />
+      <Route element={<RotaProtegida />}>
+        <Route path="/recursos" element={<TelaRecursos />} />
+      </Route>
       <Route path="/" element={<Navigate to="/recursos" replace />} />
       <Route path="*" element={<TelaNaoEncontrada />} />
     </Routes>
