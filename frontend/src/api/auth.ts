@@ -58,7 +58,7 @@ export function renovarSessao(): Promise<boolean> {
 const copias = new Map<string, Request>();
 
 // 401 com access vencido → renova (uma vez só, pelo single-flight) → repete o pedido.
-// Rotar de /api/auth ficam de fora: o 401 do login é senha errada, e do refresh é
+// Rotas de /api/auth ficam de fora: o 401 do login é senha errada, e do refresh é
 // sessão acabada: renovar dentro dele seria um laço.
 const renovaNo401: Middleware = {
   onRequest({ request, id }) {
@@ -69,7 +69,7 @@ const renovaNo401: Middleware = {
     const copia = copias.get(id);
     copias.delete(id);
     if (
-      response.status != 401 ||
+      response.status !== 401 ||
       schemaPath.startsWith("/api/auth/") ||
       !copia
     ) {
@@ -81,6 +81,10 @@ const renovaNo401: Middleware = {
     }
     copia.headers.set("Authorization", `Bearer ${obterAccessToken()}`);
     return options.fetch(copia);
+  },
+  onError({ id }) {
+    copias.delete(id);
+    return undefined;
   },
 };
 
