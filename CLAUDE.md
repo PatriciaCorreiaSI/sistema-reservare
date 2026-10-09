@@ -113,8 +113,10 @@ Antes de escrever implementação, verifique em que fase ela está:
   2026-10-08:** sessão (access em memória em `src/api/sessao.ts`, middleware do Bearer no
   `cliente.ts`), o primeiro hook de escrita (`useLogin`, `src/api/auth.ts`) e o primeiro de
   leitura (`useRecursos`, `src/api/recurso.ts`); e, no back-end, a dívida da Etapa 2 paga para
-  `recurso` (emenda ao ADR 0014). Suíte em `117 passed`. Ainda sem roteador, refresh no front nem
-  telas.
+  `recurso` (emenda ao ADR 0014). **Em 2026-10-09:** `null` explícito no `PATCH` de recurso
+  recusado no schema (suíte em `122 passed`); React Router v8 com a tabela de rotas, template do
+  Vite removido; `.gitattributes` (LF) e o `pre-commit` estendido ao front; `renovarSessao`
+  (*single-flight*) e a `RotaProtegida`. Ainda sem o `401` → renovar no middleware nem telas.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -343,13 +345,16 @@ compromissos sobre código que ainda não existe, e armadilhas.
 - **PowerShell não tem `head`**: `git add --dry-run frontend | head` imprime só `frontend/`.
   Usar `Select-Object -First 40`. O `npm` recusa conflito de *peer dependency* (`ERESOLVE`): é
   erro, não aviso, e a saída diz qual pacote pede qual versão.
-- **`npm run format:check` antes de todo commit do front** (o pre-commit ainda não cobre o
-  `frontend/`): uma linha em branco a mais no `main.tsx` deixou o CI vermelho em 2026-10-07. E o
-  Prettier local pode reprovar um arquivo que o CI aceita: o VS Code cria arquivo novo com CRLF,
-  o Prettier exige LF (`endOfLine`), e no runner o checkout já é LF. `npm run format` resolve os
-  dois; o `git diff` não mostra a troca de final de linha porque o repositório guarda LF. O VS
-  Code também cria `.ts` novo com **quatro** espaços de recuo, e o Prettier exige dois: o
-  `auth.ts` subiu assim em 2026-10-08 e deixou o CI vermelho.
+- **O `pre-commit` cobre o front desde 2026-10-09** (quatro das sete falhas do CI, de 2026-10-07
+  e 08, eram Prettier e contrato esquecidos): hooks `local` rodam `npm --prefix frontend run
+  format` e `lint` quando algo em `frontend/` muda, e `exportar_openapi` + `gerar-tipos` quando
+  algo em `backend/app/` muda. Os dois do contrato têm o **mesmo gatilho** de propósito: o `files:`
+  é decidido uma vez, sobre o que estava *staged* no início, e o `openapi.json` recém-escrito não
+  estava. Hook que reescreve arquivo falha (`files were modified`): `git add` e repetir. O
+  `.gitattributes` (`* text=auto eol=lf`) ganha do `core.autocrlf` e entrega LF no disco; o VS
+  Code ainda cria arquivo novo em CRLF e com quatro espaços, e o hook do Prettier conserta no
+  commit. O CI roda uma vez por push, sobre o último commit: commit do meio de uma pilha não é
+  conferido lá.
 - **Restrição nova num schema muda o contrato.** `Field(gt=0)` vira `exclusiveMinimum` e
   `Literal` vira `enum` no `openapi.json`: o job `backend` fica vermelho até o
   `exportar_openapi` + `gerar-tipos` irem no mesmo commit (2026-10-08, dois commits vermelhos).
@@ -361,26 +366,34 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — sessão e primeiros hooks prontos; o próximo bloco é o `null` explícito no
-`PATCH` de recurso, e depois o roteador com o refresh.** Em 2026-10-08 fecharam: (1) a sessão
-(access em memória, middleware do Bearer, `useLogin`; prova num bloco temporário do `main.tsx`,
-`login 200` + `recursos 200`; contra-teste certo: comentar o `cliente.use(...)` → `recursos 401`
-com o login ainda `200`) e (2) o `useRecursos` com os quatro estados numa tela temporária do
-`App.tsx` (desfeita com `git restore`; a lista só monta depois do login, porque sem refresh no
-front a query sairia sem token). No caminho, o `/docs` revelou a dívida da Etapa 2 e ela foi paga
-para `recurso` (emenda ao ADR 0014, três commits). Território novo continua: código pronto no
-chat, conceito ao lado; conceitos já dados: estado de servidor × de interface, **query ×
-mutation**, componente e *re-render*, middleware.
+**Etapa 7 (front-end) — roteador e guarda prontos; o próximo passo é o `401` → renovar →
+repetir no middleware do `cliente.ts`.** Hoje, se o access vence com a tela aberta, as consultas
+dão `401` e nada as salva. O middleware usa o `renovarSessao` (o *single-flight* existe para
+isto: três consultas com `401` juntas pediriam três renovações) e precisa **pular a própria rota
+de refresh**, senão um `401` dela pede outra renovação em laço. Território novo continua: código
+pronto no chat, conceito ao lado; conceitos já dados: estado de servidor × de interface, query ×
+mutation, componente e *re-render*, middleware, rota no navegador × no servidor, rota de layout e
+`<Outlet />`, promessa e *single-flight*, regra dos hooks (antes de qualquer `return`).
 
-Ordem do que falta: **(0) `null` explícito no `PATCH /api/recursos/{id}`** — o tipo `X | None`
-aceita `{"nome_recurso": null}`, o `exclude_unset=True` só descarta o que **não veio**, e o
-`setattr` grava `None` numa coluna `NOT NULL` → `IntegrityError` → `500`; com
-`{"hora_func_fim": null}` o `>=` do service compara `time` com `None` → `TypeError` → `500`. É
-bug (regra 6: teste vermelho primeiro), e a fase 3 é dela: o que o mercado faz para "campo
-opcional mas não anulável" no Pydantic, e se é decisão de ADR. (3) React Router declarativo com a
-rota de layout que chama o refresh antes de renderizar (ADR 0026 + 0023), e o `401` → refresh →
-repetir no middleware; (4) as telas de verdade, com react-hook-form + zod; (5) o Playwright e o
-job `e2e` (decidido na emenda ao 0022, entra no commit do primeiro teste).
+Ordem do que falta: **(3)** o middleware acima; **(4)** as telas de verdade em `pages/`, com
+react-hook-form + zod — o login navega para a tela de origem; o **logout** apaga a entrada
+`["sessao"]` do cache (`queryClient.removeQueries`), senão o `staleTime: Infinity` da guarda
+acredita numa sessão que acabou; **(5)** o Playwright e o job `e2e` (emenda ao 0022, entra no
+commit do primeiro teste). **Compromisso da regra 6 para o primeiro `e2e`:** API parada → a guarda
+mostra a mensagem de servidor, **não** o `/login` — o `renovarSessao` tratava todo "sem `data`"
+como sem sessão, e o `502` do proxy virava login (corrigido em 2026-10-09 sem teste, porque o
+front ainda não tinha ferramenta de teste).
+
+**Fatos da guarda (2026-10-09):** `renovarSessao` (`src/api/auth.ts`) devolve `false` **só no
+`401`** e lança no resto — "sem sessão" e "não deu para saber" são respostas diferentes. A
+`RotaProtegida` (`src/components/`) é rota de layout sem `path`: já há access → `<Outlet />`;
+senão `useQuery(["sessao"], renovarSessao)` com `retry: false` e `staleTime: Infinity` —
+pendente → "Carregando…", erro → mensagem de servidor, `false` → `<Navigate to="/login"
+replace />`. É conveniência, não segurança: quem protege é o `401` da API. Prova sem tela de
+login: o login pelo `/docs` em **`localhost:8000`** deixa o cookie para o `localhost:5173` (cookie
+ignora porta). O `StrictMode` monta tudo duas vezes em desenvolvimento: na *Network*, um
+`refresh` por carregamento é a prova de que as duas camadas (a deduplicação do Query e o
+*single-flight*) seguram.
 
 **Decisões do front fora dos ADRs (2026-10-07 e 2026-10-08):**
 
@@ -601,7 +614,7 @@ de teste só aparece ao rodar (prefira o argumento nomeado: `agora=...`).
 Subir o Docker Desktop antes de começar — e conferir que ele não está **pausado** (o `docker
 compose ps` responde `Docker Desktop is manually paused`, e o `pytest` pendura). Da raiz,
 `docker compose up -d db` e esperar `(healthy)`; `uv run pytest` de dentro de `backend/` deve dar
-`117 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa. Para a API à
+`122 passed` (e o aviso do `httpx`, que é backlog) antes de mexer em qualquer coisa. Para a API à
 mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia no
 `.env` passa pelo `os.environ` e cai no `min_length=8` — chave vazia não é chave ausente).
 
@@ -623,6 +636,10 @@ mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADM
   listas vazadas. Mudar exige trocar `"senha456"` nos testes e a senha do admin de desenvolvimento.
 - **Padrão BFF com cookie `httpOnly`** — recomendação atual do IETF para aplicações de navegador;
   já previsto no ADR 0013. Rever na Etapa 7.
+- **Janela de tolerância no reuso do refresh** — o *single-flight* do `renovarSessao` vale
+  dentro de uma aba; duas abas com F5 ao mesmo tempo mandam o mesmo cookie, e a segunda revoga a
+  família (desloga as duas). O mercado aceita o refresh recém-usado por alguns segundos sem tratar
+  como roubo (*reuse interval* da Auth0, *grace period* da Okta). Muda o back-end e o ADR 0023.
 - **Teste de concorrência determinístico, direto no banco** (ADR 0015) — duas conexões sem HTTP: a 1
   insere sem comitar, a 2 fica bloqueada, a 1 comita, a 2 recebe `23P01`. Prova a espera toda vez;
   adiado porque testa comportamento do Postgres, e o teste pela API já exercita o que é do projeto.
