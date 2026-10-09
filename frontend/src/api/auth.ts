@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import type { Middleware } from "openapi-fetch";
 import { cliente } from "./cliente";
+import { ErroDaApi } from "./erro";
 import {
   esquecerAccessToken,
   guardarAccessToken,
@@ -17,7 +18,7 @@ export function useLogin() {
         body: credenciais,
       });
       if (!data) {
-        throw new Error(`Login recusado: ${response.status}`);
+        throw new ErroDaApi(response.status, "Login recusado");
       }
       return data;
     },
