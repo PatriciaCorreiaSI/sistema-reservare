@@ -116,7 +116,9 @@ Antes de escrever implementação, verifique em que fase ela está:
   `recurso` (emenda ao ADR 0014). **Em 2026-10-09:** `null` explícito no `PATCH` de recurso
   recusado no schema (suíte em `122 passed`); React Router v8 com a tabela de rotas, template do
   Vite removido; `.gitattributes` (LF) e o `pre-commit` estendido ao front; `renovarSessao`
-  (*single-flight*) e a `RotaProtegida`. Ainda sem o `401` → renovar no middleware nem telas.
+  (*single-flight*) e a `RotaProtegida`; o middleware `401` → renovar → repetir; a tela de login
+  (react-hook-form + zod) com volta à origem; a `Moldura` com o "Sair". Faltam o 4.3b, as telas
+  de recursos e reservas, e o Playwright.
 
 O detalhe de cada etapa está no ROADMAP; a história de cada sessão, no `git log`. Esta seção guarda
 só o que **não** é derivável de lá nem do código: decisões em vigor que não viraram ADR,
@@ -366,23 +368,43 @@ compromissos sobre código que ainda não existe, e armadilhas.
 
 ### Próximo passo
 
-**Etapa 7 (front-end) — roteador e guarda prontos; o próximo passo é o `401` → renovar →
-repetir no middleware do `cliente.ts`.** Hoje, se o access vence com a tela aberta, as consultas
-dão `401` e nada as salva. O middleware usa o `renovarSessao` (o *single-flight* existe para
-isto: três consultas com `401` juntas pediriam três renovações) e precisa **pular a própria rota
-de refresh**, senão um `401` dela pede outra renovação em laço. Território novo continua: código
-pronto no chat, conceito ao lado; conceitos já dados: estado de servidor × de interface, query ×
-mutation, componente e *re-render*, middleware, rota no navegador × no servidor, rota de layout e
-`<Outlet />`, promessa e *single-flight*, regra dos hooks (antes de qualquer `return`).
+**Etapa 7 (front-end) — itens (3) e 4.1–4.3a prontos; o próximo passo é o 4.3b: o `401` sem
+renovação possível leva ao login.** Hoje, quando a renovação falha com a tela aberta (refresh
+vencido em 7 dias ou revogado), o middleware devolve o `401` original e a tela mostra erro em vez
+de ir ao login; um F5 resolve, e a API segue protegida. Desenho combinado: o `QueryClient` sai do
+`main.tsx` para um módulo próprio (um por app, importável fora de componente), e o ramo `if
+(!renovou)` do `renovaNo401` faz `queryClient.setQueryData(["sessao"], false)` — a guarda, que
+observa essa chave, se redesenha e manda ao `/login` com o `state` de origem. Território novo
+continua: código pronto no chat, **testado antes numa cópia do front fora do repositório**
+(`tsc`, ESLint, Prettier), conceito ao lado. Conceitos já dados: estado de servidor × de
+interface, query × mutation, componente e *re-render*, middleware, rota no navegador × no
+servidor, rota de layout e `<Outlet />`, promessa e *single-flight*, regra dos hooks, `unknown`
+× `any`, `state` do histórico (sobrevive ao F5, não a aba nova), `<Link>` × `<a>`, fragmento,
+marcos de acessibilidade.
 
-Ordem do que falta: **(3)** o middleware acima; **(4)** as telas de verdade em `pages/`, com
-react-hook-form + zod — o login navega para a tela de origem; o **logout** apaga a entrada
-`["sessao"]` do cache (`queryClient.removeQueries`), senão o `staleTime: Infinity` da guarda
-acredita numa sessão que acabou; **(5)** o Playwright e o job `e2e` (emenda ao 0022, entra no
-commit do primeiro teste). **Compromisso da regra 6 para o primeiro `e2e`:** API parada → a guarda
-mostra a mensagem de servidor, **não** o `/login` — o `renovarSessao` tratava todo "sem `data`"
-como sem sessão, e o `502` do proxy virava login (corrigido em 2026-10-09 sem teste, porque o
-front ainda não tinha ferramenta de teste).
+Ordem do que falta no **(4)**: 4.3b (acima); **4.4** lista de recursos em `pages/recursos.tsx`
+com os quatro estados; **4.5** disponibilidade de um recurso (`useParams`, `?dia=`, fuso do
+recurso com `Intl`); **4.6** reservar clicando numa lacuna (mutation que invalida a consulta,
+mensagem do `409`); **4.7** minhas reservas e cancelar (**atualização otimista** e como
+desfazê-la). Depois o **(5)**: Playwright e o job `e2e` (emenda ao 0022, entra no commit do
+primeiro teste), percorrendo "logar → reservar → ver na agenda → cancelar". Telas de admin de
+recursos ficam fora do critério de pronto (backlog). **Compromissos para o primeiro `e2e`:** (a)
+regra 6 — API parada → a guarda mostra a mensagem de servidor, **não** o `/login` (o `502` do
+proxy virava login; corrigido em 2026-10-09 sem teste); (b) o `queryClient.clear()` do logout —
+sair e entrar como outra pessoa não mostra dado da anterior (sem dado de usuário em cache, o
+contra-teste não aparece na tela antes do 4.7).
+
+**Fatos das telas (2026-10-09):** `TelaLogin` em `pages/login.tsx` — esquema zod com
+`satisfies z.ZodType<LoginEntrada>` (campo renomeado na API vira erro de tipo), só "obrigatório"
+(não inventar regra que a API não tem), `noValidate`, `401` → "E-mail ou senha incorretos.", resto
+→ mensagem de servidor, pelo `ErroDaApi.status` (`src/api/erro.ts`; campo declarado à parte porque
+o `erasableSyntaxOnly` proíbe *parameter properties*). Volta à origem: a guarda passa
+`state={{ de: pathname + search }}` e o `destinoDe(estado: unknown)` confere a forma — no `state`,
+não em `?proximo=`, para não haver redirecionamento aberto. `Moldura` (`components/`) é a segunda
+rota de layout, **dentro** da guarda: cabeçalho, `<Link>`, "Sair". `useLogout` olha
+`response.ok` (o `204` não tem `data`) e limpa no `onSettled` — access e `queryClient.clear()`
+(o cache inteiro, não só o `["sessao"]`), mesmo com a API fora; nesse caso o cookie sobrevive e o
+próximo F5 renova. A navegação fica na tela; o `replace: true` tira a tela anterior do histórico.
 
 **Fatos da guarda (2026-10-09):** `renovarSessao` (`src/api/auth.ts`) devolve `false` **só no
 `401`** e lança no resto — "sem sessão" e "não deu para saber" são respostas diferentes. A
