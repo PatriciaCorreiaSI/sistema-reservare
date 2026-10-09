@@ -1,0 +1,4 @@
+# Todo arquivo de texto fica em LF, no repositório e na cópia de trabalho, em qualquer sistema.
+# Ganha do core.autocrlf de cada máquina, que no Windows entregaria CRLF e faria o Prettier
+# local reprovar o que o CI aprova.
+* text=auto eol=lf
