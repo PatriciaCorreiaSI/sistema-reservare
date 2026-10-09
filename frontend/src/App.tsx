@@ -1,9 +1,6 @@
 import { Navigate, Route, Routes } from "react-router";
 import { RotaProtegida } from "./components/RotaProtegida";
-
-function TelaLogin() {
-  return <h1>Login</h1>;
-}
+import { TelaLogin } from "./pages/login";
 
 function TelaRecursos() {
   return <h1>Recursos</h1>;
