@@ -9,7 +9,7 @@ O front é um SPA (single-page application): um HTML só, e o JavaScript troca a
 
 ## Decisão
 
-Escolhi usar o React Router v7, modo declarativo: URL → componente, URL como estado, navegação; nenhum *loader*. Estado de servidor fica inteiro no TanStack Query (hooks à mão, [ADR 0025](0025-gerar-tipos-do-front-pelo-openapi.md)).
+Escolhi usar o React Router v8, modo declarativo: URL → componente, URL como estado, navegação; nenhum *loader*. Estado de servidor fica inteiro no TanStack Query (hooks à mão, [ADR 0025](0025-gerar-tipos-do-front-pelo-openapi.md)).
 
 ## Alternativas consideradas
 

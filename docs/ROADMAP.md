@@ -446,7 +446,7 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > alcança a API pelo proxy do Vite, com todas as rotas sob `/api`
 > ([ADR 0024](adr/0024-alcancar-api-pelo-proxy-do-vite.md)); tipos gerados do OpenAPI, com os
 > hooks do TanStack Query escritos à mão
-> ([ADR 0025](adr/0025-gerar-tipos-do-front-pelo-openapi.md)); React Router v7 em modo
+> ([ADR 0025](adr/0025-gerar-tipos-do-front-pelo-openapi.md)); React Router v8 em modo
 > declarativo, sem *loaders* ([ADR 0026](adr/0026-rotear-com-react-router-declarativo.md)); a tela
 > fala o fuso do recurso, que a API passa a publicar em `RecursoResposta` (emenda ao
 > [ADR 0018](adr/0018-fuso-unico-do-sistema.md)). Decisões fechadas em 2026-10-06, e no mesmo dia

@@ -103,7 +103,7 @@ Antes de escrever implementação, verifique em que fase ela está:
   porquê.
 - **Etapa 7 (front-end): em andamento desde 2026-10-05; decisões fechadas em 2026-10-06** —
   ADRs 0023 (refresh em cookie `httpOnly`), 0024 (proxy do Vite, rotas sob `/api`), 0025 (tipos
-  gerados do OpenAPI, hooks à mão), 0026 (React Router v7 declarativo, sem *loaders*) e emenda ao
+  gerados do OpenAPI, hooks à mão), 0026 (React Router v8 declarativo, sem *loaders*) e emenda ao
   0018 (a tela fala o fuso do recurso, publicado em `RecursoResposta.fuso`). **Back-end da etapa
   concluído em 2026-10-06** (`/api`, cookie, `fuso`). **`frontend/` criado em 2026-10-07:** Vite +
   React + TypeScript com o proxy do 0024, ESLint + Prettier, contrato exportado
@@ -409,6 +409,10 @@ job `e2e` (decidido na emenda ao 0022, entra no commit do primeiro teste).
 - **Hooks moram em `src/api/<módulo>.ts`, com o nome do router do back-end** (`auth.ts`,
   `recurso.ts`); o nome começa com `use` (regra do React), o resto em português. Os tipos de
   entrada vêm de `components["schemas"][...]`, nunca reescritos.
+- **Pastas do `src/` em inglês, com o nome que o ecossistema usa** (decidido em 2026-10-09), a
+  mesma regra do back-end (`routers/`, `services/`): `api/` (já existe), `pages/` para a tela de
+  cada rota, `components/` para o que se reusa entre telas. Arquivo de domínio e identificador
+  continuam em português (`pages/recursos.tsx`, `TelaRecursos`), como `routers/recurso.py`.
 - **Toda `queryFn`/`mutationFn` lança quando `data` falta** (`if (!data) throw new Error(...)`):
   o `fetch` só rejeita em falha de rede, e o `openapi-fetch` devolve `401`/`422` em `error` sem
   lançar; sem o `throw`, o TanStack Query trata o erro como sucesso com `undefined`. Sem ele, o
@@ -459,7 +463,7 @@ Decisões da Etapa 7, nesta ordem (as seguintes dependem das anteriores):
    de `app.openapi()` para arquivo, tipos gerados no repositório, nunca editados à mão; o CI vai
    gerar de novo e falhar se divergir (como o `alembic check`). Exercício no fim da etapa: gerar
    os hooks com o `@hey-api` num rascunho e comparar com os dela.
-4. ✅ **Roteador** — ADR 0026 (2026-10-06): React Router v7 em **modo declarativo** — URL →
+4. ✅ **Roteador** — ADR 0026 (2026-10-06): React Router v8 em **modo declarativo** — URL →
    componente, URL como estado, navegação; **nenhum *loader***, o estado de servidor é todo do
    TanStack Query. Modos *framework* (assume build e servidor; o 0024 já decidiu SPA atrás do
    proxy) e *data* (loaders disputam com o Query) descartados; TanStack Router descartado por
@@ -638,7 +642,7 @@ mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADM
 
 Python 3.14 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 (+ `email-validator`) · Alembic ·
 PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · `PyJWT` · pytest + httpx ·
-Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v7
+Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v8
 (declarativo) · `openapi-typescript` + `openapi-fetch` · Playwright.
 
 As escolhas já foram decididas com critério em
