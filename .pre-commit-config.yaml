@@ -14,3 +14,33 @@ repos:
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
+
+      # Contrato: os dois disparam pelo mesmo gatilho, em ordem, para o gerar-tipos
+      # ler o openapi.json que o exportar-openapi acabou de escrever.
+      - id: exportar-openapi
+        name: contrato OpenAPI (backend → frontend/openapi.json)
+        entry: uv run --directory backend python -m app.comandos.exportar_openapi
+        language: system
+        files: ^backend/app/
+        pass_filenames: false
+
+      - id: gerar-tipos
+        name: tipos do front (openapi.json → src/api/tipos.ts)
+        entry: npm --prefix frontend run gerar-tipos
+        language: system
+        files: ^backend/app/
+        pass_filenames: false
+
+      - id: prettier
+        name: prettier (frontend)
+        entry: npm --prefix frontend run format
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: eslint
+        name: eslint (frontend)
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/
+        pass_filenames: false
