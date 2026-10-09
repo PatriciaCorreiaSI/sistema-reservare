@@ -30,10 +30,13 @@ let renovacaoEmCurso: Promise<boolean> | null = null;
 export function renovarSessao(): Promise<boolean> {
   if (!renovacaoEmCurso) {
     renovacaoEmCurso = (async () => {
-      const { data } = await cliente.POST("/api/auth/refresh");
-      if (!data) {
+      const { data, response } = await cliente.POST("/api/auth/refresh");
+      if (response.status === 401) {
         esquecerAccessToken();
         return false;
+      }
+      if (!data) {
+        throw new Error(`Renovação recusada: ${response.status}`);
       }
       guardarAccessToken(data.access_token);
       return true;
