@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { z } from "zod";
 import { useLogin } from "../api/auth";
 import { ErroDaApi } from "../api/erro";
@@ -15,8 +15,23 @@ const esquemaLogin = z.object({
   senha: z.string().min(1, "Informe a senha."),
 }) satisfies z.ZodType<LoginEntrada>;
 
+// De onde a pessoa veio, se a guarda disse (state do histórico, não a URL). O state
+// chega como qualquer coisa: confere a forma antes de usar, e na dúvida vai à lista.
+function destinoDe(estado: unknown): string {
+  if (
+    typeof estado == "object" &&
+    estado !== null &&
+    "de" in estado &&
+    typeof estado.de === "string"
+  ) {
+    return estado.de;
+  }
+  return "/recursos";
+}
+
 export function TelaLogin() {
   const navegar = useNavigate();
+  const local = useLocation();
   const login = useLogin();
   const {
     register,
@@ -26,7 +41,7 @@ export function TelaLogin() {
 
   const entrar = handleSubmit((credenciais) => {
     login.mutate(credenciais, {
-      onSuccess: () => navegar("/recursos", { replace: true }),
+      onSuccess: () => navegar(destinoDe(local.state), { replace: true }),
     });
   });
 

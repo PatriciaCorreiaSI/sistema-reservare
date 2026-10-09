@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { renovarSessao } from "../api/auth";
 import { obterAccessToken } from "../api/sessao";
 
-// Rota de layout das telas que exigem sessão (ADRs 0023 e 0026). Conveniência, nao
-// segurança: quem protege os dados é o 401 da PAI. Ela só evita desenhar uma tela que
+// Rota de layout das telas que exigem sessão (ADRs 0023 e 0026). Conveniência, não
+// segurança: quem protege os dados é o 401 da API. Ela só evita desenhar uma tela que
 // não teria token para buscar o que mostra.
 export function RotaProtegida() {
+  const local = useLocation();
+
   const temAccess = obterAccessToken() !== null;
 
   const renovacao = useQuery({
@@ -29,7 +31,13 @@ export function RotaProtegida() {
     );
   }
   if (!renovacao.data) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ de: local.pathname + local.search }}
+      />
+    );
   }
   return <Outlet />;
 }
