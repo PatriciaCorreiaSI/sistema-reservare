@@ -5,7 +5,7 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 7 — front-end.** A API está pronta; no front, o login já funciona.
+> Fase atual: **Etapa 7 — front-end.** A API está pronta; no front, já dá para entrar, ver os horários livres e reservar.
 
 ---
 
@@ -58,7 +58,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
-| Front-end | 🔨 em andamento — login e rotas protegidas prontos; faltam as telas de reserva |
+| Front-end | 🔨 em andamento — login, rotas protegidas, lista de recursos, horários livres e reservar prontos; faltam minhas reservas com cancelar e o teste de ponta a ponta |
 | Deploy | ⏳ |
 
 Nada é listado como pronto antes de estar funcionando.

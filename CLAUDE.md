@@ -101,16 +101,19 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 4.6: reservar clicando numa lacuna** — no `Lacunas` de
-`components/Disponibilidade.tsx`; mutation que manda os instantes que a API devolveu e invalida
-`["recursos", id]` (a chave da disponibilidade começa por ela); mensagem do `409`.
+**Antes de tudo, pendência do 4.6** (commitado em 2026-10-13 às 18h15 locais, depois do
+funcionamento): abrir o dia de **hoje** entre 8h e 18h e conferir que a primeira lacuna oferece
+inícios a partir da **próxima meia hora**, e não do "agora" quebrado. O resto do roteiro passou.
 
-**Fila:** 4.7 minhas reservas e cancelar (**atualização otimista** e como desfazê-la), e **decidir se o
-ramo `if (!renovou)` do `renovaNo401` também limpa o cache**, como o logout: hoje a tela anterior
-fica visível por um instante antes do `/login` (conferido em 2026-10-13), e outra pessoa que entre
+**Etapa 7, subpasso 4.7: minhas reservas e cancelar** (**atualização otimista** e como
+desfazê-la). A mutation de criar (`useCriarReserva`, `src/api/reserva.ts`) passa a invalidar
+também `["reservas"]`. E **decidir se o ramo `if (!renovou)` do `renovaNo401` também limpa o
+cache**, como o logout: hoje a tela anterior fica visível por um instante antes do `/login` (conferido em 2026-10-13), e outra pessoa que entre
 pela mesma aba veria as reservas da anterior até a busca nova chegar. Cuidado com a ordem: o
 `clear()` tira do cache a `["sessao"]` que a guarda observa, e um `setQueryData` depois dele cria
-outra entrada, que a guarda não observa · **(5)** Playwright e o job `e2e` (entra no
+outra entrada, que a guarda não observa.
+
+**Fila:** **(5)** Playwright e o job `e2e` (entra no
 commit do primeiro teste), percorrendo "logar → reservar → ver na agenda → cancelar". Telas de
 admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
 gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
