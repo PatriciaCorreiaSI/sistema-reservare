@@ -101,18 +101,16 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 4.4: lista de recursos** em `pages/recursos.tsx`, com os quatro estados.
-Junto com ele, duas pendências do 4.3b (`setQueryData(["sessao"], false)` no ramo `if (!renovou)`
-do `renovaNo401`, commitado em 2026-10-13 sem conferência no navegador, porque nenhuma tela
-chamava a API): (1) **conferir no navegador** — `ACCESS_MINUTOS=1`, apagar o `refresh_token` no
-DevTools, esperar, trocar de aba e voltar → `/login` → login → de volta a `/recursos`; (2)
-**decidir se esse caminho também faz `queryClient.clear()`**, como o logout: sem ele, outra pessoa
-que entre pela mesma aba vê por um instante os dados da anterior, até a busca nova chegar.
+**Etapa 7, subpasso 4.5: disponibilidade de um recurso** — rota `/recursos/:id` (`useParams`,
+`?dia=`, fuso do recurso com `Intl`); o nome na lista de recursos vira `<Link>` para ela.
 
-**Fila:** 4.5
-disponibilidade de um recurso (`useParams`, `?dia=`, fuso do recurso com `Intl`) · 4.6 reservar
-clicando numa lacuna (mutation que invalida a consulta; mensagem do `409`) · 4.7 minhas reservas e
-cancelar (**atualização otimista** e como desfazê-la) · **(5)** Playwright e o job `e2e` (entra no
+**Fila:** 4.6 reservar clicando numa lacuna (mutation que invalida a consulta; mensagem do `409`)
+· 4.7 minhas reservas e cancelar (**atualização otimista** e como desfazê-la), e **decidir se o
+ramo `if (!renovou)` do `renovaNo401` também limpa o cache**, como o logout: hoje a tela anterior
+fica visível por um instante antes do `/login` (conferido em 2026-10-13), e outra pessoa que entre
+pela mesma aba veria as reservas da anterior até a busca nova chegar. Cuidado com a ordem: o
+`clear()` tira do cache a `["sessao"]` que a guarda observa, e um `setQueryData` depois dele cria
+outra entrada, que a guarda não observa · **(5)** Playwright e o job `e2e` (entra no
 commit do primeiro teste), percorrendo "logar → reservar → ver na agenda → cancelar". Telas de
 admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
 gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
@@ -438,6 +436,10 @@ aba nova), `<Link>` × `<a>`, fragmento, marcos de acessibilidade.
 - **Sentinela `MISSING`** no `RecursoAtualizar`, quando sair do `experimental` do Pydantic — o
   contrato deixaria de dizer `string | null`.
 - **Telas de admin de recursos** (criar, editar, remover) — fora do critério de pronto da Etapa 7.
+- **Paginar a lista de recursos na tela** — hoje o `useRecursos` pede `limite: 100`, o teto da
+  API: o 101º recurso some em silêncio. Só no front: `?pagina=` na URL, `deslocamento` calculado,
+  a página na `queryKey`, `placeholderData: keepPreviousData`. "Página X de Y" exige o total, que
+  a API não devolve (mudança de contrato).
 - `str_strip_whitespace` para o nome feito só de espaços; `httpx2` no lugar de `httpx`.
 
 > Atualize "Estado atual" e "Próximo passo" ao fechar cada etapa. O README tem a tabela de status

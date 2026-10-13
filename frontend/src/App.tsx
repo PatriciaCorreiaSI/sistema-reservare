@@ -2,10 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { Moldura } from "./components/Moldura";
 import { RotaProtegida } from "./components/RotaProtegida";
 import { TelaLogin } from "./pages/login";
-
-function TelaRecursos() {
-  return <h1>Recursos</h1>;
-}
+import { TelaRecursos } from "./pages/recursos";
 
 function TelaNaoEncontrada() {
   return <h1>Página não encontrada</h1>;
