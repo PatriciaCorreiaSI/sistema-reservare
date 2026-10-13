@@ -101,14 +101,15 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 4.3b: o `401` sem renovação possível leva ao login.** Hoje, quando a
-renovação falha com a tela aberta (refresh vencido em 7 dias ou revogado), o middleware devolve o
-`401` original e a tela mostra erro; um F5 resolve, e a API segue protegida. Desenho combinado: o
-`QueryClient` sai do `main.tsx` para um módulo próprio (um por app, importável fora de
-componente), e o ramo `if (!renovou)` do `renovaNo401` faz `queryClient.setQueryData(["sessao"],
-false)` — a guarda observa essa chave, se redesenha e manda ao `/login` com o `state` de origem.
+**Etapa 7, subpasso 4.4: lista de recursos** em `pages/recursos.tsx`, com os quatro estados.
+Junto com ele, duas pendências do 4.3b (`setQueryData(["sessao"], false)` no ramo `if (!renovou)`
+do `renovaNo401`, commitado em 2026-10-13 sem conferência no navegador, porque nenhuma tela
+chamava a API): (1) **conferir no navegador** — `ACCESS_MINUTOS=1`, apagar o `refresh_token` no
+DevTools, esperar, trocar de aba e voltar → `/login` → login → de volta a `/recursos`; (2)
+**decidir se esse caminho também faz `queryClient.clear()`**, como o logout: sem ele, outra pessoa
+que entre pela mesma aba vê por um instante os dados da anterior, até a busca nova chegar.
 
-**Fila:** 4.4 lista de recursos em `pages/recursos.tsx`, com os quatro estados · 4.5
+**Fila:** 4.5
 disponibilidade de um recurso (`useParams`, `?dia=`, fuso do recurso com `Intl`) · 4.6 reservar
 clicando numa lacuna (mutation que invalida a consulta; mensagem do `409`) · 4.7 minhas reservas e
 cancelar (**atualização otimista** e como desfazê-la) · **(5)** Playwright e o job `e2e` (entra no

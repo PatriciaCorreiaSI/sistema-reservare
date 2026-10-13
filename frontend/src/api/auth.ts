@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Middleware } from "openapi-fetch";
 import { cliente } from "./cliente";
 import { ErroDaApi } from "./erro";
+import { queryClient } from "./queryClient";
 import {
   esquecerAccessToken,
   guardarAccessToken,
@@ -98,6 +99,9 @@ const renovaNo401: Middleware = {
     }
     const renovou = await renovarSessao();
     if (!renovou) {
+      // Sessão acabada com a tela aberta: avisa a guarda pela mesma chave que ela
+      // observa. Ela se redesenha e manda ao /login, com a tela de origem no state.
+      queryClient.setQueryData(["sessao"], false);
       return response;
     }
     copia.headers.set("Authorization", `Bearer ${obterAccessToken()}`);
