@@ -1,10 +1,6 @@
+import { Link } from "react-router";
 import { useRecursos } from "../api/recurso";
-
-// "08:00:00" → "08:00". A hora de funcionamento é hora de relógio no fuso do recurso,
-// não um instante: não passa pelo Intl, só se cortar.
-function horaCurta(hora: string): string {
-  return hora.slice(0, 5);
-}
+import { horaCurta } from "../formato";
 
 // O título fica fora dos estados: a página tem nome mesmo carregando ou com erro.
 export function TelaRecursos() {
@@ -57,7 +53,11 @@ function ListaDeRecursos() {
       <tbody>
         {recursos.data.map((recurso) => (
           <tr key={recurso.id_recurso}>
-            <td>{recurso.nome_recurso}</td>
+            <td>
+              <Link to={`/recursos/${recurso.id_recurso}`}>
+                {recurso.nome_recurso}
+              </Link>
+            </td>
             <td>{recurso.ocupacao}</td>
             <td>
               {horaCurta(recurso.hora_func_inicio)}-

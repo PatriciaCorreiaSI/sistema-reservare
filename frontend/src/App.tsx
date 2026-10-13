@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { Moldura } from "./components/Moldura";
 import { RotaProtegida } from "./components/RotaProtegida";
 import { TelaLogin } from "./pages/login";
+import { TelaRecurso } from "./pages/recurso";
 import { TelaRecursos } from "./pages/recursos";
 
 function TelaNaoEncontrada() {
@@ -15,6 +16,7 @@ export default function App() {
       <Route element={<RotaProtegida />}>
         <Route element={<Moldura />}>
           <Route path="/recursos" element={<TelaRecursos />} />
+          <Route path="/recursos/:idRecurso" element={<TelaRecurso />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to="/recursos" replace />} />
