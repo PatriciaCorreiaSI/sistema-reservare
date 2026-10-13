@@ -101,11 +101,11 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 4.5: disponibilidade de um recurso** — rota `/recursos/:id` (`useParams`,
-`?dia=`, fuso do recurso com `Intl`); o nome na lista de recursos vira `<Link>` para ela.
+**Etapa 7, subpasso 4.6: reservar clicando numa lacuna** — no `Lacunas` de
+`components/Disponibilidade.tsx`; mutation que manda os instantes que a API devolveu e invalida
+`["recursos", id]` (a chave da disponibilidade começa por ela); mensagem do `409`.
 
-**Fila:** 4.6 reservar clicando numa lacuna (mutation que invalida a consulta; mensagem do `409`)
-· 4.7 minhas reservas e cancelar (**atualização otimista** e como desfazê-la), e **decidir se o
+**Fila:** 4.7 minhas reservas e cancelar (**atualização otimista** e como desfazê-la), e **decidir se o
 ramo `if (!renovou)` do `renovaNo401` também limpa o cache**, como o logout: hoje a tela anterior
 fica visível por um instante antes do `/login` (conferido em 2026-10-13), e outra pessoa que entre
 pela mesma aba veria as reservas da anterior até a busca nova chegar. Cuidado com a ordem: o
@@ -128,7 +128,10 @@ explica. Formulários, os quatro estados, acessibilidade e o Playwright são de 
 Conceitos já dados: estado de servidor × de interface, query × mutation, componente e
 *re-render*, middleware, rota no navegador × no servidor, rota de layout e `<Outlet />`, promessa e
 *single-flight*, regra dos hooks, `unknown` × `any`, `state` do histórico (sobrevive ao F5, não a
-aba nova), `<Link>` × `<a>`, fragmento, marcos de acessibilidade.
+aba nova), `<Link>` × `<a>`, fragmento, marcos de acessibilidade, os quatro estados com retornos
+antecipados (*narrowing*), `isPending` × `isFetching`, `retry` só para `5xx`/rede, chave de cache
+hierárquica, instante × dia do calendário × hora de relógio, `formatToParts`, predicado de tipo
+(`texto is string`), consulta dependente resolvida por composição.
 
 ## Decisões em vigor fora dos ADRs
 
@@ -283,6 +286,9 @@ aba nova), `<Link>` × `<a>`, fragmento, marcos de acessibilidade.
   biblioteca, com a etiqueta do fuso visível; o `dia` se calcula nesse fuso. `useParams()` é
   `string | undefined` e `?dia=` chega como texto: a URL é entrada e se interpreta na borda. Reservar **clicando numa lacuna**: o front manda os
   instantes que a API devolveu, sem construir instante a partir de hora local.
+- **Tela em branco (preta no tema escuro) = erro lançado durante o desenho**: sem *error
+  boundary*, o React desmonta a árvore inteira. A causa está no Console do DevTools, não na
+  Network. **`npm run build` antes do navegador.**
 - **O `npm run dev` não confere tipos**: código com o `tsc` vermelho roda no navegador. Quem
   confere é o editor, o `npm run build` e o CI. O `StrictMode` monta tudo duas vezes em
   desenvolvimento.
