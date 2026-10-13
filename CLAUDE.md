@@ -284,8 +284,13 @@ hierárquica, instante × dia do calendário × hora de relógio, `formatToParts
   inteiro, não só o `["sessao"]`. Com a API fora, o cookie sobrevive e o próximo F5 renova.
 - **Fuso na tela:** o do recurso (`RecursoResposta.fuso`), formatado com `Intl` (`timeZone:`), sem
   biblioteca, com a etiqueta do fuso visível; o `dia` se calcula nesse fuso. `useParams()` é
-  `string | undefined` e `?dia=` chega como texto: a URL é entrada e se interpreta na borda. Reservar **clicando numa lacuna**: o front manda os
-  instantes que a API devolveu, sem construir instante a partir de hora local.
+  `string | undefined` e `?dia=` chega como texto: a URL é entrada e se interpreta na borda.
+- **Reservar clicando numa lacuna** (decidido em 2026-10-13): o clique abre início e fim numa
+  grade de 30 minutos (`PASSO_MINUTOS`, `src/grade.ts`), gerada somando milissegundos aos
+  instantes que a API devolveu — nunca construindo instante a partir de hora local, a volta
+  relógio → instante que o `Intl` não faz. O início arredonda para cima; o fim da lacuna entra
+  mesmo fora da grade. A lacuna aberta se identifica pelo **fim** (o início da de hoje é o
+  "agora", que muda a cada busca).
 - **Tela em branco (preta no tema escuro) = erro lançado durante o desenho**: sem *error
   boundary*, o React desmonta a árvore inteira. A causa está no Console do DevTools, não na
   Network. **`npm run build` antes do navegador.**

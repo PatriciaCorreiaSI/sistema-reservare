@@ -79,7 +79,11 @@ function DetalheDoRecurso({ idRecurso }: { idRecurso: number }) {
         <dd>{r.status_recurso === "ativo" ? "Ativo" : "Inativo"}</dd>
       </dl>
       {r.status_recurso === "ativo" ? (
-        <Disponibilidade idRecurso={r.id_recurso} fuso={r.fuso} />
+        <Disponibilidade
+          idRecurso={r.id_recurso}
+          ocupacao={r.ocupacao}
+          fuso={r.fuso}
+        />
       ) : (
         <p>Este recurso está inativo e não aceita reservas.</p>
       )}

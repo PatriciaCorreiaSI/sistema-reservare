@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { ErroDaApi } from "../api/erro";
 import { useDisponibilidade } from "../api/recurso";
@@ -8,14 +9,18 @@ import {
   horaNoFuso,
   somarDias,
 } from "../formato";
+import { iniciosPossiveis } from "../grade";
+import { FormularioDeReserva } from "./FormularioDeReserva";
 
 // O dia mora na URL (?dia=2026-10-13): sobrevive ao F5 e o link pode ser enviado. Sem
 // ele, ou com lixo, vale hoje, contado no fuso do recurso, não no do navegador.
 export function Disponibilidade({
   idRecurso,
+  ocupacao,
   fuso,
 }: {
   idRecurso: number;
+  ocupacao: number;
   fuso: string;
 }) {
   const [busca, setBusca] = useSearchParams();
@@ -56,21 +61,36 @@ export function Disponibilidade({
       <p>
         {diaPorExtenso(dia)} · horários em {fuso}
       </p>
-      <Lacunas idRecurso={idRecurso} dia={dia} fuso={fuso} />
+      {/* key: trocar de dia monta um Lacunas novo, sem formulário aberto nem aviso. */}
+      <Lacunas
+        key={dia}
+        idRecurso={idRecurso}
+        ocupacao={ocupacao}
+        dia={dia}
+        fuso={fuso}
+      />
     </section>
   );
 }
 
 function Lacunas({
   idRecurso,
+  ocupacao,
   dia,
   fuso,
 }: {
   idRecurso: number;
+  ocupacao: number;
   dia: string;
   fuso: string;
 }) {
   const disponibilidade = useDisponibilidade(idRecurso, dia);
+  // A lacuna com o formulário aberto e o aviso do último resultado: estado de interface.
+  // A lacuna se identifica pelo fim: o início da de hoje é o "agora", que muda a cada
+  // busca nova (ao voltar à aba, por exemplo), e fecharia o formulário no meio.
+
+  const [aberta, setAberta] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   if (disponibilidade.isPending) {
     return <p role="status">Carregando horários…</p>;
@@ -95,18 +115,53 @@ function Lacunas({
     );
   }
 
+  const terminar = (texto: string) => {
+    setAberta(null);
+    setAviso(texto);
+  };
+
   const { lacunas } = disponibilidade.data;
-  if (lacunas.length === 0) {
-    return <p>Nenhum horário livre neste dia.</p>;
-  }
 
   return (
-    <ul>
-      {lacunas.map((lacuna) => (
-        <li key={lacuna.inicio}>
-          {horaNoFuso(lacuna.inicio, fuso)}-{horaNoFuso(lacuna.fim, fuso)}
-        </li>
-      ))}
-    </ul>
+    <>
+      {aviso && <p role="status">{aviso}</p>}
+      {lacunas.length === 0 ? (
+        <p>Nenhum horário livre neste dia.</p>
+      ) : (
+        <ul>
+          {lacunas.map((lacuna) => {
+            const estaAberta = aberta === lacuna.fim;
+            // Lacuna curta demais para a grade (14:37-14:50) aparece, mas não se reserva.
+            const reservavel = iniciosPossiveis(lacuna).length > 0;
+            return (
+              <li key={lacuna.fim}>
+                {horaNoFuso(lacuna.inicio, fuso)}-{horaNoFuso(lacuna.fim, fuso)}{" "}
+                {reservavel && !estaAberta && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAberta(lacuna.fim);
+                      setAviso(null);
+                    }}
+                  >
+                    Reservar
+                  </button>
+                )}
+                {estaAberta && (
+                  <FormularioDeReserva
+                    idRecurso={idRecurso}
+                    ocupacao={ocupacao}
+                    fuso={fuso}
+                    lacuna={lacuna}
+                    aoTerminar={terminar}
+                    aoCancelar={() => setAberta(null)}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
   );
 }
