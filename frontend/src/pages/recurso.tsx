@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router";
 import { useRecurso } from "../api/recurso";
 import { ErroDaApi } from "../api/erro";
 import { horaCurta } from "../formato";
+import { Disponibilidade } from "../components/Disponibilidade";
 
 // A URL é entrada: chega como texto, ou nem chega. Só um inteiro positivo vira id;
 // "abc", "1.5" e "-3" param aqui, sem pedido à API.
@@ -77,6 +78,11 @@ function DetalheDoRecurso({ idRecurso }: { idRecurso: number }) {
         <dt>Situação</dt>
         <dd>{r.status_recurso === "ativo" ? "Ativo" : "Inativo"}</dd>
       </dl>
+      {r.status_recurso === "ativo" ? (
+        <Disponibilidade idRecurso={r.id_recurso} fuso={r.fuso} />
+      ) : (
+        <p>Este recurso está inativo e não aceita reservas.</p>
+      )}
     </>
   );
 }

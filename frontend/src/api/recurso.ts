@@ -43,3 +43,21 @@ export function useRecurso(idRecurso: number) {
     retry: repetirSeServidor,
   });
 }
+
+// A chave começa por ["recursos", id]: invalidar o recurso leva a disponibilidade junto.
+export function useDisponibilidade(idRecurso: number, dia: string) {
+  return useQuery({
+    queryKey: ["recursos", idRecurso, "disponibilidade", dia],
+    queryFn: async () => {
+      const { data, response } = await cliente.GET(
+        "/api/recursos/{id_recurso}/disponibilidade",
+        { params: { path: { id_recurso: idRecurso }, query: { dia } } },
+      );
+      if (!data) {
+        throw new ErroDaApi(response.status, "Disponibilidade recusada");
+      }
+      return data;
+    },
+    retry: repetirSeServidor,
+  });
+}
