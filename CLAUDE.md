@@ -87,7 +87,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 3 — autenticação | 2026-09-23 | ADRs 0012–0013 |
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
-| **7 — front-end** | **em andamento** | ADRs 0023–0026, emendas aos 0018 e 0022 |
+| **7 — front-end** | **em andamento** | ADRs 0023–0027, emendas aos 0018 e 0022 |
 
 Suíte do back-end em `122 passed`. O detalhe de cada etapa está no ROADMAP; a história de cada
 sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem do código:
@@ -101,7 +101,16 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 5: Playwright e o job `e2e`** (entra no commit do primeiro teste),
+**Etapa 7, subpasso 4.8: visual** (acrescentado em 2026-10-14, antes do Playwright para o e2e já
+nascer sobre a marcação final). ADR 0027: Tailwind CSS v4 pelo `@tailwindcss/vite`, variáveis de
+design no `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Ordem: **desenhar antes de
+escrever classe** — protótipo visual das quatro telas (login, recursos, horários livres, minhas
+reservas) em duas ou três direções; ela escolhe; depois instalar e aplicar tela a tela. Cuidados:
+o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"` (VoiceOver);
+contraste AA e foco visível são critério, não enfeite. O CSS do modelo do Vite (`.counter`, o roxo)
+sai.
+
+**Fila: subpasso 5, Playwright e o job `e2e`** (entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar". O 4.7 (minhas reservas e cancelar)
 fechou em 2026-10-14. Telas de
 admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
@@ -483,7 +492,8 @@ desmontagem ao mudar de pai, `useRef` e `<dialog>` com `showModal()`, foco por c
 
 Python 3.14 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 (+ `email-validator`) · Alembic ·
 PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · `PyJWT` · pytest + httpx ·
-Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v8
+Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v8 ·
+Tailwind CSS v4
 (declarativo) · `openapi-typescript` + `openapi-fetch` · Playwright.
 
 As escolhas já foram decididas com critério em
