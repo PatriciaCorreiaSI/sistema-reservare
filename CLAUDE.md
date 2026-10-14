@@ -101,25 +101,21 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 4.7: minhas reservas e cancelar** (**atualização otimista** e como
-desfazê-la). A mutation de criar (`useCriarReserva`, `src/api/reserva.ts`) passa a invalidar
-também `["reservas"]`. E **decidir se o ramo `if (!renovou)` do `renovaNo401` também limpa o
-cache**, como o logout: hoje a tela anterior fica visível por um instante antes do `/login` (conferido em 2026-10-13), e outra pessoa que entre
-pela mesma aba veria as reservas da anterior até a busca nova chegar. Cuidado com a ordem: o
-`clear()` tira do cache a `["sessao"]` que a guarda observa, e um `setQueryData` depois dele cria
-outra entrada, que a guarda não observa.
-
-**Fila:** **(5)** Playwright e o job `e2e` (entra no
-commit do primeiro teste), percorrendo "logar → reservar → ver na agenda → cancelar". Telas de
+**Etapa 7, subpasso 5: Playwright e o job `e2e`** (entra no commit do primeiro teste),
+percorrendo "logar → reservar → ver na agenda → cancelar". O 4.7 (minhas reservas e cancelar)
+fechou em 2026-10-14. Telas de
 admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
 gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
 as rotas para o TanStack Router num rascunho (ADR 0026).
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
-(b) sair e entrar como outra pessoa não mostra dado da anterior (o `queryClient.clear()` do
-logout; o contra-teste só aparece na tela depois do 4.7); (c) o Playwright fixa `timezoneId` (o
-runner do CI é UTC).
+(b) entrar como outra pessoa não mostra dado da anterior, nos dois caminhos: depois do logout (o
+`queryClient.clear()`) e depois da sessão vencida com a tela aberta (o `removeQueries()` no
+`onSuccess` do `useLogin`); a tela de minhas reservas é onde o contra-teste aparece; (c) o
+Playwright fixa `timezoneId` (o runner do CI é UTC); (d) o `<dialog>` de cancelar se acha por
+`getByRole("dialog")` e as seções por `getByRole("region", { name: ... })` — o teste confere a
+acessibilidade.
 
 **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
 do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e
@@ -130,7 +126,11 @@ Conceitos já dados: estado de servidor × de interface, query × mutation, comp
 aba nova), `<Link>` × `<a>`, fragmento, marcos de acessibilidade, os quatro estados com retornos
 antecipados (*narrowing*), `isPending` × `isFetching`, `retry` só para `5xx`/rede, chave de cache
 hierárquica, instante × dia do calendário × hora de relógio, `formatToParts`, predicado de tipo
-(`texto is string`), consulta dependente resolvida por composição.
+(`texto is string`), consulta dependente resolvida por composição, atualização otimista pela UI
+× pelo cache, callback do hook × do `mutate()` (o segundo não roda depois de desmontar), `key` e
+desmontagem ao mudar de pai, `useRef` e `<dialog>` com `showModal()`, foco por código
+(`tabIndex={-1}`), região viva (`aria-live` × `role="alert"`), dados antes do erro, `toSorted`,
+`=> ( )` × `=> { }`.
 
 ## Decisões em vigor fora dos ADRs
 
@@ -281,6 +281,19 @@ hierárquica, instante × dia do calendário × hora de relógio, `formatToParts
   unknown)` — no `state`, e não em `?proximo=`, para não haver redirecionamento aberto.
 - **Logout** limpa no `onSettled` (mesmo com a API fora): access e `queryClient.clear()` — o cache
   inteiro, não só o `["sessao"]`. Com a API fora, o cookie sobrevive e o próximo F5 renova.
+  **Login** faz `removeQueries()` no `onSuccess` (decidido em 2026-10-14): quem entra começa
+  limpo, também depois de uma sessão que venceu com a tela aberta. O `renovaNo401` continua só com
+  o `setQueryData(["sessao"], false)` — limpar ali exigiria contornar a guarda montada; no
+  `/login` ela não está. `removeQueries`, não `clear()`: o `clear()` apagaria a mutation que roda.
+- **Minhas reservas** (decidido em 2026-10-14): otimista **pela UI** (o "Cancelada" deriva do
+  `isPending`; o cache nunca é alterado), porque só uma tela mostra reservas — com uma segunda,
+  vale o cache ou o `useMutationState`. **Uma mutation por item** (`ItemDeReserva`), confirmação
+  num `<dialog>` com `showModal()` ("Manter reserva" primeiro, recebe o foco). No sucesso o hook
+  devolve a invalidação (a mutation fica pendente até a lista nova, sem piscar); no erro dispara
+  sem esperar (a tela volta já). O `409` sobe à tela por `aoAvisar`, chamado no `onError` **do
+  hook**: o item muda de seção e desmonta, e o callback do `mutate()` não roda depois disso.
+  Nome e fuso do recurso pela junção com o `useRecursos` (um `Map`); recurso ausente → "Recurso nº
+  X" no fuso do navegador, com a etiqueta. A tela pergunta `data` antes de `isError`.
 - **Fuso na tela:** o do recurso (`RecursoResposta.fuso`), formatado com `Intl` (`timeZone:`), sem
   biblioteca, com a etiqueta do fuso visível; o `dia` se calcula nesse fuso. `useParams()` é
   `string | undefined` e `?dia=` chega como texto: a URL é entrada e se interpreta na borda.
@@ -454,6 +467,10 @@ hierárquica, instante × dia do calendário × hora de relógio, `formatToParts
   (como o `expand[]` da Stripe ou o `include` do JSON:API); a tela de minhas reservas deixa de
   juntar com o `useRecursos` no cliente, e some o caso de borda do recurso fora dos 100 primeiros.
   Muda o contrato, o service e os testes.
+- **Dados antes do erro nas telas de recursos** — `recursos.tsx` e `recurso.tsx` perguntam
+  `isError` antes de `data`: uma busca em segundo plano que falha (foco na janela com a API fora)
+  troca a lista que estava na tela pela mensagem de erro. A `TelaReservas` já pergunta `data`
+  primeiro. Regra 6: o teste que reproduz vem com o Playwright.
 - **Minhas reservas além de 100** — a API ordena por `id_reserva` crescente, então o `limite: 100`
   corta as **mais novas** (as Próximas somem primeiro). Corrigir pede ordenação decrescente ou
   filtro por status na API (mudança de contrato).

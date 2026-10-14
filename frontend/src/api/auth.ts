@@ -13,6 +13,7 @@ import type { components } from "./tipos";
 type LoginEntrada = components["schemas"]["LoginEntrada"];
 
 export function useLogin() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (credenciais: LoginEntrada) => {
       const { data, response } = await cliente.POST("/api/auth/login", {
@@ -23,7 +24,11 @@ export function useLogin() {
       }
       return data;
     },
+    // Quem entra começa limpo: o cache pode guardar dados de quem usou a aba antes (a
+    // sessão dela acabou com a tela aberta). removeQueries, e não clear(): o clear()
+    // apagaria também as mutations, e esta ainda está rodando.
     onSuccess: (token) => {
+      queryClient.removeQueries();
       guardarAccessToken(token.access_token);
     },
   });
