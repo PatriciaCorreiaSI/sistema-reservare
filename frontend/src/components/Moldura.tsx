@@ -17,7 +17,8 @@ export function Moldura() {
     <>
       <header>
         <nav aria-label="Principal">
-          <Link to="/recursos">Recursos</Link>
+          <Link to="/recursos">Recursos</Link>{" "}
+          <Link to="/reservas">Minhas reservas</Link>
         </nav>
         <button type="button" onClick={sair} disabled={logout.isPending}>
           {logout.isPending ? "Saindo…" : "Sair"}

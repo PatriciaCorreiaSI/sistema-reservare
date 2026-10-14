@@ -58,3 +58,12 @@ export function horaNoFuso(instante: string, fuso: string): string {
     minute: "2-digit",
   }).format(new Date(instante));
 }
+
+// "quarta-feira, 15 de outubro de 2026": o dia do calendário em que o instante cai, no
+// fuso do recurso.
+export function dataNoFuso(instante: string, fuso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: fuso,
+    dateStyle: "full",
+  }).format(new Date(instante));
+}

@@ -101,10 +101,6 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Antes de tudo, pendência do 4.6** (commitado em 2026-10-13 às 18h15 locais, depois do
-funcionamento): abrir o dia de **hoje** entre 8h e 18h e conferir que a primeira lacuna oferece
-inícios a partir da **próxima meia hora**, e não do "agora" quebrado. O resto do roteiro passou.
-
 **Etapa 7, subpasso 4.7: minhas reservas e cancelar** (**atualização otimista** e como
 desfazê-la). A mutation de criar (`useCriarReserva`, `src/api/reserva.ts`) passa a invalidar
 também `["reservas"]`. E **decidir se o ramo `if (!renovou)` do `renovaNo401` também limpa o
@@ -454,6 +450,13 @@ hierárquica, instante × dia do calendário × hora de relógio, `formatToParts
   API: o 101º recurso some em silêncio. Só no front: `?pagina=` na URL, `deslocamento` calculado,
   a página na `queryKey`, `placeholderData: keepPreviousData`. "Página X de Y" exige o total, que
   a API não devolve (mudança de contrato).
+- **Junção no servidor para as reservas** — o `ReservaResposta` traz o nome e o fuso do recurso
+  (como o `expand[]` da Stripe ou o `include` do JSON:API); a tela de minhas reservas deixa de
+  juntar com o `useRecursos` no cliente, e some o caso de borda do recurso fora dos 100 primeiros.
+  Muda o contrato, o service e os testes.
+- **Minhas reservas além de 100** — a API ordena por `id_reserva` crescente, então o `limite: 100`
+  corta as **mais novas** (as Próximas somem primeiro). Corrigir pede ordenação decrescente ou
+  filtro por status na API (mudança de contrato).
 - `str_strip_whitespace` para o nome feito só de espaços; `httpx2` no lugar de `httpx`.
 
 > Atualize "Estado atual" e "Próximo passo" ao fechar cada etapa. O README tem a tabela de status

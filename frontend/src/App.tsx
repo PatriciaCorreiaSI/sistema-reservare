@@ -4,6 +4,7 @@ import { RotaProtegida } from "./components/RotaProtegida";
 import { TelaLogin } from "./pages/login";
 import { TelaRecurso } from "./pages/recurso";
 import { TelaRecursos } from "./pages/recursos";
+import { TelaReservas } from "./pages/reservas";
 
 function TelaNaoEncontrada() {
   return <h1>Página não encontrada</h1>;
@@ -17,6 +18,7 @@ export default function App() {
         <Route element={<Moldura />}>
           <Route path="/recursos" element={<TelaRecursos />} />
           <Route path="/recursos/:idRecurso" element={<TelaRecurso />} />
+          <Route path="/reservas" element={<TelaReservas />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to="/recursos" replace />} />
