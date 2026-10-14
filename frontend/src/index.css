@@ -1,116 +1,63 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/bricolage-grotesque";
 
-  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+/* As cores têm nome de PAPEL (fundo, texto, destaque), nunca de matiz (laranja, cinza):
+  as classes sao as mesmas nos dois temas, e só o valor da variável muda.*/
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme {
+  --font-sans: "Manrope Variable", system-ui, sans-serif;
+  --font-titulo: "Bricolage Grotesque Variable", system-ui, sans-serif;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  --color-fundo: #ffffff;
+  --color-superficie: #ffffff;
+  --color-sutil: #fafaf9;
+  --color-borda: #e7e5e4;
+  --color-borda-forte: #d6d3d1;
+  --color-borda-campo: #a8a29e;
+  --color-campo: #ffffff;
+  --color-texto: #1c1917;
+  --color-texto-suave: #57534e;
+  --color-destaque: #c2410c;
+  --color-sobre-destaque: #ffffff;
+  --color-destaque-suave: #fff7ed;
+  --color-destaque-texto: #9a3412;
+  --color-ok: #166534;
+  --color-perigo: #b91c1c;
+  --color-perigo-suave: #fef2f2;
+}
+
+/* O tema escuro redefine as mesmas variáveis. O atributo é posto no <html> pelo script
+    o index.html, antes do primeiro desenho. */
+[data-tema="escuro"] {
+  color-scheme: dark;
+  --color-fundo: #171412;
+  --color-superficie: #211d1b;
+  --color-sutil: #2a2522;
+  --color-borda: #3a3431;
+  --color-borda-forte: #57504b;
+  --color-borda-campo: #8a827c;
+  --color-campo: #171412;
+  --color-texto: #f5f5f4;
+  --color-texto-suave: #b5aea8;
+  --color-destaque: #fb923c;
+  --color-sobre-destaque: #1c1917;
+  --color-destaque-suave: #2b1f17;
+  --color-destaque-texto: #fdba74;
+  --color-ok: #86efac;
+  --color-perigo: #fca5a5;
+  --color-perigo-suave: #3a1f1f;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-fundo);
+    color: var(--color-texto);
+    font-family: var(--font-sans);
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
-
-/* O cancelamento em andamento: a reserva já aparece como cancelada, esmaecida.*/
+/* O cancelamento em andamento: a reserva já aparece como cancelada, esmaecida. */
 .esmaecido {
   opacity: 0.6;
 }

@@ -1,10 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>Reservare</title>
+    <script>
+      // Roda antes do primeiro desenho: decidir o tema depois, no React, faria a página
+      // aparecer clara e trocar para escura num piscar. A escolha guardada ganha; sem
+      // ela, vale a do sistema. Sem acesso ao localStorage (aba privada), fica o claro.
+      try {
+        const salvo = localStorage.getItem("tema");
+        const escuro = salvo
+          ? salvo === "escuro"
+          : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.tema = escuro ? "escuro" : "claro";
+      } catch {
+        document.documentElement.dataset.tema = "claro";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
