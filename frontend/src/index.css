@@ -2,6 +2,11 @@
 @import "@fontsource-variable/manrope";
 @import "@fontsource-variable/bricolage-grotesque";
 
+/* O Tailwind traz aria-pressed:, aria-disabled: e outros, mas não aria-invalid:. Esta
+   linha o cria, para o campo com erro se estilizar pelo mesmo atributo que o leitor de
+   tela anuncia. */
+@custom-variant aria-invalid (&[aria-invalid="true"]);
+
 /* As cores têm nome de PAPEL (fundo, texto, destaque), nunca de matiz (laranja, cinza):
   as classes sao as mesmas nos dois temas, e só o valor da variável muda.*/
 

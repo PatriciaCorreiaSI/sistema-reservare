@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useLogin } from "../api/auth";
 import { ErroDaApi } from "../api/erro";
 import type { components } from "../api/tipos";
+import { SeletorDeTema } from "../components/SeletorDeTema";
 
 type LoginEntrada = components["schemas"]["LoginEntrada"];
 
@@ -49,46 +50,105 @@ export function TelaLogin() {
     login.error instanceof ErroDaApi && login.error.status === 401;
 
   return (
-    <main>
-      <h1>Entrar</h1>
-      <form onSubmit={entrar} noValidate>
-        <div>
-          <label htmlFor="email">E-mail: </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="username"
-            aria-invalid={errors.email_usuario ? true : undefined}
-            aria-describedby={errors.email_usuario ? "erro-email" : undefined}
-            {...register("email_usuario")}
-          />
-          {errors.email_usuario && (
-            <p id="erro-email">{errors.email_usuario.message}</p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="senha">Senha: </label>
-          <input
-            id="senha"
-            type="password"
-            autoComplete="current-password"
-            aria-invalid={errors.senha ? true : undefined}
-            aria-describedby={errors.senha ? "erro-senha" : undefined}
-            {...register("senha")}
-          />
-          {errors.senha && <p id="erro-senha">{errors.senha.message}</p>}
-        </div>
-        {login.isError && (
-          <p role="alert">
-            {credenciaisErradas
-              ? "E-mail ou senha incorretos."
-              : "Não foi possível entrar agora. Tente de novo em instantes."}
+    <div className="flex min-h-svh flex-col md:flex-row">
+      <section
+        aria-label="Sobre o Reservare"
+        className="flex flex-col gap-12 bg-destaque-suave p-8 md:w-1/2 md:p-12"
+      >
+        <span className="font-titulo text-3xl font-extrabold tracking-tight">
+          reservare<span className="text-destaque">.</span>
+        </span>
+        <div className="md:my-auto">
+          <p className="max-w-lg font-titulo text-4xl leading-none font-extrabold tracking-tight md:text-6xl">
+            Salas, equipamentos e estações, sem conflito de horário.
           </p>
-        )}
-        <button type="submit" disabled={login.isPending}>
-          {login.isPending ? "Entrando…" : "Entrar"}
-        </button>
-      </form>
-    </main>
+          <p className="mt-5 max-w-md text-lg leading-relaxed text-texto-suave">
+            Duas reservas ativas nunca se sobrepõem no mesmo recurso: quem
+            garante é o banco, não a tela.
+          </p>
+        </div>
+      </section>
+
+      <main className="flex flex-1 flex-col p-8 md:p-12">
+        <SeletorDeTema className="self-end" />
+        <div className="flex flex-1 items-center justify-center py-8">
+          <form
+            onSubmit={entrar}
+            noValidate
+            className="flex w-full max-w-sm flex-col gap-5"
+          >
+            <h1
+              className="font-titulo text-4xl font-extrabold tracking-tight"
+              disabled:cursor-wait
+            >
+              Entrar
+            </h1>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="email" className="text-sm font-bold">
+                E-mail
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                aria-invalid={errors.email_usuario ? true : undefined}
+                aria-describedby={
+                  errors.email_usuario ? "erro-email" : undefined
+                }
+                className="rounded-xl border border-borda-campo bg-campo px-4 py-3.5 text-texto aria-invalid:border-2 aria-invalid:border-perigo"
+                {...register("email_usuario")}
+              />
+              {errors.email_usuario && (
+                <p
+                  id="erro-email"
+                  className="text-sm font-semibold text-perigo"
+                >
+                  {errors.email_usuario.message}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="senha" className="text-sm font-bold">
+                Senha
+              </label>
+              <input
+                id="senha"
+                type="password"
+                autoComplete="current-password"
+                aria-invalid={errors.senha ? true : undefined}
+                aria-describedby={errors.senha ? "erro-senha" : undefined}
+                className="rounded-xl border border-borda-campo bg-campo px-4 py-3.5 text-texto aria-invalid:border-2 aria-invalid:border-perigo"
+                {...register("senha")}
+              />
+              {errors.senha && (
+                <p
+                  id="erro-senha"
+                  className="text-sm font-semibold text-perigo"
+                >
+                  {errors.senha.message}
+                </p>
+              )}
+            </div>
+            {login.isError && (
+              <p
+                role="alert"
+                className="rounded-xl bg-perigo-suave px-4 py-3 font-semibold text-perigo"
+              >
+                {credenciaisErradas
+                  ? "E-mail ou senha incorretos."
+                  : "Não foi possível entrar agora. Tente de novo em instantes."}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={login.isPending}
+              className="cursor-pointer rounded-full bg-destaque px-6 py-3.5 font-bold text-sobre-destaque hover:opacity-90 disabled:opacity-60"
+            >
+              {login.isPending ? "Entrando…" : "Entrar"}
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 }

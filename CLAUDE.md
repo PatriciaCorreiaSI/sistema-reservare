@@ -103,12 +103,26 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 **Etapa 7, subpasso 4.8: visual** (acrescentado em 2026-10-14, antes do Playwright para o e2e já
 nascer sobre a marcação final). ADR 0027: Tailwind CSS v4 pelo `@tailwindcss/vite`, variáveis de
-design no `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Ordem: **desenhar antes de
-escrever classe** — protótipo visual das quatro telas (login, recursos, horários livres, minhas
-reservas) em duas ou três direções; ela escolhe; depois instalar e aplicar tela a tela. Cuidados:
-o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"` (VoiceOver);
-contraste AA e foco visível são critério, não enfeite. O CSS do modelo do Vite (`.counter`, o roxo)
-sai.
+design no `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção aprovada no protótipo
+(artifact "Reservare — direções visuais", página "Direção escolhida"): a editorial (Bricolage +
+Manrope, laranja, barra lateral, faixa da semana) com os quadros de informação do recurso da
+direção A, em claro e escuro. Feitos e commitados: instalação e paleta (`75596f5`), barra lateral
+com seletor de tema (`109b8ec`). **Login digitado, não commitado** (`login.tsx` e o
+`@custom-variant aria-invalid` no `index.css`).
+
+**Pendência do login, antes do commit dele:** entre 768px e ~1024px o título do painel da
+esquerda (`md:text-6xl`) transborda para a coluna do formulário — a palavra "equipamentos" não
+cabe na metade da tela e não quebra. Caminho provável: `md:text-5xl lg:text-6xl` (o tamanho grande
+só a partir de 1024px) e conferir com o DevTools em 768px. Depois: recursos, horários livres
+(quadros do recurso + faixa da semana, que muda a navegação para semana; `?dia=` continua) e minhas
+reservas — aí o `.esmaecido` vira `opacity-60` e sai do CSS, e o campo repetido do login vira um
+componente `Campo` quando o `FormularioDeReserva` for o terceiro uso (sinal do ADR 0027).
+
+Cuidados: o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"`
+(VoiceOver); contraste AA e foco visível são critério, não enfeite. **Classe errada não dá erro**:
+o Tailwind ignora em silêncio, e o plugin do Prettier põe as desconhecidas no começo da lista (o
+sinal). A borda pede duas classes (`border` = largura, `border-X` = cor). O Tailwind não traz
+`aria-invalid:` (criado com `@custom-variant`); valor de atributo no seletor diferencia maiúscula.
 
 **Fila: subpasso 5, Playwright e o job `e2e`** (entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar". O 4.7 (minhas reservas e cancelar)
@@ -142,7 +156,10 @@ hierárquica, instante × dia do calendário × hora de relógio, `formatToParts
 × pelo cache, callback do hook × do `mutate()` (o segundo não roda depois de desmontar), `key` e
 desmontagem ao mudar de pai, `useRef` e `<dialog>` com `showModal()`, foco por código
 (`tabIndex={-1}`), região viva (`aria-live` × `role="alert"`), dados antes do erro, `toSorted`,
-`=> ( )` × `=> { }`.
+`=> ( )` × `=> { }`, `@theme` com cor por papel e tema por variável (não `@theme inline`),
+escala de espaço, prefixo de tela (`md:`, *mobile-first*) e de estado (`hover:`, `aria-pressed:`),
+`@custom-variant`, `NavLink`, inicialização preguiçosa do `useState`, script antes do primeiro
+desenho (*flash of incorrect theme*), `:focus-visible`, margem automática em flex.
 
 ## Decisões em vigor fora dos ADRs
 
