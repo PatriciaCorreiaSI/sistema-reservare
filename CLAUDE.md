@@ -124,7 +124,10 @@ servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-
 `onSuccess` do `useLogin`); a tela de minhas reservas é onde o contra-teste aparece; (c) o
 Playwright fixa `timezoneId` (o runner do CI é UTC); (d) o `<dialog>` de cancelar se acha por
 `getByRole("dialog")` e as seções por `getByRole("region", { name: ... })` — o teste confere a
-acessibilidade.
+acessibilidade; (e) regra 6 — numa página mais alta que a tela (minhas reservas com vários
+itens), o seletor de tema e o "Sair" continuam visíveis (`toBeInViewport()`): a barra esticava
+com a página e o `md:mt-auto` os empurrava para o fim (corrigido em 2026-10-14 com `md:sticky
+md:top-0 md:h-svh`, sem teste).
 
 **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
 do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e

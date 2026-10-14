@@ -55,6 +55,13 @@
     color: var(--color-texto);
     font-family: var(--font-sans);
   }
+
+  /* Foco visível num lugar só, para todo elemento focável: aparece no teclado
+     (:focus-visible), não no clique do mouse. */
+  :focus-visible {
+    outline: 2px solid var(--color-destaque);
+    outline-offset: 2px;
+  }
 }
 
 /* O cancelamento em andamento: a reserva já aparece como cancelada, esmaecida. */
