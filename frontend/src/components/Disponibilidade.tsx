@@ -7,12 +7,13 @@ import {
   diaNoFuso,
   diaPorExtenso,
   diaValido,
+  duracao,
   horaNoFuso,
   segundaDaSemana,
   somarDias,
 } from "../formato";
 import { iniciosPossiveis } from "../grade";
-import { FormularioDeReserva } from "./FormularioDeReserva";
+import { FormularioDeReserva, type Aviso } from "./FormularioDeReserva";
 
 // O dia mora na URL (?dia=2026-10-13): sobrevive ao F5 e o link pode ser enviado. Sem
 // ele, ou com lixo, vale hoje, contado no fuso do recurso, não no do navegador.
@@ -191,24 +192,38 @@ function Lacunas({
   // busca nova (ao voltar à aba, por exemplo), e fecharia o formulário no meio.
 
   const [aberta, setAberta] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
 
   if (disponibilidade.isPending) {
-    return <p role="status">Carregando horários…</p>;
+    return (
+      <p role="status" className="mt-8 text-texto-suave">
+        Carregando horários…
+      </p>
+    );
   }
 
   if (disponibilidade.isError) {
     const erro = disponibilidade.error;
     if (erro instanceof ErroDaApi && erro.status === 409) {
-      return <p>Este recurso está inativo e não aceita reservas.</p>;
+      return (
+        <p className="mt-8 text-texto-suave">
+          Este recurso está inativo e não aceita reservas.
+        </p>
+      );
     }
     return (
-      <div role="alert">
-        <p>Não foi possível carregar os horários.</p>
+      <div
+        role="alert"
+        className="mt-8 flex max-w-lg flex-col items-start gap-4 rounded-xl bg-perigo-suave p-5"
+      >
+        <p className="font-semibold text-perigo">
+          Não foi possível carregar os horários.
+        </p>
         <button
           type="button"
           onClick={() => disponibilidade.refetch()}
           disabled={disponibilidade.isFetching}
+          className="cursor-pointer rounded-lg border border-borda-forte bg-superficie px-3.5 py-3 text-texto hover:bg-sutil disabled:cursor-wait disabled:opacity-60"
         >
           {disponibilidade.isFetching ? "Tentando…" : "Tentar de novo"}
         </button>
@@ -216,52 +231,107 @@ function Lacunas({
     );
   }
 
-  const terminar = (texto: string) => {
+  const terminar = (novo: Aviso) => {
     setAberta(null);
-    setAviso(texto);
+    setAviso(novo);
   };
 
   const { lacunas } = disponibilidade.data;
 
   return (
     <>
-      {aviso && <p role="status">{aviso}</p>}
+      {aviso && (
+        <p
+          role="status"
+          className={
+            aviso.tipo === "sucesso"
+              ? "mt-8 rounded-xl border border-ok bg-ok-suave px-4 py-3 font-semibold text-ok"
+              : "mt-8 rounded-xl border border-destaque bg-destaque-suave px-4 py-3 font-semibold text-destaque-texto"
+          }
+        >
+          <span aria-hidden="true">
+            {aviso.tipo === "sucesso" ? "✓ " : "! "}
+          </span>
+          {aviso.texto}
+        </p>
+      )}
       {lacunas.length === 0 ? (
-        <p>Nenhum horário livre neste dia.</p>
+        <p className="mt-8 text-texto-suave">Nenhum horário livre neste dia.</p>
       ) : (
-        <ul>
-          {lacunas.map((lacuna) => {
-            const estaAberta = aberta === lacuna.fim;
-            // Lacuna curta demais para a grade (14:37-14:50) aparece, mas não se reserva.
-            const reservavel = iniciosPossiveis(lacuna).length > 0;
-            return (
-              <li key={lacuna.fim}>
-                {horaNoFuso(lacuna.inicio, fuso)}-{horaNoFuso(lacuna.fim, fuso)}{" "}
-                {reservavel && !estaAberta && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAberta(lacuna.fim);
-                      setAviso(null);
-                    }}
+        <>
+          <h3 className="mt-9 mb-3.5 text-sm font-bold tracking-wider text-texto-suave uppercase">
+            {lacunas.length}{" "}
+            {lacunas.length === 1 ? "período livre" : "períodos livres"}
+          </h3>
+          <ul
+            role="list"
+            className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4"
+          >
+            {lacunas.map((lacuna) => {
+              const estaAberta = aberta === lacuna.fim;
+              // Lacuna curta demais para a grade (14:37-14:50) aparece, mas não se reserva.
+              const reservavel = iniciosPossiveis(lacuna).length > 0;
+              const horario = `${horaNoFuso(lacuna.inicio, fuso)} – ${horaNoFuso(lacuna.fim, fuso)}`;
+
+              if (estaAberta) {
+                // A aberta ocupa a linha inteira: o formulário precisa de largura.
+                return (
+                  <li
+                    key={lacuna.fim}
+                    className="col-span-full rounded-2xl border-2 border-destaque bg-destaque-suave p-6"
                   >
-                    Reservar
-                  </button>
-                )}
-                {estaAberta && (
-                  <FormularioDeReserva
-                    idRecurso={idRecurso}
-                    ocupacao={ocupacao}
-                    fuso={fuso}
-                    lacuna={lacuna}
-                    aoTerminar={terminar}
-                    aoCancelar={() => setAberta(null)}
-                  />
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    <div className="flex flex-wrap items-baseline gap-3">
+                      <span className="font-titulo text-3xl font-bold tracking-tight">
+                        {horario}
+                      </span>
+                      <span className="text-texto-suave">
+                        livre por {duracao(lacuna.inicio, lacuna.fim)}
+                      </span>
+                    </div>
+                    <FormularioDeReserva
+                      idRecurso={idRecurso}
+                      ocupacao={ocupacao}
+                      fuso={fuso}
+                      lacuna={lacuna}
+                      aoTerminar={terminar}
+                      aoCancelar={() => setAberta(null)}
+                    />
+                  </li>
+                );
+              }
+
+              return (
+                <li
+                  key={lacuna.fim}
+                  className="flex flex-col gap-3.5 rounded-2xl border border-borda bg-superficie p-5"
+                >
+                  <span className="font-titulo text-2xl font-bold tracking-tight">
+                    {horario}
+                  </span>
+                  <span className="text-sm text-texto-suave">
+                    livre por {duracao(lacuna.inicio, lacuna.fim)}
+                  </span>
+                  {reservavel ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAberta(lacuna.fim);
+                        setAviso(null);
+                      }}
+                      className="cursor-pointer self-start rounded-full border border-destaque px-4.5 py-2.5 text-sm font-bold text-destaque-texto hover:bg-destaque-suave"
+                    >
+                      Reservar
+                    </button>
+                  ) : (
+                    <span className="text-sm text-texto-suave">
+                      Curto demais para reservar.
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </>
   );

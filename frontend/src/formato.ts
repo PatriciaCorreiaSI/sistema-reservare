@@ -63,6 +63,22 @@ export function diaDaSemanaCurto(dia: string): string {
     .replace(".", "");
 }
 
+// Quanto tempo vai de um instante ao outro: "45 min", "2h", "1h53". A lacuna de hoje
+// começa no "agora" (10:37:22): o floor descarta os segundos, sem prometer um minuto
+// que não existe.
+export function duracao(inicio: string, fim: string): string {
+  const minutos = Math.floor((Date.parse(fim) - Date.parse(inicio)) / 60_000);
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  if (horas === 0) {
+    return `${resto} min`;
+  }
+  if (resto === 0) {
+    return `${horas}h`;
+  }
+  return `${horas}h${String(resto).padStart(2, "0")}`;
+}
+
 // Um instante da API ("2026-10-13T14:00:00Z") como hora de relógio no fuso do recurso.
 // A API manda UTC; o fuso é assunto de apresentação, e só aqui ele entra.
 export function horaNoFuso(instante: string, fuso: string): string {

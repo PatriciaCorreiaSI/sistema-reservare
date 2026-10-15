@@ -7,6 +7,10 @@ import { finsPossiveis, iniciosPossiveis } from "../grade";
 
 type Lacuna = components["schemas"]["Lacuna"];
 
+// O resultado que o formulário entrega a quem o abriu. O tipo decide a cor do aviso: o
+// conflito não é sucesso, e não pode parecer um.
+export type Aviso = { tipo: "sucesso" | "conflito"; texto: string };
+
 // Estado de interface (o que está escolhido no formulário) em useState; o estado de
 // servidor (a reserva criada) é da mutation. Os selects só oferecem horários válidos,
 // então a única entrada livre é o número de convidados.
@@ -22,7 +26,7 @@ export function FormularioDeReserva({
   ocupacao: number;
   fuso: string;
   lacuna: Lacuna;
-  aoTerminar: (aviso: string) => void;
+  aoTerminar: (aviso: Aviso) => void;
   aoCancelar: () => void;
 }) {
   const criar = useCriarReserva();
@@ -53,13 +57,18 @@ export function FormularioDeReserva({
         onSuccess: (reserva) => {
           const de = horaNoFuso(reserva.inicio, fuso);
           const ate = horaNoFuso(reserva.fim, fuso);
-          aoTerminar(`Reserva feita: ${de}–${ate}.`);
+          aoTerminar({
+            tipo: "sucesso",
+            texto: `Reserva feita: ${de}–${ate}.`,
+          });
         },
         onError: (erro) => {
           if (erro instanceof ErroDaApi && erro.status === 409) {
-            aoTerminar(
-              "Esse horário acabou de ser reservado por outra pessoa. Os horários livres foram atualizados.",
-            );
+            aoTerminar({
+              tipo: "conflito",
+              texto:
+                "Esse horário acabou de ser reservado por outra pessoa. Os horários livres foram atualizados.",
+            });
           }
         },
       },

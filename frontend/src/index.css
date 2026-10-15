@@ -28,6 +28,7 @@
   --color-destaque-suave: #fff7ed;
   --color-destaque-texto: #9a3412;
   --color-ok: #166534;
+  --color-ok-suave: #f0fdf4;
   --color-perigo: #b91c1c;
   --color-perigo-suave: #fef2f2;
 }
@@ -50,6 +51,7 @@
   --color-destaque-suave: #2b1f17;
   --color-destaque-texto: #fdba74;
   --color-ok: #86efac;
+  --color-ok-suave: #14281c;
   --color-perigo: #fca5a5;
   --color-perigo-suave: #3a1f1f;
 }
