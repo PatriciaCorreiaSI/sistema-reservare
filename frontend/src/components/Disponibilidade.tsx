@@ -175,6 +175,13 @@ function DiaDaFaixa({
   );
 }
 
+// Dá o foco ao elemento assim que ele aparece na tela. Fica fora do componente para ser
+// sempre a mesma função: o React só chama um ref de função quando o elemento monta ou
+// quando a função muda, e uma função nova a cada desenho roubaria o foco a cada busca.
+function focarAoMontar(elemento: HTMLElement | null) {
+  elemento?.focus();
+}
+
 function Lacunas({
   idRecurso,
   ocupacao,
@@ -193,6 +200,8 @@ function Lacunas({
 
   const [aberta, setAberta] = useState<string | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
+  // O botão "Reservar" que recebe o foco de volta quando o formulário é cancelado.
+  const [devolverFocoA, setDevolverFocoA] = useState<string | null>(null);
 
   if (disponibilidade.isPending) {
     return (
@@ -243,6 +252,8 @@ function Lacunas({
       {aviso && (
         <p
           role="status"
+          ref={focarAoMontar}
+          tabIndex={-1}
           className={
             aviso.tipo === "sucesso"
               ? "mt-8 rounded-xl border border-ok bg-ok-suave px-4 py-3 font-semibold text-ok"
@@ -294,7 +305,10 @@ function Lacunas({
                       fuso={fuso}
                       lacuna={lacuna}
                       aoTerminar={terminar}
-                      aoCancelar={() => setAberta(null)}
+                      aoCancelar={() => {
+                        setAberta(null);
+                        setDevolverFocoA(lacuna.fim);
+                      }}
                     />
                   </li>
                 );
@@ -314,9 +328,13 @@ function Lacunas({
                   {reservavel ? (
                     <button
                       type="button"
+                      ref={
+                        devolverFocoA === lacuna.fim ? focarAoMontar : undefined
+                      }
                       onClick={() => {
                         setAberta(lacuna.fim);
                         setAviso(null);
+                        setDevolverFocoA(null);
                       }}
                       className="cursor-pointer self-start rounded-full border border-destaque px-4.5 py-2.5 text-sm font-bold text-destaque-texto hover:bg-destaque-suave"
                     >

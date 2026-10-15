@@ -4,6 +4,7 @@ import { useCriarReserva } from "../api/reserva";
 import type { components } from "../api/tipos";
 import { horaNoFuso } from "../formato";
 import { finsPossiveis, iniciosPossiveis } from "../grade";
+import { Campo } from "./Campo";
 
 type Lacuna = components["schemas"]["Lacuna"];
 
@@ -81,59 +82,83 @@ export function FormularioDeReserva({
     !(criar.error instanceof ErroDaApi && criar.error.status === 409);
 
   return (
-    <form onSubmit={reservar} noValidate>
-      <div>
-        <label htmlFor="inicio">Início: </label>
-        <select
-          id="inicio"
-          value={inicio}
-          onChange={(evento) => escolherInicio(evento.target.value)}
-        >
-          {inicios.map((instante) => (
-            <option key={instante} value={instante}>
-              {horaNoFuso(instante, fuso)}
-            </option>
-          ))}
-        </select>{" "}
-        <label htmlFor="fim">Fim: </label>
-        <select
-          id="fim"
-          value={fim}
-          onChange={(evento) => setFim(evento.target.value)}
-        >
-          {fins.map((instante) => (
-            <option key={instante} value={instante}>
-              {horaNoFuso(instante, fuso)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="convidados">Convidados: </label>
-        <input
-          id="convidados"
-          type="number"
-          min={1}
-          max={ocupacao}
-          value={convidados}
-          onChange={(evento) => setConvidados(evento.target.value)}
-          aria-invalid={erroConvidados ? true : undefined}
-          aria-describedby={erroConvidados ? "erro-convidados" : undefined}
-        />
-        {erroConvidados && <p id="erro-convidados">{erroConvidados}</p>}
+    <form onSubmit={reservar} noValidate className="mt-5 flex flex-col gap-5">
+      <div className="flex flex-wrap items-start gap-4">
+        <Campo id="inicio" rotulo="Início">
+          {(props) => (
+            // autoFocus: o formulário acabou de abrir no lugar do botão "Reservar", que
+            // sumiu; sem isso o foco do teclado cairia no começo da página.
+            <select
+              autoFocus
+              value={inicio}
+              onChange={(evento) => escolherInicio(evento.target.value)}
+              {...props}
+              className={`${props.className} min-w-32`}
+            >
+              {inicios.map((instante) => (
+                <option key={instante} value={instante}>
+                  {horaNoFuso(instante, fuso)}
+                </option>
+              ))}
+            </select>
+          )}
+        </Campo>
+        <Campo id="fim" rotulo="Fim">
+          {(props) => (
+            <select
+              value={fim}
+              onChange={(evento) => setFim(evento.target.value)}
+              {...props}
+              className={`${props.className} min-w-32`}
+            >
+              {fins.map((instante) => (
+                <option key={instante} value={instante}>
+                  {horaNoFuso(instante, fuso)}
+                </option>
+              ))}
+            </select>
+          )}
+        </Campo>
+        <Campo id="convidados" rotulo="Convidados" erro={erroConvidados}>
+          {(props) => (
+            <input
+              type="number"
+              min={1}
+              max={ocupacao}
+              value={convidados}
+              onChange={(evento) => setConvidados(evento.target.value)}
+              {...props}
+              className={`${props.className} w-28`}
+            />
+          )}
+        </Campo>
       </div>
       {outroErro && (
-        <p role="alert">
+        <p
+          role="alert"
+          className="rounded-xl bg-perigo-suave px-4 py-3 font-semibold text-perigo"
+        >
           A reserva foi recusada. O horário pode ter passado enquanto a tela
           estava aberta: escolha outro.
         </p>
       )}
-      <button type="submit" disabled={criar.isPending}>
-        {criar.isPending ? "Reservando…" : "Confirmar reserva"}
-      </button>{" "}
-      <button type="button" onClick={aoCancelar} disabled={criar.isPending}>
-        Cancelar
-      </button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          onClick={aoCancelar}
+          disabled={criar.isPending}
+          className="cursor-pointer rounded-full border border-borda-forte px-5 py-3 font-semibold text-texto hover:bg-sutil disabled:cursor-wait disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={criar.isPending}
+          className="cursor-pointer rounded-full bg-destaque px-6 py-3 font-bold text-sobre-destaque hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+        >
+          {criar.isPending ? "Reservando…" : "Confirmar reserva"}
+        </button>
+      </div>
     </form>
   );
 }
