@@ -109,7 +109,8 @@ Manrope, laranja, barra lateral, faixa da semana) com os quadros de informação
 direção A, em claro e escuro. Feitos e commitados: instalação e paleta (`75596f5`), barra lateral
 com seletor de tema (`109b8ec`), login (`76e905d`, `c0ae5a8`, `fd6b631`), recursos em cartões
 (`133faa0`), quadros do recurso (`57f87e0`, `ba47a8c`), faixa da semana (`b6b6aa3`), lacunas em
-cartões e aviso por tipo (`006405a`). Layout no limite exato não conta como cabendo: a fonte de
+cartões e aviso por tipo (`006405a`), `Campo` (`cdd4dcf`), formulário de reserva e foco
+(`0f4f001`). Layout no limite exato não conta como cabendo: a fonte de
 reserva e o zoom só do texto mudam a largura (o título do login ficou em `text-4xl lg:text-6xl`,
 porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
 `grid-cols-[repeat(auto-fill,minmax(...))]`, não por `md:`/`lg:`: o prefixo mede a janela, e a
@@ -124,15 +125,25 @@ logo é link, como paginação; dia passado é texto riscado, fora do Tab, com `
 horário; o `Aviso` (`sucesso` | `conflito`, exportado do `FormularioDeReserva`) decide a cor da
 tarja (`ok-suave` novo na paleta).
 
-A seguir: **3b, o formulário de reserva** aberto no cartão — começa pela decisão do componente
-`Campo` (o formulário é o terceiro uso do padrão do login: rótulo, campo, erro com
-`aria-describedby`) e corrige o foco que se perde ao clicar em "Reservar" (o botão some e o foco
-volta ao `<body>`). Depois, minhas reservas — aí o `.esmaecido` vira `opacity-60` e sai do CSS.
+**`Campo` e foco (desenho de 2026-10-15):** `components/Campo.tsx` liga rótulo, controle e erro
+pelos mesmos ids, por *render prop* (`{(props) => <select {...props} />}`) — serve a `input` e
+`select`, e quem usa não digita `aria-*`; classe a mais só depois do *spread* e sem disputar
+propriedade com a do `Campo` (`min-w-32`, `w-28`). Login e formulário de reserva usam. Foco no
+cartão: abrir → `autoFocus` no "Início"; cancelar → volta ao "Reservar" da mesma lacuna
+(`devolverFocoA`, limpo ao abrir de novo, senão disputa com o aviso); terminar → a tarja do aviso
+(`tabIndex={-1}`). Os dois últimos por `ref={focarAoMontar}`, função **fora** do componente (a
+mesma a cada desenho, senão o React a chama de novo e rouba o foco). Sem teste ainda: entra no e2e
+(compromisso (f)).
+
+A seguir: **minhas reservas** com Tailwind — aí o `.esmaecido` vira `opacity-60` e sai do CSS, e o
+4.8 fecha. Os quadros de reserva do protótipo estão em `project/Reservas.dc.html` do artifact.
 
 Cuidados: o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"`
 (VoiceOver); contraste AA e foco visível são critério, não enfeite. **Classe errada não dá erro**:
 o Tailwind ignora em silêncio, e o plugin do Prettier põe as desconhecidas no começo da lista (o
-sinal). A borda pede duas classes (`border` = largura, `border-X` = cor). O Tailwind não traz
+sinal). Valor arbitrário com unidade errada (`minmax(14ref,1fr)`) o Tailwind gera assim mesmo e o
+navegador descarta. A borda pede duas classes (`border` = largura, `border-X` = cor), e a grade
+também (`grid` liga, `grid-cols-X` configura). O Tailwind não traz
 `aria-invalid:` (criado com `@custom-variant`); valor de atributo no seletor diferencia maiúscula.
 
 **Fila: subpasso 5, Playwright e o job `e2e`** (entra no commit do primeiro teste),
@@ -152,7 +163,9 @@ Playwright fixa `timezoneId` (o runner do CI é UTC); (d) o `<dialog>` de cancel
 acessibilidade; (e) regra 6 — numa página mais alta que a tela (minhas reservas com vários
 itens), o seletor de tema e o "Sair" continuam visíveis (`toBeInViewport()`): a barra esticava
 com a página e o `md:mt-auto` os empurrava para o fim (corrigido em 2026-10-14 com `md:sticky
-md:top-0 md:h-svh`, sem teste).
+md:top-0 md:h-svh`, sem teste); (f) só com o teclado, abrir um cartão de lacuna põe o foco no
+"Início", cancelar o devolve ao "Reservar" do mesmo cartão e confirmar o leva à tarja do aviso
+(`toBeFocused()`).
 
 **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
 do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e
@@ -170,7 +183,11 @@ desmontagem ao mudar de pai, `useRef` e `<dialog>` com `showModal()`, foco por c
 `=> ( )` × `=> { }`, `@theme` com cor por papel e tema por variável (não `@theme inline`),
 escala de espaço, prefixo de tela (`md:`, *mobile-first*) e de estado (`hover:`, `aria-pressed:`),
 `@custom-variant`, `NavLink`, inicialização preguiçosa do `useState`, script antes do primeiro
-desenho (*flash of incorrect theme*), `:focus-visible`, margem automática em flex.
+desenho (*flash of incorrect theme*), `:focus-visible`, margem automática em flex, valor
+arbitrário (`grid-cols-[...]`), `auto-fill` × `auto-fit`, `col-span-full`, `sr-only` ×
+`aria-hidden`, `<dl>`, link × botão (muda a URL → link), `aria-current="page"` à mão, `display` do
+filho ignorado num pai flex, *render prop*, *spread* e a ordem dos atributos, `autoFocus`, ref de
+função (e por que estável), regra de três para extrair componente.
 
 ## Decisões em vigor fora dos ADRs
 
