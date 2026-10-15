@@ -49,6 +49,20 @@ export function diaPorExtenso(dia: string): string {
   }).format(diaComoUtc(dia));
 }
 
+// A segunda-feira da semana do dia. getUTCDay conta do domingo (0) ao sábado (6); o
+// "+ 6) % 7" passa a contar da segunda (0) ao domingo (6), que é quantos dias voltar.
+export function segundaDaSemana(dia: string): string {
+  const desdeSegunda = (diaComoUtc(dia).getUTCDay() + 6) % 7;
+  return somarDias(dia, -desdeSegunda);
+}
+
+// "seg", "ter", "sáb": o Intl escreve "seg." com ponto, que na faixa só ocupa espaço.
+export function diaDaSemanaCurto(dia: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", weekday: "short" })
+    .format(diaComoUtc(dia))
+    .replace(".", "");
+}
+
 // Um instante da API ("2026-10-13T14:00:00Z") como hora de relógio no fuso do recurso.
 // A API manda UTC; o fuso é assunto de apresentação, e só aqui ele entra.
 export function horaNoFuso(instante: string, fuso: string): string {
