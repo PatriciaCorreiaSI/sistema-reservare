@@ -77,10 +77,7 @@ export function TelaLogin() {
             noValidate
             className="flex w-full max-w-sm flex-col gap-5"
           >
-            <h1
-              className="font-titulo text-4xl font-extrabold tracking-tight"
-              disabled:cursor-wait
-            >
+            <h1 className="font-titulo text-4xl font-extrabold tracking-tight">
               Entrar
             </h1>
             <div className="flex flex-col gap-2">
@@ -142,7 +139,7 @@ export function TelaLogin() {
             <button
               type="submit"
               disabled={login.isPending}
-              className="cursor-pointer rounded-full bg-destaque px-6 py-3.5 font-bold text-sobre-destaque hover:opacity-90 disabled:opacity-60"
+              className="cursor-pointer rounded-full bg-destaque px-6 py-3.5 font-bold text-sobre-destaque hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
             >
               {login.isPending ? "Entrando…" : "Entrar"}
             </button>
