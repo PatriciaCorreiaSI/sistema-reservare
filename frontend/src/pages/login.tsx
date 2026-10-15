@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useLogin } from "../api/auth";
 import { ErroDaApi } from "../api/erro";
 import type { components } from "../api/tipos";
+import { Campo } from "../components/Campo";
 import { SeletorDeTema } from "../components/SeletorDeTema";
 
 type LoginEntrada = components["schemas"]["LoginEntrada"];
@@ -80,52 +81,30 @@ export function TelaLogin() {
             <h1 className="font-titulo text-4xl font-extrabold tracking-tight">
               Entrar
             </h1>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-bold">
-                E-mail
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="username"
-                aria-invalid={errors.email_usuario ? true : undefined}
-                aria-describedby={
-                  errors.email_usuario ? "erro-email" : undefined
-                }
-                className="rounded-xl border border-borda-campo bg-campo px-4 py-3.5 text-texto aria-invalid:border-2 aria-invalid:border-perigo"
-                {...register("email_usuario")}
-              />
-              {errors.email_usuario && (
-                <p
-                  id="erro-email"
-                  className="text-sm font-semibold text-perigo"
-                >
-                  {errors.email_usuario.message}
-                </p>
+            <Campo
+              id="email"
+              rotulo="E-mail"
+              erro={errors.email_usuario?.message}
+            >
+              {(props) => (
+                <input
+                  type="email"
+                  autoComplete="username"
+                  {...props}
+                  {...register("email_usuario")}
+                />
               )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="senha" className="text-sm font-bold">
-                Senha
-              </label>
-              <input
-                id="senha"
-                type="password"
-                autoComplete="current-password"
-                aria-invalid={errors.senha ? true : undefined}
-                aria-describedby={errors.senha ? "erro-senha" : undefined}
-                className="rounded-xl border border-borda-campo bg-campo px-4 py-3.5 text-texto aria-invalid:border-2 aria-invalid:border-perigo"
-                {...register("senha")}
-              />
-              {errors.senha && (
-                <p
-                  id="erro-senha"
-                  className="text-sm font-semibold text-perigo"
-                >
-                  {errors.senha.message}
-                </p>
+            </Campo>
+            <Campo id="senha" rotulo="Senha" erro={errors.senha?.message}>
+              {(props) => (
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  {...props}
+                  {...register("senha")}
+                />
               )}
-            </div>
+            </Campo>
             {login.isError && (
               <p
                 role="alert"

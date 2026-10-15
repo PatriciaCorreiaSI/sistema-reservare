@@ -108,14 +108,26 @@ design no `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção apro
 Manrope, laranja, barra lateral, faixa da semana) com os quadros de informação do recurso da
 direção A, em claro e escuro. Feitos e commitados: instalação e paleta (`75596f5`), barra lateral
 com seletor de tema (`109b8ec`), login (`76e905d`, `c0ae5a8`, `fd6b631`), recursos em cartões
-(`133faa0`). Layout no limite exato não conta
-como cabendo: a fonte de reserva e o zoom só do texto mudam a largura (o título do login ficou em
-`text-4xl lg:text-6xl`, porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
+(`133faa0`), quadros do recurso (`57f87e0`, `ba47a8c`), faixa da semana (`b6b6aa3`), lacunas em
+cartões e aviso por tipo (`006405a`). Layout no limite exato não conta como cabendo: a fonte de
+reserva e o zoom só do texto mudam a largura (o título do login ficou em `text-4xl lg:text-6xl`,
+porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
 `grid-cols-[repeat(auto-fill,minmax(...))]`, não por `md:`/`lg:`: o prefixo mede a janela, e a
-coluna perde 256px para a barra. A seguir: horários livres
-(quadros do recurso + faixa da semana, que muda a navegação para semana; `?dia=` continua) e minhas
-reservas — aí o `.esmaecido` vira `opacity-60` e sai do CSS, e o campo repetido do login vira um
-componente `Campo` quando o `FormularioDeReserva` for o terceiro uso (sinal do ADR 0027).
+coluna perde 256px para a barra (`auto-fit` quando o conjunto é fixo e deve preencher a linha).
+
+**Faixa da semana (desenho de 2026-10-15):** semana de calendário, segunda a domingo, derivada do
+`?dia=` (nenhum parâmetro novo); dias e semanas são `<Link to="?dia=..." replace>` — muda a URL,
+logo é link, como paginação; dia passado é texto riscado, fora do Tab, com `sr-only` "(já passou)";
+"Semana anterior" nunca leva antes de hoje e vira texto na semana atual; o campo de data ficou
+("Ir para a data", para ir longe). A `<section>` se chama "Horários livres" por `aria-label` (o
+`<h2>` é a data, que muda). A lacuna se conta como **período** ("livre por 8h30"), não como
+horário; o `Aviso` (`sucesso` | `conflito`, exportado do `FormularioDeReserva`) decide a cor da
+tarja (`ok-suave` novo na paleta).
+
+A seguir: **3b, o formulário de reserva** aberto no cartão — começa pela decisão do componente
+`Campo` (o formulário é o terceiro uso do padrão do login: rótulo, campo, erro com
+`aria-describedby`) e corrige o foco que se perde ao clicar em "Reservar" (o botão some e o foco
+volta ao `<body>`). Depois, minhas reservas — aí o `.esmaecido` vira `opacity-60` e sai do CSS.
 
 Cuidados: o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"`
 (VoiceOver); contraste AA e foco visível são critério, não enfeite. **Classe errada não dá erro**:
