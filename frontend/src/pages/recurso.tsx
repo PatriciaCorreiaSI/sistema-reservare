@@ -98,9 +98,11 @@ function DetalheDoRecurso({ idRecurso }: { idRecurso: number }) {
           <dt className="text-xs font-bold tracking-wide text-texto-suave uppercase">
             Ocupação máxima
           </dt>
-          <dd className="mt-2 flex items-baseline gap-2">
-            <span className="text-texto-suave">{r.ocupacao}</span>
-            <span className="text-texto-suave">
+          <dd className="mt-2">
+            <span className="font-titulo text-3xl leading-none font-extrabold">
+              {r.ocupacao}
+            </span>
+            <span className="mt-1.5 block text-sm text-texto-suave">
               {r.ocupacao === 1 ? "pessoa" : "pessoas"}
             </span>
           </dd>
@@ -122,17 +124,22 @@ function DetalheDoRecurso({ idRecurso }: { idRecurso: number }) {
           <dt className="text-xs font-bold tracking-wide text-texto-suave uppercase">
             Situação
           </dt>
-          <dd className="mt-2 flex items-center gap-2.5">
-            <span
-              aria-hidden="true"
-              className={
-                ativo
-                  ? "size-3.5 rounded-full bg-ok"
-                  : "size-3.5 rounded-full border-2 border-texto-suave"
-              }
-            />
-            <span className="font-titulo text-3xl leading-none font-extrabold">
-              {ativo ? "Ativo" : "Inativo"}
+          <dd className="mt-2">
+            <span className="flex items-center gap-2.5">
+              <span
+                aria-hidden="true"
+                className={
+                  ativo
+                    ? "size-3.5 rounded-full bg-ok"
+                    : "size-3.5 rounded-full border-2 border-texto-suave"
+                }
+              />
+              <span className="font-titulo text-3xl leading-none font-extrabold">
+                {ativo ? "Ativo" : "Inativo"}
+              </span>
+            </span>
+            <span className="mt-1.5 block text-sm text-texto-suave">
+              {ativo ? "aceita reservas" : "não aceita reservas"}
             </span>
           </dd>
         </div>
