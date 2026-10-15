@@ -107,9 +107,12 @@ design no `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção apro
 (artifact "Reservare — direções visuais", página "Direção escolhida"): a editorial (Bricolage +
 Manrope, laranja, barra lateral, faixa da semana) com os quadros de informação do recurso da
 direção A, em claro e escuro. Feitos e commitados: instalação e paleta (`75596f5`), barra lateral
-com seletor de tema (`109b8ec`), login (`76e905d`, `c0ae5a8`). Layout no limite exato não conta
+com seletor de tema (`109b8ec`), login (`76e905d`, `c0ae5a8`, `fd6b631`), recursos em cartões
+(`133faa0`). Layout no limite exato não conta
 como cabendo: a fonte de reserva e o zoom só do texto mudam a largura (o título do login ficou em
-`text-4xl lg:text-6xl`, porque o `md:text-5xl` cabia em 768px sem folga). A seguir: recursos, horários livres
+`text-4xl lg:text-6xl`, porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
+`grid-cols-[repeat(auto-fill,minmax(...))]`, não por `md:`/`lg:`: o prefixo mede a janela, e a
+coluna perde 256px para a barra. A seguir: horários livres
 (quadros do recurso + faixa da semana, que muda a navegação para semana; `?dia=` continua) e minhas
 reservas — aí o `.esmaecido` vira `opacity-60` e sai do CSS, e o campo repetido do login vira um
 componente `Campo` quando o `FormularioDeReserva` for o terceiro uso (sinal do ADR 0027).
