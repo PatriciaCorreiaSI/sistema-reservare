@@ -59,7 +59,7 @@ export function TelaLogin() {
           reservare<span className="text-destaque">.</span>
         </span>
         <div className="md:my-auto">
-          <p className="max-w-lg font-titulo text-4xl leading-none font-extrabold tracking-tight md:text-6xl">
+          <p className="max-w-lg font-titulo text-4xl leading-none font-extrabold tracking-tight lg:text-6xl">
             Salas, equipamentos e estações, sem conflito de horário.
           </p>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-texto-suave">
