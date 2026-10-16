@@ -101,18 +101,22 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 ## Próximo passo
 
-**Etapa 7, subpasso 4.8: visual** (acrescentado em 2026-10-14, antes do Playwright para o e2e já
-nascer sobre a marcação final). ADR 0027: Tailwind CSS v4 pelo `@tailwindcss/vite`, variáveis de
-design no `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção aprovada no protótipo
-(artifact "Reservare — direções visuais", página "Direção escolhida"): a editorial (Bricolage +
-Manrope, laranja, barra lateral, faixa da semana) com os quadros de informação do recurso da
-direção A, em claro e escuro. Feitos e commitados: instalação e paleta (`75596f5`), barra lateral
-com seletor de tema (`109b8ec`), login (`76e905d`, `c0ae5a8`, `fd6b631`), recursos em cartões
-(`133faa0`), quadros do recurso (`57f87e0`, `ba47a8c`), faixa da semana (`b6b6aa3`), lacunas em
-cartões e aviso por tipo (`006405a`), `Campo` (`cdd4dcf`), formulário de reserva e foco
-(`0f4f001`). Layout no limite exato não conta como cabendo: a fonte de
-reserva e o zoom só do texto mudam a largura (o título do login ficou em `text-4xl lg:text-6xl`,
-porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
+**Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
+percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
+abaixo. Território novo: código pronto no chat, testado antes numa cópia do front. O 4.7 (minhas
+reservas e cancelar) fechou em 2026-10-14; o 4.8 (visual), em 2026-10-16 (`4bba07f`). Telas de
+admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
+gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
+as rotas para o TanStack Router num rascunho (ADR 0026).
+
+**Visual (4.8, ADR 0027):** Tailwind CSS v4 pelo `@tailwindcss/vite`, variáveis de design no
+`@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção aprovada no protótipo (artifact
+"Reservare — direções visuais"): a editorial (Bricolage + Manrope, laranja, barra lateral, faixa
+da semana) com os quadros de informação do recurso da direção A, em claro e escuro. Antes de uma
+tela nova, um protótipo com o Tailwind do navegador e as classes que irão para o código (o de
+minhas reservas é o artifact "Reservare — minhas reservas"). Layout no limite exato não conta como
+cabendo: a fonte de reserva e o zoom só do texto mudam a largura (o título do login ficou em
+`text-4xl lg:text-6xl`, porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
 `grid-cols-[repeat(auto-fill,minmax(...))]`, não por `md:`/`lg:`: o prefixo mede a janela, e a
 coluna perde 256px para a barra (`auto-fit` quando o conjunto é fixo e deve preencher a linha).
 
@@ -135,23 +139,23 @@ cartão: abrir → `autoFocus` no "Início"; cancelar → volta ao "Reservar" da
 mesma a cada desenho, senão o React a chama de novo e rouba o foco). Sem teste ainda: entra no e2e
 (compromisso (f)).
 
-A seguir: **minhas reservas** com Tailwind — aí o `.esmaecido` vira `opacity-60` e sai do CSS, e o
-4.8 fecha. Os quadros de reserva do protótipo estão em `project/Reservas.dc.html` do artifact.
+**Minhas reservas (desenho de 2026-10-16):** dois componentes, porque os visuais não compartilham
+marcação — `ItemDeReserva` (próximas, em cartão: mutation, `<dialog>`, foco) e `LinhaDeReserva`
+(anteriores, numa linha, sem hook); o que os dois mostram igual vem de `descreverReserva` no
+`formato.ts` (fora de arquivo `.tsx`, pelo `react-refresh`). O selo da data é `aria-hidden`, com a
+data por extenso em `sr-only`. O `<dialog>` leva `m-auto` (o Preflight zera a margem que o
+centraliza) e `backdrop:bg-veu` (`--color-veu`, a primeira cor com transparência na variável,
+porque ela também muda com o tema). O fuso aparece também nas linhas anteriores, embora o
+protótipo o tivesse tirado.
 
 Cuidados: o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"`
 (VoiceOver); contraste AA e foco visível são critério, não enfeite. **Classe errada não dá erro**:
 o Tailwind ignora em silêncio, e o plugin do Prettier põe as desconhecidas no começo da lista (o
-sinal). Valor arbitrário com unidade errada (`minmax(14ref,1fr)`) o Tailwind gera assim mesmo e o
+sinal — que falha quando a classe errada **já é** a primeira: `fonte-titulo` passou assim). Valor
+arbitrário com unidade errada (`minmax(14ref,1fr)`) o Tailwind gera assim mesmo e o
 navegador descarta. A borda pede duas classes (`border` = largura, `border-X` = cor), e a grade
 também (`grid` liga, `grid-cols-X` configura). O Tailwind não traz
 `aria-invalid:` (criado com `@custom-variant`); valor de atributo no seletor diferencia maiúscula.
-
-**Fila: subpasso 5, Playwright e o job `e2e`** (entra no commit do primeiro teste),
-percorrendo "logar → reservar → ver na agenda → cancelar". O 4.7 (minhas reservas e cancelar)
-fechou em 2026-10-14. Telas de
-admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
-gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
-as rotas para o TanStack Router num rascunho (ADR 0026).
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
@@ -165,7 +169,11 @@ itens), o seletor de tema e o "Sair" continuam visíveis (`toBeInViewport()`): a
 com a página e o `md:mt-auto` os empurrava para o fim (corrigido em 2026-10-14 com `md:sticky
 md:top-0 md:h-svh`, sem teste); (f) só com o teclado, abrir um cartão de lacuna põe o foco no
 "Início", cancelar o devolve ao "Reservar" do mesmo cartão e confirmar o leva à tarja do aviso
-(`toBeFocused()`).
+(`toBeFocused()`); (g) regra 6 — depois de um cancelamento que dá certo, o foco não pode cair no
+`<body>`: hoje ele vai para a situação do item, mas a lista nova muda a reserva de `<ul>`, o item
+desmonta e o foco se perde (achado no protótipo de 2026-10-16; o comentário do `confirmar` no
+`ItemDeReserva` ainda diz que a situação "continua na tela"). Para onde o foco vai é desenho a
+decidir antes do teste.
 
 **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
 do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e
@@ -187,7 +195,10 @@ desenho (*flash of incorrect theme*), `:focus-visible`, margem automática em fl
 arbitrário (`grid-cols-[...]`), `auto-fill` × `auto-fit`, `col-span-full`, `sr-only` ×
 `aria-hidden`, `<dl>`, link × botão (muda a URL → link), `aria-current="page"` à mão, `display` do
 filho ignorado num pai flex, *render prop*, *spread* e a ordem dos atributos, `autoFocus`, ref de
-função (e por que estável), regra de três para extrair componente.
+função (e por que estável), regra de três para extrair componente, escala de espaço contínua
+(`w-19`, `px-4.5`), `flex-[1_1_16rem]` (o `_` vira espaço; grow, shrink, basis), `basis-full`
+num pai flex com quebra, `items-baseline` × `items-center`, `backdrop:` e o `::backdrop`,
+desestruturação de objeto, inferência do tipo de retorno.
 
 ## Decisões em vigor fora dos ADRs
 

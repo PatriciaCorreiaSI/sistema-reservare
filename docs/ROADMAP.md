@@ -215,7 +215,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna e minhas reservas com cancelar prontos; visual (Tailwind) em andamento — só falta minhas reservas; depois, o Playwright |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna e minhas reservas com cancelar prontos, todas com o visual final (Tailwind); falta o teste Playwright de ponta a ponta |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -446,11 +446,12 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > a [0027](adr/0027-estilizar-front-com-tailwind.md)). Prontos: sessão, rotas protegidas,
 > login, lista de recursos, horários livres de um recurso por dia (no fuso dele) e reservar
 > clicando numa lacuna, com o `409` explicado na tela, e minhas reservas com cancelar
-> (atualização otimista derivada do estado da mutation, confirmação num `<dialog>`). Visual em
-> andamento (Tailwind, ADR 0027): direção escolhida num protótipo antes do código; paleta por
-> papel, tema claro e escuro, barra lateral, login, lista de recursos e horários livres prontos
+> (atualização otimista derivada do estado da mutation, confirmação num `<dialog>`). Visual
+> pronto em 2026-10-16 (Tailwind, ADR 0027): direção escolhida num protótipo antes do código;
+> paleta por papel, tema claro e escuro, barra lateral, login, lista de recursos, horários livres
 > (navegação por semana derivada do `?dia=`, lacunas em cartões, formulário com o componente
-> `Campo` e foco devolvido ao abrir e fechar). Falta minhas reservas; depois, o Playwright.
+> `Campo` e foco devolvido ao abrir e fechar) e minhas reservas (próximas em cartões, anteriores
+> em linhas). Falta o teste Playwright de ponta a ponta.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 
