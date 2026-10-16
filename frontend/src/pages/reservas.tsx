@@ -4,6 +4,7 @@ import { useRecursos } from "../api/recurso";
 import { useReservas } from "../api/reserva";
 import type { components } from "../api/tipos";
 import { ItemDeReserva } from "../components/ItemDeReserva";
+import { LinhaDeReserva } from "../components/LinhaDeReserva";
 
 type ReservaResposta = components["schemas"]["ReservaResposta"];
 type RecursoResposta = components["schemas"]["RecursoResposta"];
@@ -14,8 +15,18 @@ export function TelaReservas() {
   const [aviso, setAviso] = useState<string | null>(null);
   return (
     <>
-      <h1>Minhas reservas</h1>
-      {aviso && <p role="alert">{aviso}</p>}
+      <h1 className="font-titulo text-5xl leading-none font-extrabold tracking-tight">
+        Minhas reservas
+      </h1>
+      {aviso && (
+        <p
+          role="alert"
+          className="mt-6 rounded-xl border border-destaque bg-destaque-suave px-4 py-3 font-semibold text-destaque-texto"
+        >
+          <span aria-hidden="true">! </span>
+          {aviso}
+        </p>
+      )}
       <ListaDeReservas aoAvisar={setAviso} />
     </>
   );
@@ -41,8 +52,13 @@ function ListaDeReservas({ aoAvisar }: { aoAvisar: (aviso: string) => void }) {
   if (reservas.isError || recursos.isError) {
     const tentando = reservas.isFetching || recursos.isFetching;
     return (
-      <div role="alert">
-        <p>Não foi possível carregar as reservas.</p>
+      <div
+        role="alert"
+        className="mt-8 flex max-w-lg flex-col items-start gap-4 rounded-xl bg-perigo-suave p-5"
+      >
+        <p className="font-semibold text-perigo">
+          Não foi possível carregar as reservas.
+        </p>
         <button
           type="button"
           onClick={() => {
@@ -50,6 +66,7 @@ function ListaDeReservas({ aoAvisar }: { aoAvisar: (aviso: string) => void }) {
             void recursos.refetch();
           }}
           disabled={tentando}
+          className="cursor-pointer rounded-lg border border-borda-forte bg-superficie px-3.5 py-3 text-texto hover:bg-sutil disabled:cursor-wait disabled:opacity-60"
         >
           {tentando ? "Tentando…" : "Tentar de novo"}
         </button>
@@ -57,7 +74,11 @@ function ListaDeReservas({ aoAvisar }: { aoAvisar: (aviso: string) => void }) {
     );
   }
 
-  return <p role="status">Carregando reservas…</p>;
+  return (
+    <p role="status" className="mt-4 text-texto-suave">
+      Carregando reservas…
+    </p>
+  );
 }
 
 const instante = (texto: string) => Date.parse(texto);
@@ -73,9 +94,15 @@ function Secoes({
 }) {
   if (reservas.length === 0) {
     return (
-      <p>
+      <p className="mt-4 text-texto-suave">
         Você ainda não tem reservas.{" "}
-        <Link to="/recursos">Escolha um recurso</Link> para reservar.
+        <Link
+          to="/recursos"
+          className="font-semibold text-destaque-texto underline underline-offset-4"
+        >
+          Escolha um recurso
+        </Link>{" "}
+        para reservar.
       </p>
     );
   }
@@ -89,31 +116,49 @@ function Secoes({
     .filter((r) => r.status_reserva !== "confirmada")
     .toSorted((a, b) => instante(b.inicio) - instante(a.inicio));
 
-  const item = (reserva: ReservaResposta) => (
-    <ItemDeReserva
-      key={reserva.id_reserva}
-      reserva={reserva}
-      recurso={porId.get(reserva.id_recurso)}
-      aoAvisar={aoAvisar}
-    />
-  );
-
   return (
     <>
-      <section aria-labelledby="titulo-proximas">
-        <h2 id="titulo-proximas">Próximas</h2>
+      <section aria-labelledby="titulo-proximas" className="mt-9">
+        <h2
+          id="titulo-proximas"
+          className="mb-4 font-titulo text-2xl font-bold tracking-tight"
+        >
+          Próximas
+        </h2>
         {proximas.length === 0 ? (
-          <p>Nenhuma reserva por vir.</p>
+          <p className="text-texto-suave">Nenhuma reserva por vir.</p>
         ) : (
-          <ul>{proximas.map(item)}</ul>
+          <ul role="list" className="flex flex-col gap-3.5">
+            {proximas.map((reserva) => (
+              <ItemDeReserva
+                key={reserva.id_reserva}
+                reserva={reserva}
+                recurso={porId.get(reserva.id_recurso)}
+                aoAvisar={aoAvisar}
+              />
+            ))}
+          </ul>
         )}
       </section>
-      <section aria-labelledby="titulo-anteriores">
-        <h2 id="titulo-anteriores">Anteriores</h2>
+      <section aria-labelledby="titulo-anteriores" className="mt-10">
+        <h2
+          id="titulo-anteriores"
+          className="mb-4 font-titulo text-2xl font-bold tracking-tight"
+        >
+          Anteriores
+        </h2>
         {anteriores.length === 0 ? (
-          <p>Nenhuma reserva anterior.</p>
+          <p className="text-texto-suave">Nenhuma reserva anterior.</p>
         ) : (
-          <ul>{anteriores.map(item)}</ul>
+          <ul role="list" className="border-t border-borda">
+            {anteriores.map((reserva) => (
+              <LinhaDeReserva
+                key={reserva.id_reserva}
+                reserva={reserva}
+                recurso={porId.get(reserva.id_recurso)}
+              />
+            ))}
+          </ul>
         )}
       </section>
     </>

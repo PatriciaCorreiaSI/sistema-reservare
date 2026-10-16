@@ -31,6 +31,7 @@
   --color-ok-suave: #f0fdf4;
   --color-perigo: #b91c1c;
   --color-perigo-suave: #fef2f2;
+  --color-veu: rgb(28 25 23 / 0.5);
 }
 
 /* O tema escuro redefine as mesmas variáveis. O atributo é posto no <html> pelo script
@@ -54,6 +55,7 @@
   --color-ok-suave: #14281c;
   --color-perigo: #fca5a5;
   --color-perigo-suave: #3a1f1f;
+  --color-veu: rgb(0 0 0 / 0.6);
 }
 
 @layer base {
@@ -69,9 +71,4 @@
     outline: 2px solid var(--color-destaque);
     outline-offset: 2px;
   }
-}
-
-/* O cancelamento em andamento: a reserva já aparece como cancelada, esmaecida. */
-.esmaecido {
-  opacity: 0.6;
 }

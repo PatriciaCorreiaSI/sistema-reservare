@@ -1,3 +1,8 @@
+import type { components } from "./api/tipos";
+
+type ReservaResposta = components["schemas"]["ReservaResposta"];
+type RecursoResposta = components["schemas"]["RecursoResposta"];
+
 // "08:00:00" → "08:00". A hora de funcionamento é hora de relógio no fuso do recurso,
 // não um instante: não passa pelo Intl, só se cortar.
 export function horaCurta(hora: string): string {
@@ -63,6 +68,13 @@ export function diaDaSemanaCurto(dia: string): string {
     .replace(".", "");
 }
 
+// "jan", "out", "dez": o mesmo molde do diaDaSemanaCurto, sem o ponto do "out.".
+export function mesCurto(dia: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", month: "short" })
+    .format(diaComoUtc(dia))
+    .replace(".", "");
+}
+
 // Quanto tempo vai de um instante ao outro: "45 min", "2h", "1h53". A lacuna de hoje
 // começa no "agora" (10:37:22): o floor descarta os segundos, sem prometer um minuto
 // que não existe.
@@ -96,4 +108,34 @@ export function dataNoFuso(instante: string, fuso: string): string {
     timeZone: fuso,
     dateStyle: "full",
   }).format(new Date(instante));
+}
+
+// "seg, 13 de outubro": a data numa linha curta, no fuso do recurso. Sem o ano, porque a
+// lista de anteriores é recente; sem o ponto do "seg.".
+export function dataCurtaNoFuso(instante: string, fuso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: fuso,
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+  })
+    .format(new Date(instante))
+    .replace(".", "");
+}
+
+// O que o cartão e a linha de uma reserva mostram igual. Sem o recurso (fora dos 100
+// primeiros da lista), o fuso do navegador, com a etiqueta visível: a hora nunca fica
+// ambígua.
+export function descreverReserva(
+  reserva: ReservaResposta,
+  recurso: RecursoResposta | undefined,
+) {
+  const fuso =
+    recurso?.fuso ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return {
+    fuso,
+    nome: recurso?.nome_recurso ?? `Recurso nº ${reserva.id_recurso}`,
+    horario: `${horaNoFuso(reserva.inicio, fuso)}–${horaNoFuso(reserva.fim, fuso)} (${fuso})`,
+    convidados: `${reserva.convidados} ${reserva.convidados === 1 ? "convidado" : "convidados"}`,
+  };
 }
