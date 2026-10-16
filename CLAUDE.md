@@ -541,7 +541,9 @@ desestruturação de objeto, inferência do tipo de retorno.
   primeiro. Regra 6: o teste que reproduz vem com o Playwright.
 - **Minhas reservas além de 100** — a API ordena por `id_reserva` crescente, então o `limite: 100`
   corta as **mais novas** (as Próximas somem primeiro). Corrigir pede ordenação decrescente ou
-  filtro por status na API (mudança de contrato).
+  filtro por status na API (mudança de contrato). As anteriores se acumulam para sempre (em
+  2026-10-16, 46 no banco de desenvolvimento para 1 próxima): na tela, mostrar só as últimas N
+  com um "ver todas"; com o filtro por status na API, as anteriores viriam numa consulta à parte.
 - `str_strip_whitespace` para o nome feito só de espaços; `httpx2` no lugar de `httpx`.
 
 > Atualize "Estado atual" e "Próximo passo" ao fechar cada etapa. O README tem a tabela de status
