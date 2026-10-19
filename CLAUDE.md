@@ -396,8 +396,12 @@ desestruturação de objeto, inferência do tipo de retorno.
   conferido lá.
 - **Tag de action nem sempre é móvel:** `setup-uv` não publica a tag curta desde a v8 (fixado em
   `@v10.2.0`). Conferir com `gh api repos/<dono>/<action>/tags`; fixar pelo hash do commit é a
-  prática mais forte. **`ubuntu-latest` vira Ubuntu 26
-  em 19/10/2026**: CI quebrado sem mudança no repositório → olhar a imagem primeiro.
+  prática mais forte.
+- **Runner fixado em `ubuntu-24.04`** (decidido em 2026-10-19, o dia em que o `ubuntu-latest`
+  virou Ubuntu 26): o sistema do CI só muda por commit, pelo mesmo motivo da tag de action fixa.
+  Migrar para o `ubuntu-26.04` quando o Playwright declarar suporte a ele (o `--with-deps`
+  instala bibliotecas do sistema, e cada versão do Playwright aceita uma lista fechada de
+  Ubuntus), num commit próprio, com o CI verde como prova.
 
 ## Testes
 

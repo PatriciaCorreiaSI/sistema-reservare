@@ -6,7 +6,7 @@ on:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     services:
       db:
@@ -71,7 +71,7 @@ jobs:
           uv run alembic upgrade head
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
