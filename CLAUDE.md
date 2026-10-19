@@ -103,7 +103,14 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 **Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
-abaixo. Território novo: código pronto no chat, testado antes numa cópia do front. O 4.7 (minhas
+abaixo. O ambiente está desenhado ("Ambiente do e2e", abaixo); **começar pelo desenho do teste 1
+por dentro**: os passos, os localizadores, e como ele acha um horário livre **e no futuro** (a API
+usa o relógio de verdade). **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
+na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
+`502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
+está no código e ver o vermelho. Território novo: código pronto no chat, testado antes numa cópia
+do front. O 4.7 (minhas
 reservas e cancelar) fechou em 2026-10-14; o 4.8 (visual), em 2026-10-16 (`4bba07f`). Telas de
 admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
 gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
@@ -156,6 +163,22 @@ arbitrário com unidade errada (`minmax(14ref,1fr)`) o Tailwind gera assim mesmo
 navegador descarta. A borda pede duas classes (`border` = largura, `border-X` = cor), e a grade
 também (`grid` liga, `grid-cols-X` configura). O Tailwind não traz
 `aria-invalid:` (criado com `@custom-variant`); valor de atributo no seletor diferencia maiúscula.
+
+**Ambiente do e2e (desenho de 2026-10-19; sem ADR — o Playwright é de desenho):** Playwright
+dentro do front (`frontend/e2e/`, `@playwright/test` como `devDependency`, `playwright.config.ts`
+ao lado do `vite.config.ts`, um `tsconfig.e2e.json` como terceira referência — como no
+full-stack-fastapi-template). O `webServer` sobe a API e o Vite em **portas próprias** (`:8001` e
+`:5174`, `reuseExistingServer: false`): reaproveitar a `:8000` de desenvolvimento gravaria no
+`reservare` sem aviso. O alvo do proxy do Vite passa a vir de uma variável (padrão `:8000`).
+Banco próprio, **`reservare_e2e`** (criado à mão, como o `reservare_test`; o pytest faz
+`TRUNCATE` e o e2e comita), escolhido pelo `env` do `webServer` — o `load_dotenv` não sobrescreve
+variável existente. O comando da API é uma corrente com `&&`: **guarda** (sai com `1` se
+`POSTGRES_DB` não for `reservare_e2e`; sem ela, o comando copiado para o terminal zeraria o banco
+de desenvolvimento) → `alembic downgrade base` → `upgrade head` → `criar_admin` (as `ADMIN_*`
+vêm do `env`) → `uvicorn`. Usuárias e recurso pela API, num **projeto de setup** do Playwright
+(o que a API não faz — zerar e o primeiro admin — fica em Python). Só o **Chromium** (Firefox e
+WebKit no backlog). CI: job `e2e` com `needs: [backend, frontend]` — o teste caro roda depois dos
+baratos.
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
@@ -545,6 +568,12 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
   (como o `expand[]` da Stripe ou o `include` do JSON:API); a tela de minhas reservas deixa de
   juntar com o `useRecursos` no cliente, e some o caso de borda do recurso fora dos 100 primeiros.
   Muda o contrato, o service e os testes.
+- **e2e no Firefox e no WebKit** — hoje só o Chromium (os projetos ficam comentados no
+  `playwright.config.ts`). Ressalva: o Safari, por padrão, não passa por links e botões com o Tab
+  (só com Option+Tab), e os compromissos (f) e (g) são de teclado — diferença de motor, não
+  defeito do Reservare. Depois, um job agendado com os três é o meio-termo do mercado.
+- **e2e da imagem Docker da API** — o e2e sobe a API pelo `uv`, não pelo container (sem bind
+  mount, a imagem não acompanha o código); testar a imagem vale quando houver deploy.
 - **Dados antes do erro nas telas de recursos** — `recursos.tsx` e `recurso.tsx` perguntam
   `isError` antes de `data`: uma busca em segundo plano que falha (foco na janela com a API fora)
   troca a lista que estava na tela pela mensagem de erro. A `TelaReservas` já pergunta `data`

@@ -95,7 +95,7 @@ Pagamento · reserva recorrente · multi-tenant · notificação por e-mail · f
 | Front      | Vite + React + **TypeScript** | TS é o esperado, e reforça o estudo paralelo                                                                                               |
 | Estado     | TanStack Query                | `useEffect` + `fetch` na mão é o antipadrão mais comum                                                                                     |
 | Estilo     | Tailwind CSS v4               | Padrão de mercado, sem componentes prontos: cada linha da marcação continua minha ([ADR 0027](adr/0027-estilizar-front-com-tailwind.md))  |
-| E2E        | Playwright                    | Um teste do fluxo principal                                                                                                                |
+| E2E        | Playwright                    | O fluxo principal, e o que só um navegador de verdade confere: foco, teclado, papéis de acessibilidade                                     |
 
 ---
 
@@ -215,7 +215,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna e minhas reservas com cancelar prontos, todas com o visual final (Tailwind); falta o teste Playwright de ponta a ponta |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna e minhas reservas com cancelar prontos, todas com o visual final (Tailwind); ambiente do teste Playwright desenhado, faltam os testes de ponta a ponta |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -451,7 +451,11 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > paleta por papel, tema claro e escuro, barra lateral, login, lista de recursos, horários livres
 > (navegação por semana derivada do `?dia=`, lacunas em cartões, formulário com o componente
 > `Campo` e foco devolvido ao abrir e fechar) e minhas reservas (próximas em cartões, anteriores
-> em linhas). Falta o teste Playwright de ponta a ponta.
+> em linhas; depois de cancelar, o foco vai a um aviso na tela, e não se perde quando a reserva
+> muda de seção). O teste Playwright tem o ambiente desenhado desde 2026-10-19: dentro do front,
+> com banco e portas próprios, o banco zerado pelo vaivém das migrations atrás de uma guarda,
+> só o Chromium, e um job `e2e` no CI depois dos outros dois. Faltam os testes: o caminho feliz
+> primeiro, depois um por compromisso de acessibilidade e de defeito já corrigido.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 
