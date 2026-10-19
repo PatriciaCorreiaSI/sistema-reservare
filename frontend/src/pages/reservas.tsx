@@ -3,28 +3,49 @@ import { Link } from "react-router";
 import { useRecursos } from "../api/recurso";
 import { useReservas } from "../api/reserva";
 import type { components } from "../api/tipos";
-import { ItemDeReserva } from "../components/ItemDeReserva";
+import {
+  ItemDeReserva,
+  type AvisoDeCancelamento,
+} from "../components/ItemDeReserva";
 import { LinhaDeReserva } from "../components/LinhaDeReserva";
 
 type ReservaResposta = components["schemas"]["ReservaResposta"];
 type RecursoResposta = components["schemas"]["RecursoResposta"];
 
+// A segunda cópia da função do Disponibilidade: fora do componente, para ser sempre a
+// mesma, e o React só a chamar quando a tarja monta. Na terceira, vira módulo.
+function focarAoMontar(elemento: HTMLElement | null) {
+  elemento?.focus();
+}
+
 // O aviso mora na tela, e não no item: o item pode mudar de seção (e ser desmontado)
 // quando a lista nova chega.
 export function TelaReservas() {
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<AvisoDeCancelamento | null>(null);
   return (
     <>
       <h1 className="font-titulo text-5xl leading-none font-extrabold tracking-tight">
         Minhas reservas
       </h1>
+      {/* A key faz de cada aviso uma tarja nova, que monta e recebe o foco; trocar só o
+          texto reaproveitaria o <p>, e o ref não seria chamado. O id basta: depois de um
+          aviso, a reserva muda de seção e não gera outro. */}
       {aviso && (
         <p
-          role="alert"
-          className="mt-6 rounded-xl border border-destaque bg-destaque-suave px-4 py-3 font-semibold text-destaque-texto"
+          key={aviso.id_reserva}
+          role="status"
+          ref={focarAoMontar}
+          tabIndex={-1}
+          className={
+            aviso.tipo === "sucesso"
+              ? "mt-6 rounded-xl border border-ok bg-ok-suave px-4 py-3 font-semibold text-ok"
+              : "mt-6 rounded-xl border border-destaque bg-destaque-suave px-4 py-3 font-semibold text-destaque-texto"
+          }
         >
-          <span aria-hidden="true">! </span>
-          {aviso}
+          <span aria-hidden="true">
+            {aviso.tipo === "sucesso" ? "✓ " : "! "}
+          </span>
+          {aviso.texto}
         </p>
       )}
       <ListaDeReservas aoAvisar={setAviso} />
@@ -35,7 +56,11 @@ export function TelaReservas() {
 // Duas consultas, uma junção no cliente. Os dados vêm antes do erro: se uma busca em
 // segundo plano falhar (a API caiu depois do cancelamento), a lista que já estava na
 // tela continua lá, em vez de ser trocada pela mensagem de erro.
-function ListaDeReservas({ aoAvisar }: { aoAvisar: (aviso: string) => void }) {
+function ListaDeReservas({
+  aoAvisar,
+}: {
+  aoAvisar: (aviso: AvisoDeCancelamento) => void;
+}) {
   const reservas = useReservas();
   const recursos = useRecursos();
 
@@ -90,7 +115,7 @@ function Secoes({
 }: {
   reservas: ReservaResposta[];
   recursos: RecursoResposta[];
-  aoAvisar: (aviso: string) => void;
+  aoAvisar: (aviso: AvisoDeCancelamento) => void;
 }) {
   if (reservas.length === 0) {
     return (

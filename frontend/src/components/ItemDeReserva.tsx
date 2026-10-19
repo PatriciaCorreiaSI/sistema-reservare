@@ -9,9 +9,13 @@ import {
   diaNoFuso,
   mesCurto,
 } from "../formato";
+import type { Aviso } from "./FormularioDeReserva";
 
 type ReservaResposta = components["schemas"]["ReservaResposta"];
 type RecursoResposta = components["schemas"]["RecursoResposta"];
+
+// O aviso de um cancelamento leva a reserva de que fala: a tela o usa como key da tarja.
+export type AvisoDeCancelamento = Aviso & { id_reserva: number };
 
 const NAO_CANCELAVEL =
   "Esta reserva não pode mais ser cancelada: ela já terminou ou foi cancelada por outra pessoa.";
@@ -32,31 +36,45 @@ export function ItemDeReserva({
 }: {
   reserva: ReservaResposta;
   recurso: RecursoResposta | undefined;
-  aoAvisar: (aviso: string) => void;
+  aoAvisar: (aviso: AvisoDeCancelamento) => void;
 }) {
-  // O 409 vai para a tela, e não para o item: a lista nova pode mudar a reserva de
-  // seção, e o item que guardasse a mensagem seria desmontado junto com ela.
-  const cancelar = useCancelarReserva((erro) => {
-    if (ehConflito(erro)) {
-      aoAvisar(NAO_CANCELAVEL);
-    }
-  });
-  const modal = useRef<HTMLDialogElement>(null);
-  const situacao = useRef<HTMLParagraphElement>(null);
-
   const { fuso, nome, horario, convidados } = descreverReserva(
     reserva,
     recurso,
   );
   const data = dataNoFuso(reserva.inicio, fuso);
+  // Os avisos vão para a tela, e não para o item: a lista nova muda a reserva de
+  // seção, e o item que guardasse a mensagem seria desmontado junto com ela.
+  const cancelar = useCancelarReserva({
+    aoCancelar: () =>
+      aoAvisar({
+        tipo: "sucesso",
+        texto: `Reserva de ${nome} em ${data}, ${horario}, cancelada.`,
+        id_reserva: reserva.id_reserva,
+      }),
+    aoRecusar: (erro) => {
+      if (ehConflito(erro)) {
+        aoAvisar({
+          tipo: "conflito",
+          texto: NAO_CANCELAVEL,
+          id_reserva: reserva.id_reserva,
+        });
+      }
+    },
+  });
+  const modal = useRef<HTMLDialogElement>(null);
+  const situacao = useRef<HTMLParagraphElement>(null);
+
   // O dia do calendário no fuso do recurso: é dele que saem as três partes do selo.
   const dia = diaNoFuso(new Date(reserva.inicio), fuso);
   const pendente = cancelar.isPending;
   const erroDeServidor = cancelar.isError && !ehConflito(cancelar.error);
 
   const confirmar = () => {
-    // O close() devolve o foco ao botão que abriu o modal, mas ele vai sumir: o foco
-    // vai para a situação, que continua na tela.
+    // O close() devolve o foco ao botão que abriu o modal, mas ele some enquanto o
+    // pedido viaja: o foco espera na situação. Se o cancelamento terminar num aviso,
+    // a tarja o recebe antes de a lista nova desmontar o item; no erro de servidor, o
+    // item fica, e o foco com ele.
     modal.current?.close();
     situacao.current?.focus();
     cancelar.mutate(reserva);

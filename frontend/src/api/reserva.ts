@@ -51,7 +51,13 @@ export function useReservas() {
 
 // O cancelamento abre uma nova lacuna: invalida a lista de reservas e a disponibilidade do
 // recurso. Recebe a reserva inteira, e não só o id, porque precisa do id_recurso.
-export function useCancelarReserva(aoRecusar: (erro: Error) => void) {
+export function useCancelarReserva({
+  aoCancelar,
+  aoRecusar,
+}: {
+  aoCancelar: () => void;
+  aoRecusar: (erro: Error) => void;
+}) {
   const queryClient = useQueryClient();
   const invalidar = (reserva: ReservaResposta) =>
     Promise.all([
@@ -71,11 +77,16 @@ export function useCancelarReserva(aoRecusar: (erro: Error) => void) {
       }
       return data;
     },
-    // No sucesso, a promessa devolvida mantém a mutation pendente até a lista nova
-    // chegar: a tela continua mostrando "Cancelada" e não pisca de volta a "Confirmada".
-    onSuccess: (_dados, reserva) => invalidar(reserva),
+    // No sucesso, avisa antes de invalidar: o aviso aparece (e recebe o foco) enquanto o
+    // item ainda está na tela, e o foco não cai no <body> quando a lista nova o desmontar.
+    // A promessa devolvida mantém a mutation pendente até a lista nova chegar: a tela
+    // continua mostrando "Cancelada" e não pisca de volta a "Confirmada".
+    onSuccess: (_dados, reserva) => {
+      aoCancelar();
+      return invalidar(reserva);
+    },
     // No erro, a tela tem de voltar já: avisa e busca a lista nova sem esperar por ela.
-    // O aviso vai aqui, e não num callback do mutate(): este roda mesmo se o item já
+    // Os avisos vão aqui, e não num callback do mutate(): este roda mesmo se o item já
     // tiver saído da tela.
     onError: (erro, reserva) => {
       aoRecusar(erro);

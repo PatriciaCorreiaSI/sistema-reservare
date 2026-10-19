@@ -169,11 +169,10 @@ itens), o seletor de tema e o "Sair" continuam visíveis (`toBeInViewport()`): a
 com a página e o `md:mt-auto` os empurrava para o fim (corrigido em 2026-10-14 com `md:sticky
 md:top-0 md:h-svh`, sem teste); (f) só com o teclado, abrir um cartão de lacuna põe o foco no
 "Início", cancelar o devolve ao "Reservar" do mesmo cartão e confirmar o leva à tarja do aviso
-(`toBeFocused()`); (g) regra 6 — depois de um cancelamento que dá certo, o foco não pode cair no
-`<body>`: hoje ele vai para a situação do item, mas a lista nova muda a reserva de `<ul>`, o item
-desmonta e o foco se perde (achado no protótipo de 2026-10-16; o comentário do `confirmar` no
-`ItemDeReserva` ainda diz que a situação "continua na tela"). Para onde o foco vai é desenho a
-decidir antes do teste.
+(`toBeFocused()`); (g) regra 6 — depois de cancelar uma reserva (sucesso ou `409`), o foco
+está na tarja do aviso, e não no `<body>`; e um segundo cancelamento, com a tarja do primeiro na
+tela, leva o foco à tarja nova (a lista nova muda a reserva de `<ul>` e o item desmonta; achado
+no protótipo de 2026-10-16, corrigido em 2026-10-19 sem teste).
 
 **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
 do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e
@@ -198,7 +197,8 @@ filho ignorado num pai flex, *render prop*, *spread* e a ordem dos atributos, `a
 função (e por que estável), regra de três para extrair componente, escala de espaço contínua
 (`w-19`, `px-4.5`), `flex-[1_1_16rem]` (o `_` vira espaço; grow, shrink, basis), `basis-full`
 num pai flex com quebra, `items-baseline` × `items-center`, `backdrop:` e o `::backdrop`,
-desestruturação de objeto, inferência do tipo de retorno.
+desestruturação de objeto, inferência do tipo de retorno, `key` nova força a montagem (e o ref de
+função age de novo), atributo JSX sem valor vale `true`, interseção de tipos (`&`).
 
 ## Decisões em vigor fora dos ADRs
 
@@ -358,8 +358,14 @@ desestruturação de objeto, inferência do tipo de retorno.
   vale o cache ou o `useMutationState`. **Uma mutation por item** (`ItemDeReserva`), confirmação
   num `<dialog>` com `showModal()` ("Manter reserva" primeiro, recebe o foco). No sucesso o hook
   devolve a invalidação (a mutation fica pendente até a lista nova, sem piscar); no erro dispara
-  sem esperar (a tela volta já). O `409` sobe à tela por `aoAvisar`, chamado no `onError` **do
-  hook**: o item muda de seção e desmonta, e o callback do `mutate()` não roda depois disso.
+  sem esperar (a tela volta já). Os avisos (sucesso e `409`) sobem à tela por `aoAvisar`,
+  chamado nos callbacks **do hook**: o item muda de seção e desmonta, e o callback do `mutate()`
+  não roda depois disso. **Foco depois de cancelar** (decidido em 2026-10-19): vai para a tarja
+  do aviso, por `ref={focarAoMontar}`, como no formulário de reserva. O sucesso avisa **antes**
+  de devolver a invalidação, para a tarja pegar o foco enquanto o item ainda existe (avisar
+  depois da lista nova passaria pelo `<body>`); a tarja leva `key={aviso.id_reserva}`, para cada
+  aviso montar de novo e o ref agir outra vez — o `id` basta porque, depois de um aviso, a reserva
+  muda de seção e não gera outro. `role="status"`, não `alert`: o foco já faz a leitura.
   Nome e fuso do recurso pela junção com o `useRecursos` (um `Map`); recurso ausente → "Recurso nº
   X" no fuso do navegador, com a etiqueta. A tela pergunta `data` antes de `isError`.
 - **Fuso na tela:** o do recurso (`RecursoResposta.fuso`), formatado com `Intl` (`timeZone:`), sem
