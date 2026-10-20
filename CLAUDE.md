@@ -168,7 +168,7 @@ dentro do front (`frontend/e2e/`, `@playwright/test` como `devDependency`, `play
 ao lado do `vite.config.ts`, um `tsconfig.e2e.json` como terceira referência — como no
 full-stack-fastapi-template). O `webServer` sobe a API e o Vite em **portas próprias** (`:8001` e
 `:5174`, `reuseExistingServer: false`): reaproveitar a `:8000` de desenvolvimento gravaria no
-`reservare` sem aviso. O alvo do proxy do Vite passa a vir de uma variável (padrão `:8000`).
+banco de desenvolvimento (`meu_banco_de_dados`) sem aviso. O alvo do proxy do Vite passa a vir de uma variável (padrão `:8000`).
 Banco próprio, **`reservare_e2e`** (criado à mão, como o `reservare_test`; o pytest faz
 `TRUNCATE` e o e2e comita), escolhido pelo `env` do `webServer` — o `load_dotenv` não sobrescreve
 variável existente. O comando da API é uma corrente com `&&`: **guarda** (sai com `1` se
