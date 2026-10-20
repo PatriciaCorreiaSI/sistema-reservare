@@ -103,9 +103,8 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 **Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
-abaixo. O ambiente está desenhado ("Ambiente do e2e", abaixo); **começar pelo desenho do teste 1
-por dentro**: os passos, os localizadores, e como ele acha um horário livre **e no futuro** (a API
-usa o relógio de verdade). **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+abaixo. O ambiente e o teste 1 estão desenhados ("Ambiente do e2e" e "Teste 1", abaixo);
+**começar pelo código do commit (1)**. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
@@ -175,10 +174,25 @@ Banco próprio, **`reservare_e2e`** (criado à mão, como o `reservare_test`; o 
 variável existente. O comando da API é uma corrente com `&&`: **guarda** (sai com `1` se
 `POSTGRES_DB` não for `reservare_e2e`; sem ela, o comando copiado para o terminal zeraria o banco
 de desenvolvimento) → `alembic downgrade base` → `upgrade head` → `criar_admin` (as `ADMIN_*`
-vêm do `env`) → `uvicorn`. Usuárias e recurso pela API, num **projeto de setup** do Playwright
-(o que a API não faz — zerar e o primeiro admin — fica em Python). Só o **Chromium** (Firefox e
-WebKit no backlog). CI: job `e2e` com `needs: [backend, frontend]` — o teste caro roda depois dos
-baratos.
+vêm do `env`) → `uvicorn`. Usuárias pela API, num **projeto de setup** do Playwright (o que a
+API não faz — zerar e o primeiro admin — fica em Python); **recurso novo por teste**, numa fixture,
+pela API e com nome único (decidido em 2026-10-20): o *retry* (`process.env.CI ? 2 : 0`, com
+`trace: "on-first-retry"`) não zera o banco, e um recurso compartilhado faria a segunda tentativa
+achar a reserva da primeira (dois itens, modo estrito) e os testes dependerem uns dos outros. Só o
+**Chromium** (Firefox e WebKit no backlog). CI: job `e2e` com `needs: [backend, frontend]` — o
+teste caro roda depois dos baratos.
+
+**Teste 1 (desenho de 2026-10-20):** cada passo é ação + conferência. `/login` (`getByLabel` —
+`type="password"` não tem papel) → o recurso em `/recursos` (`link` pelo nome) → "Ir para a data"
+com **amanhã no fuso do recurso** (sempre futuro e vazio; calculado com `Intl` e `timeZone`, o
+mesmo fuso do `timezoneId` e do `FUSO_FUNCIONAMENTO`, escrito num lugar só; o campo, e não a faixa
+da semana, porque no domingo amanhã é outra semana) → primeiro `listitem` de "Horários livres" que
+tem "Reservar" (`.first()`, a exceção consciente ao modo estrito) → "Confirmar reserva" → `status`
+com "Reserva feita" → "Minhas reservas" pela `navigation` "Principal" (o `<h1>` tem o mesmo texto)
+→ item da `region` "Próximas" pelo nome do recurso → "Cancelar reserva" → `dialog` → "Confirmar
+cancelamento" → `status` "… cancelada." **e** o item em "Anteriores" (a tarja prova o aviso; a
+seção, a lista nova da API). A lacuna diminuir na página do recurso não se confere (segundo
+motivo). Botões repetidos ("Reservar", "Cancelar reserva") se acham pelo escopo do item, sempre.
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
@@ -578,6 +592,12 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
   `isError` antes de `data`: uma busca em segundo plano que falha (foco na janela com a API fora)
   troca a lista que estava na tela pela mensagem de erro. A `TelaReservas` já pergunta `data`
   primeiro. Regra 6: o teste que reproduz vem com o Playwright.
+- **Nome acessível com contexto nos botões repetidos** — cada lacuna tem um "Reservar" e cada
+  próxima reserva um "Cancelar reserva": na lista de botões do leitor de tela, todos soam iguais.
+  O mercado completa o nome com um trecho `sr-only` ("Reservar das 14:00 às 18:00"), como os
+  links "Change" do GOV.UK Design System. Não é falha AA (o cartão dá o contexto), é boa prática:
+  regra 7, não 6. Em commit próprio; o e2e passa a conferir o nome completo (o escopo pelo item
+  fica).
 - **Minhas reservas além de 100** — a API ordena por `id_reserva` crescente, então o `limite: 100`
   corta as **mais novas** (as Próximas somem primeiro). Corrigir pede ordenação decrescente ou
   filtro por status na API (mudança de contrato). As anteriores se acumulam para sempre (em
