@@ -104,8 +104,10 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 **Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
 abaixo. **O (1) fechou em 2026-10-20** (`e625e19` + o job `e2e`, CI verde nos três jobs; o `e2e`
-leva ~70 s, quase tudo instalação). **Próximo: o (2), o compromisso (g)** — começar pelo desenho
-por dentro, como no teste 1. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+leva ~70 s, quase tudo instalação). **O (2) fechou em 2026-10-20** (`foco-ao-cancelar.spec.ts`,
+três testes: sucesso, `409` e segunda tarja; contra-teste: sem o `key` só o da segunda tarja
+fica vermelho, sem o `ref` os três). **Próximo: o (3), o compromisso (f)** — começar pelo desenho
+por dentro, como nos anteriores. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
@@ -200,6 +202,17 @@ A tarja de cancelar se filtra pelo **nome do recurso**: a do `409` também cont�
 Localizador errado não dá erro na hora — espera até o prazo do teste (30 s), e o `waiting for`
 da mensagem cita a string procurada: quase tudo o que o e2e procura é texto da tela, copiado,
 nunca redigitado.
+
+**Teste 2, o (g) (desenho de 2026-10-20):** prepara pela API, age pela tela. As funções de
+preparação moram em `e2e/api.ts` (`entrarPelaApi`, `criarRecursoPelaApi`,
+`reservarAmanhaPelaApi`, `cancelarPelaApi`); a fixture `recurso` só entrega uma, porque o teste
+da segunda tarja precisa de dois recursos. A reserva pela API pega o início da primeira lacuna
+de amanhã **da própria API** e soma milissegundos (nunca instante montado de hora local);
+`amanhaNoFuso` mora em `e2e/datas.ts`. No do `409`, o `toBeVisible()` antes do
+`cancelarPelaApi` é sincronização: sem ele a API cancelaria antes de a tela buscar a lista. A
+tarja do `409` se acha pelo começo da mensagem dele, para o teste só passar se o `409` aconteceu;
+no da segunda tarja, a primeira se confere **visível**, não focada (é a condição, não a prova).
+O VS Code auto-importou `any` do `zod` no `api.ts` (o ESLint pegou).
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
