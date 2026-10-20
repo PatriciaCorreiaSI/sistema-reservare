@@ -103,8 +103,11 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 **Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
-abaixo. O ambiente e o teste 1 estão desenhados ("Ambiente do e2e" e "Teste 1", abaixo);
-**começar pelo código do commit (1)**. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+abaixo. **O commit (1) está pela metade (2026-10-20):** infraestrutura, setup e caminho feliz
+verdes (`2 passed`, contra-teste feito) e commitados **sem push**; falta a parte 6, o job `e2e` no
+CI (`npx playwright install --with-deps chromium`, as variáveis que localmente vêm do `.env` no
+`env:` do job, o relatório como artefato), num segundo commit, e só então o push — o CI roda sobre
+o último commit. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
@@ -168,8 +171,10 @@ dentro do front (`frontend/e2e/`, `@playwright/test` como `devDependency`, `play
 ao lado do `vite.config.ts`, um `tsconfig.e2e.json` como terceira referência — como no
 full-stack-fastapi-template). O `webServer` sobe a API e o Vite em **portas próprias** (`:8001` e
 `:5174`, `reuseExistingServer: false`): reaproveitar a `:8000` de desenvolvimento gravaria no
-banco de desenvolvimento (`meu_banco_de_dados`) sem aviso. O alvo do proxy do Vite passa a vir de uma variável (padrão `:8000`).
-Banco próprio, **`reservare_e2e`** (criado à mão, como o `reservare_test`; o pytest faz
+banco de desenvolvimento (`meu_banco_de_dados`) sem aviso. O alvo do proxy do Vite vem de
+`ALVO_DA_API` (padrão `:8000`; sem `VITE_`, que exporia ao navegador). `... is already used` =
+um `uvicorn` órfão de rodada interrompida: `Get-NetTCPConnection -State Listen -LocalPort
+8001,5174` dá o PID. Banco próprio, **`reservare_e2e`** (criado à mão, como o `reservare_test`; o pytest faz
 `TRUNCATE` e o e2e comita), escolhido pelo `env` do `webServer` — o `load_dotenv` não sobrescreve
 variável existente. O comando da API é uma corrente com `&&`: **guarda** (sai com `1` se
 `POSTGRES_DB` não for `reservare_e2e`; sem ela, o comando copiado para o terminal zeraria o banco
@@ -193,6 +198,10 @@ com "Reserva feita" → "Minhas reservas" pela `navigation` "Principal" (o `<h1>
 cancelamento" → `status` "… cancelada." **e** o item em "Anteriores" (a tarja prova o aviso; a
 seção, a lista nova da API). A lacuna diminuir na página do recurso não se confere (segundo
 motivo). Botões repetidos ("Reservar", "Cancelar reserva") se acham pelo escopo do item, sempre.
+A tarja de cancelar se filtra pelo **nome do recurso**: a do `409` também contém "cancelada".
+Localizador errado não dá erro na hora — espera até o prazo do teste (30 s), e o `waiting for`
+da mensagem cita a string procurada: quase tudo o que o e2e procura é texto da tela, copiado,
+nunca redigitado.
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);

@@ -10,8 +10,9 @@ export default defineConfig({
     // o Vite repassa à API, sem reescrever o caminho: por isso o cookie do
     // ADR 0023, com Path=/api/auth, chega inteiro. 127.0.0.1, nunca localhost:
     // o Windows resolve localhost para ::1 e o uvicorn escuta só IPv4.
+    // O e2e troca o alvo pela API dele (:8001), pela variável ALVO_DA_API.
     proxy: {
-      "/api": "http://127.0.0.1:8000",
+      "/api": process.env.ALVO_DA_API ?? "http://127.0.0.1:8000",
     },
   },
 });

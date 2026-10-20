@@ -9,6 +9,7 @@ export default defineConfig([
   globalIgnores(["dist", "src/api/tipos.ts"]),
   {
     files: ["**/*.{ts,tsx}"],
+    ignores: ["e2e/**", "playwright.config.ts"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -17,6 +18,13 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ]);
