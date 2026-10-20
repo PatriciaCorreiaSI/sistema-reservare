@@ -5,7 +5,8 @@ import { amanhaNoFuso } from "./datas.ts";
 
 type Schemas = components["schemas"];
 
-const MEIA_HORA_MS = 30 * 60 * 1000;
+const MINUTO_MS = 60 * 1000;
+const MEIA_HORA_MS = 30 * MINUTO_MS;
 
 // Preparação pela API, como nos testes do backend: o caminho mais direto até o
 // estado de que o teste precisa. O teste em si age pela tela.
@@ -48,12 +49,14 @@ export async function criarRecursoPelaApi(
   return resposta.json();
 }
 
-// Meia hora no começo da primeira lacuna de amanhã. O início vem da API, como
-// instante: somar milissegundos a ele evita montar instante a partir de hora local.
+// Meia hora na primeira lacuna de amanhã, no começo dela ou alguns minutos depois
+// (para deixar um cartão livre antes). O início vem da API, como instante: somar
+// milissegundos a ele evita montar instante a partir de hora local.
 export async function reservarAmanhaPelaApi(
   request: APIRequestContext,
   recurso: Schemas["RecursoResposta"],
   token: string,
+  minutosDepoisDoInicio = 0,
 ): Promise<Schemas["ReservaResposta"]> {
   const autorizacao = { Authorization: `Bearer ${token}` };
   const livres = await request.get(
@@ -65,7 +68,9 @@ export async function reservarAmanhaPelaApi(
   );
   expect(livres.status()).toBe(200);
   const { lacunas }: Schemas["DisponibilidadeResposta"] = await livres.json();
-  const inicio = lacunas[0].inicio;
+  const inicio = new Date(
+    Date.parse(lacunas[0].inicio) + minutosDepoisDoInicio * MINUTO_MS,
+  ).toISOString();
   const fim = new Date(Date.parse(inicio) + MEIA_HORA_MS).toISOString();
   const resposta = await request.post("/api/reservas", {
     headers: autorizacao,
