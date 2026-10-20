@@ -215,7 +215,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 7–8    | Etapa 4             | ✅ **concluída** — as quatro rotas de `reserva`, o teste de concorrência (`201` + `409` pela API), o IDOR herdado da Etapa 3 e a consulta de disponibilidade por lacunas; 77 testes verdes |
 | —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
-| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna e minhas reservas com cancelar prontos, todas com o visual final (Tailwind); ambiente do teste Playwright desenhado, faltam os testes de ponta a ponta |
+| 10–12  | **Etapa 7**         | 🔨 **é aqui que estamos** — sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna e minhas reservas com cancelar prontos, todas com o visual final (Tailwind); testes Playwright no CI com o caminho feliz, o foco depois de cancelar e o teclado prontos, faltam três |
 | 13     | Etapa 8             | **URL pública funcionando — projeto completo**                            |
 | 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
 
@@ -452,10 +452,13 @@ que desligaria o alarme também para quando a linha ganhar regra.
 > (navegação por semana derivada do `?dia=`, lacunas em cartões, formulário com o componente
 > `Campo` e foco devolvido ao abrir e fechar) e minhas reservas (próximas em cartões, anteriores
 > em linhas; depois de cancelar, o foco vai a um aviso na tela, e não se perde quando a reserva
-> muda de seção). O teste Playwright tem o ambiente desenhado desde 2026-10-19: dentro do front,
-> com banco e portas próprios, o banco zerado pelo vaivém das migrations atrás de uma guarda,
-> só o Chromium, e um job `e2e` no CI depois dos outros dois. Faltam os testes: o caminho feliz
-> primeiro, depois um por compromisso de acessibilidade e de defeito já corrigido.
+> muda de seção). Testes Playwright desde 2026-10-20: dentro do front, com banco e portas
+> próprios, o banco zerado pelo vaivém das migrations atrás de uma guarda, só o Chromium, um
+> recurso novo por teste, e um job `e2e` no CI depois dos outros dois. Prontos o caminho feliz
+> (logar → reservar → ver em minhas reservas → cancelar), o foco depois de cancelar e reservar
+> só com o teclado. Faltam três, cada um com o seu contra-teste: trocar de pessoa não mostra
+> dado da anterior, API fora do ar mostra a mensagem de servidor, e a barra lateral visível numa
+> página comprida.
 
 **Objetivo:** interface que consome a API real e trata o que existe além do caminho feliz.
 

@@ -58,7 +58,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
-| Front-end | 🔨 em andamento — login, rotas protegidas, lista de recursos, horários livres, reservar e minhas reservas com cancelar prontos, todas as telas com o visual final em tema claro e escuro ([ADR 0027](docs/adr/0027-estilizar-front-com-tailwind.md)); falta o teste de ponta a ponta |
+| Front-end | 🔨 em andamento — login, rotas protegidas, lista de recursos, horários livres, reservar e minhas reservas com cancelar prontos, todas as telas com o visual final em tema claro e escuro ([ADR 0027](docs/adr/0027-estilizar-front-com-tailwind.md)); testes de ponta a ponta (Playwright) no CI, com o caminho feliz, o foco e o teclado prontos e três por fazer |
 | Deploy | ⏳ |
 
 Nada é listado como pronto antes de estar funcionando.
@@ -105,6 +105,17 @@ cd backend && uv run pytest
 No CI, o mesmo `pytest` roda com `--cov=app --cov-report=term-missing`: o relatório lista as linhas
 que nenhum teste executou e nunca reprova o push — cobertura é alarme, não meta
 ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md)).
+
+Os testes de ponta a ponta (Playwright, só Chromium) precisam do `db` no ar e de um banco
+`reservare_e2e` criado à mão, como o de teste. O próprio Playwright sobe a API em `:8001` e o
+Vite em `:5174` — portas próprias, para nunca gravar no banco de desenvolvimento — e zera o
+`reservare_e2e` antes de cada rodada:
+
+```bash
+cd frontend
+npx playwright install chromium   # uma vez, baixa o navegador
+npx playwright test
+```
 
 ### Verificação antes do commit
 

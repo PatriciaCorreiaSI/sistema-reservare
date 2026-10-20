@@ -106,8 +106,11 @@ percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os 
 abaixo. **O (1) fechou em 2026-10-20** (`e625e19` + o job `e2e`, CI verde nos três jobs; o `e2e`
 leva ~70 s, quase tudo instalação). **O (2) fechou em 2026-10-20** (`foco-ao-cancelar.spec.ts`,
 três testes: sucesso, `409` e segunda tarja; contra-teste: sem o `key` só o da segunda tarja
-fica vermelho, sem o `ref` os três). **Próximo: o (3), o compromisso (f)** — começar pelo desenho
-por dentro, como nos anteriores. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+fica vermelho, sem o `ref` os três). **O (3) fechou em 2026-10-20** (`teclado-na-reserva.spec.ts`,
+três testes: abrir, cancelar e confirmar; estragos conferidos na cópia — sem `autoFocus`, foco
+devolvido ao primeiro cartão, sem `ref` na tarja — cada um derruba só o seu). **Próximo: o (4),
+o compromisso (b)** (trocar de pessoa não mostra dado da anterior) — começar pelo desenho por
+dentro, em especial como simular a sessão vencida com a tela aberta. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
@@ -213,6 +216,16 @@ de amanhã **da própria API** e soma milissegundos (nunca instante montado de h
 tarja do `409` se acha pelo começo da mensagem dele, para o teste só passar se o `409` aconteceu;
 no da segunda tarja, a primeira se confere **visível**, não focada (é a condição, não a prova).
 O VS Code auto-importou `any` do `zod` no `api.ts` (o ESLint pegou).
+
+**Teste 3, o (f) (desenho de 2026-10-20):** a ação se dispara no localizador
+(`.press("Enter")`, que foca e aperta) e o `toBeFocused()` confere onde o foco para; contar Tabs
+seria um segundo motivo para falhar. A tela do recurso se abre pela URL (`?dia=` de amanhã),
+depois de esperar o `toHaveURL("/recursos")` do login. O do "Cancelar" usa **dois cartões**
+(reserva pela API 60 minutos depois da abertura, `minutosDepoisDoInicio`), confere a condição com
+`toHaveCount(2)` e age no `.last()`: com um cartão só, foco devolvido ao primeiro passaria verde.
+O Enter final vai por `page.keyboard` (onde o foco está) e confere o formulário **visível**, não
+o "Início" focado — senão o teste também dependeria do `autoFocus`. Renomear por `F2`, não à mão
+(um uso de `MINUTOS_MS` ficou para trás).
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
