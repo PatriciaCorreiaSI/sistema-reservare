@@ -1,12 +1,6 @@
 import { USUARIA } from "./ambiente.ts";
+import { amanhaNoFuso } from "./datas.ts";
 import { expect, test } from "./fixtures.ts";
-
-// O dia seguinte no fuso dado, como AAAA-MM-DD (o formato do campo de data). O
-// en-CA é o locale que escreve a data nessa ordem.
-function amanhaNoFuso(fuso: string): string {
-  const daqui24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  return daqui24h.toLocaleDateString("en-CA", { timeZone: fuso });
-}
 
 test("logar, reservar, ver em minhas reservas e cancelar", async ({
   page,
