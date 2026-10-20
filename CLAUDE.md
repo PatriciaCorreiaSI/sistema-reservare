@@ -103,11 +103,9 @@ do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `m
 
 **Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
 percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
-abaixo. **O commit (1) está pela metade (2026-10-20):** infraestrutura, setup e caminho feliz
-verdes (`2 passed`, contra-teste feito) e commitados **sem push**; falta a parte 6, o job `e2e` no
-CI (`npx playwright install --with-deps chromium`, as variáveis que localmente vêm do `.env` no
-`env:` do job, o relatório como artefato), num segundo commit, e só então o push — o CI roda sobre
-o último commit. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+abaixo. **O (1) fechou em 2026-10-20** (`e625e19` + o job `e2e`, CI verde nos três jobs; o `e2e`
+leva ~70 s, quase tudo instalação). **Próximo: o (2), o compromisso (g)** — começar pelo desenho
+por dentro, como no teste 1. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
