@@ -65,7 +65,8 @@ Antes de escrever implementação, verifique em que fase ela está:
   todo o front-end — a fase 3 não se aplica: traga o **código pronto no chat, com o conceito ao
   lado de cada trecho**; ela copia para o arquivo, roda e explica em voz alta. Adivinhar o que
   nunca se viu não ensina. A fase 3 continua valendo para o que ela já domina (teste pytest,
-  service, repository, ADR), e o contra-teste continua sendo dela.
+  service, repository, ADR), e o contra-teste continua sendo dela. Vale também para o desenho:
+  em território novo, o desenho vem pronto, com o porquê — sem perguntas para ela adivinhar.
 
 ### As sete regras do projeto
 
@@ -90,173 +91,77 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | **8 — observabilidade e deploy** | **próxima** | — |
 
-Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP; a história de cada
-sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem do código:
-decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e armadilhas.
+Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
+a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
+do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
+armadilhas.
 
 **Início de sessão:** Docker Desktop aberto e **não pausado** (pausado, o `docker compose ps`
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
 db` até `(healthy)`; de `backend/`, `uv run pytest` → `122 passed` (e o aviso do `httpx`, backlog)
-antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test` →
-`14 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa
-do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
+antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
+→ `14 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
 ## Próximo passo
 
 **Etapa 8 — observabilidade e deploy** (ROADMAP): URL pública com dados de demonstração e
-credenciais de teste no README, e um erro em produção rastreável pelo ID de correlação. Começa
-pela fase 1: as decisões que pedem ADR antes de qualquer código — onde hospedar (Fly.io × Render,
-com Postgres gerenciado), como os logs saem (JSON estruturado, sem dado sensível) e como o ID de
-correlação atravessa pedido, log e resposta; depois, migrations no deploy (antes da versão nova,
-sempre retrocompatíveis), segredos de produção e backup com restauração testada. A Etapa 7 fechou
-em 2026-10-21: os critérios de pronto cumpridos, 14 testes e2e no CI (os sete compromissos, o `409`
-ao reservar e a volta à origem pela guarda), os dois exercícios feitos (o `@hey-api` e o TanStack
-Router, num rascunho; os ADRs 0025 e 0026 ficam) e o `strict` ligado (`7a11a64`). Telas de admin
-de recursos seguem no backlog.
+credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. Começa pela
+fase 1, os ADRs antes do código: onde hospedar, como os logs saem (JSON estruturado, sem dado
+sensível) e como o ID de correlação atravessa pedido, log e resposta; depois, migrations no deploy
+(antes da versão nova, sempre retrocompatíveis), segredos de produção e backup com restauração
+testada.
+
+**Hospedagem (pesquisa de 2026-10-21, a conferir nas páginas oficiais):** o Fly.io não tem mais
+plano grátis para conta nova (o ROADMAP ainda o cita: motivo novo para reabrir); o Postgres grátis
+do Render expira em 30 dias. Custo zero = API no Render (dorme após 15 min sem acesso) + banco no
+Neon Free (permanente) — **confirmar o `btree_gist` no Neon antes de tudo**. O cookie de refresh
+pede front e API no mesmo site: provavelmente a API servindo o front.
 
 ## Front-end: o que o desenho decidiu e o código não conta
 
-**Visual (4.8, ADR 0027):** Tailwind CSS v4 pelo `@tailwindcss/vite`, variáveis de design no
-`@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção aprovada no protótipo (artifact
-"Reservare — direções visuais"): a editorial (Bricolage + Manrope, laranja, barra lateral, faixa
-da semana) com os quadros de informação do recurso da direção A, em claro e escuro. Antes de uma
-tela nova, um protótipo com o Tailwind do navegador e as classes que irão para o código (o de
-minhas reservas é o artifact "Reservare — minhas reservas"). Layout no limite exato não conta como
-cabendo: a fonte de reserva e o zoom só do texto mudam a largura (o título do login ficou em
-`text-4xl lg:text-6xl`, porque o `md:text-5xl` cabia em 768px sem folga). Grade de cartões por
-`grid-cols-[repeat(auto-fill,minmax(...))]`, não por `md:`/`lg:`: o prefixo mede a janela, e a
-coluna perde 256px para a barra (`auto-fit` quando o conjunto é fixo e deve preencher a linha).
-
-**Faixa da semana (desenho de 2026-10-15):** semana de calendário, segunda a domingo, derivada do
-`?dia=` (nenhum parâmetro novo); dias e semanas são `<Link to="?dia=..." replace>` — muda a URL,
-logo é link, como paginação; dia passado é texto riscado, fora do Tab, com `sr-only` "(já passou)";
-"Semana anterior" nunca leva antes de hoje e vira texto na semana atual; o campo de data ficou
-("Ir para a data", para ir longe). A `<section>` se chama "Horários livres" por `aria-label` (o
-`<h2>` é a data, que muda). A lacuna se conta como **período** ("livre por 8h30"), não como
-horário; o `Aviso` (`sucesso` | `conflito`, exportado do `FormularioDeReserva`) decide a cor da
-tarja (`ok-suave` novo na paleta).
-
-**`Campo` e foco (desenho de 2026-10-15):** `components/Campo.tsx` liga rótulo, controle e erro
-pelos mesmos ids, por *render prop* (`{(props) => <select {...props} />}`) — serve a `input` e
-`select`, e quem usa não digita `aria-*`; classe a mais só depois do *spread* e sem disputar
-propriedade com a do `Campo` (`min-w-32`, `w-28`). Login e formulário de reserva usam. Foco no
-cartão: abrir → `autoFocus` no "Início"; cancelar → volta ao "Reservar" da mesma lacuna
-(`devolverFocoA`, limpo ao abrir de novo, senão disputa com o aviso); terminar → a tarja do aviso
-(`tabIndex={-1}`). Os dois últimos por `ref={focarAoMontar}`, função **fora** do componente (a
-mesma a cada desenho, senão o React a chama de novo e rouba o foco). Coberto pelo `teclado-na-reserva.spec.ts`.
-
-**Minhas reservas (desenho de 2026-10-16):** dois componentes, porque os visuais não compartilham
-marcação — `ItemDeReserva` (próximas, em cartão: mutation, `<dialog>`, foco) e `LinhaDeReserva`
-(anteriores, numa linha, sem hook); o que os dois mostram igual vem de `descreverReserva` no
-`formato.ts` (fora de arquivo `.tsx`, pelo `react-refresh`). O selo da data é `aria-hidden`, com a
-data por extenso em `sr-only`. O `<dialog>` leva `m-auto` (o Preflight zera a margem que o
-centraliza) e `backdrop:bg-veu` (`--color-veu`, a primeira cor com transparência na variável,
-porque ela também muda com o tema). O fuso aparece também nas linhas anteriores, embora o
-protótipo o tivesse tirado.
-
-Cuidados: o Preflight zera os estilos do navegador; `<ul>` sem marcador leva `role="list"`
-(VoiceOver); contraste AA e foco visível são critério, não enfeite. **Classe errada não dá erro**:
-o Tailwind ignora em silêncio, e o plugin do Prettier põe as desconhecidas no começo da lista (o
-sinal — que falha quando a classe errada **já é** a primeira: `fonte-titulo` passou assim). Valor
-arbitrário com unidade errada (`minmax(14ref,1fr)`) o Tailwind gera assim mesmo e o
-navegador descarta. A borda pede duas classes (`border` = largura, `border-X` = cor), e a grade
-também (`grid` liga, `grid-cols-X` configura). O Tailwind não traz
-`aria-invalid:` (criado com `@custom-variant`); valor de atributo no seletor diferencia maiúscula.
-
-**Ambiente do e2e (desenho de 2026-10-19; sem ADR — o Playwright é de desenho):** Playwright
-dentro do front (`frontend/e2e/`, `@playwright/test` como `devDependency`, `playwright.config.ts`
-ao lado do `vite.config.ts`, um `tsconfig.e2e.json` como terceira referência — como no
-full-stack-fastapi-template). O `webServer` sobe a API e o Vite em **portas próprias** (`:8001` e
-`:5174`, `reuseExistingServer: false`): reaproveitar a `:8000` de desenvolvimento gravaria no
-banco de desenvolvimento (`meu_banco_de_dados`) sem aviso. O alvo do proxy do Vite vem de
-`ALVO_DA_API` (padrão `:8000`; sem `VITE_`, que exporia ao navegador). `... is already used` =
-um `uvicorn` órfão de rodada interrompida: `Get-NetTCPConnection -State Listen -LocalPort
-8001,5174` dá o PID. Banco próprio, **`reservare_e2e`** (criado à mão, como o `reservare_test`; o pytest faz
-`TRUNCATE` e o e2e comita), escolhido pelo `env` do `webServer` — o `load_dotenv` não sobrescreve
-variável existente. O comando da API é uma corrente com `&&`: **guarda** (sai com `1` se
-`POSTGRES_DB` não for `reservare_e2e`; sem ela, o comando copiado para o terminal zeraria o banco
-de desenvolvimento) → `alembic downgrade base` → `upgrade head` → `criar_admin` (as `ADMIN_*`
-vêm do `env`) → `uvicorn`. Usuárias pela API, num **projeto de setup** do Playwright (o que a
-API não faz — zerar e o primeiro admin — fica em Python); **recurso novo por teste**, numa fixture,
-pela API e com nome único (decidido em 2026-10-20): o *retry* (`process.env.CI ? 2 : 0`, com
-`trace: "on-first-retry"`) não zera o banco, e um recurso compartilhado faria a segunda tentativa
-achar a reserva da primeira (dois itens, modo estrito) e os testes dependerem uns dos outros. Só o
-**Chromium** (Firefox e WebKit no backlog). CI: job `e2e` com `needs: [backend, frontend]` — o
-teste caro roda depois dos baratos.
-
-**Caminho feliz, `reserva.spec.ts` (desenho de 2026-10-20):** cada passo é ação + conferência. `/login` (`getByLabel` —
-`type="password"` não tem papel) → o recurso em `/recursos` (`link` pelo nome) → "Ir para a data"
-com **amanhã no fuso do recurso** (sempre futuro e vazio; calculado com `Intl` e `timeZone`, o
-mesmo fuso do `timezoneId` e do `FUSO_FUNCIONAMENTO`, escrito num lugar só; o campo, e não a faixa
-da semana, porque no domingo amanhã é outra semana) → primeiro `listitem` de "Horários livres" que
-tem "Reservar" (`.first()`, a exceção consciente ao modo estrito) → "Confirmar reserva" → `status`
-com "Reserva feita" → "Minhas reservas" pela `navigation` "Principal" (o `<h1>` tem o mesmo texto)
-→ item da `region` "Próximas" pelo nome do recurso → "Cancelar reserva" → `dialog` → "Confirmar
-cancelamento" → `status` "… cancelada." **e** o item em "Anteriores" (a tarja prova o aviso; a
-seção, a lista nova da API). A lacuna diminuir na página do recurso não se confere (segundo
-motivo). Botões repetidos ("Reservar", "Cancelar reserva") se acham pelo escopo do item, sempre.
-A tarja de cancelar se filtra pelo **nome do recurso**: a do `409` também contém "cancelada".
-Localizador errado não dá erro na hora — espera até o prazo do teste (30 s), e o `waiting for`
-da mensagem cita a string procurada: quase tudo o que o e2e procura é texto da tela, copiado,
-nunca redigitado.
-
-**Foco ao cancelar, `foco-ao-cancelar.spec.ts` (desenho de 2026-10-20):** prepara pela API, age pela tela. As funções de
-preparação moram em `e2e/api.ts` (`entrarPelaApi`, `criarRecursoPelaApi`,
-`reservarAmanhaPelaApi`, `cancelarPelaApi`); a fixture `recurso` só entrega uma, porque o teste
-da segunda tarja precisa de dois recursos. A reserva pela API pega o início da primeira lacuna
-de amanhã **da própria API** e soma milissegundos (nunca instante montado de hora local);
-`amanhaNoFuso` mora em `e2e/datas.ts`. No do `409`, o `toBeVisible()` antes do
-`cancelarPelaApi` é sincronização: sem ele a API cancelaria antes de a tela buscar a lista. A
-tarja do `409` se acha pelo começo da mensagem dele, para o teste só passar se o `409` aconteceu;
-no da segunda tarja, a primeira se confere **visível**, não focada (é a condição, não a prova).
-O VS Code auto-importou `any` do `zod` no `api.ts` (o ESLint pegou).
-
-**Teclado, `teclado-na-reserva.spec.ts` (desenho de 2026-10-20):** a ação se dispara no localizador
-(`.press("Enter")`, que foca e aperta) e o `toBeFocused()` confere onde o foco para; contar Tabs
-seria um segundo motivo para falhar. A tela do recurso se abre pela URL (`?dia=` de amanhã),
-depois de esperar o `toHaveURL("/recursos")` do login. O do "Cancelar" usa **dois cartões**
-(reserva pela API 60 minutos depois da abertura, `minutosDepoisDoInicio`), confere a condição com
-`toHaveCount(2)` e age no `.last()`: com um cartão só, foco devolvido ao primeiro passaria verde.
-O Enter final vai por `page.keyboard` (onde o foco está) e confere o formulário **visível**, não
-o "Início" focado — senão o teste também dependeria do `autoFocus`. Renomear por `F2`, não à mão
-(um uso de `MINUTOS_MS` ficou para trás).
-
-**Troca de pessoa, `troca-de-pessoa.spec.ts` (desenho de 2026-10-21):** a segunda usuária (`OUTRA_USUARIA`, Bia) nasce no
-setup. Nenhum `page.goto` depois do primeiro: recarregar zera a memória da página, e o cache com
-ela. A sessão vence com a tela aberta por `context.clearCookies()` (o refresh dá `401` de
-verdade) + `page.route` com `401` uma vez no `/api/recursos` (o access, um JWT, não vence de
-fora); o clique em "Recursos" dispara o pedido (`staleTime` 0: a lista montada se busca de novo).
-A lista da segunda pessoa fica **segurada** (`page.route` sem resposta) e se confere o
-"Carregando reservas": sem segurar, a lista nova troca a velha em milissegundos, e um
-`toHaveCount(0)` passou verde com o defeito (conferido na cópia). O caminho do "Sair" tem **duas
-defesas** (o `clear()` e o `removeQueries()`): tirar uma só não o derruba. Arquivo de teste sem
-`.spec.ts` no nome é ignorado em silêncio (`npx playwright test --list` mostra o que conta).
-
-**Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
-do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e
-explica. Formulários, os quatro estados, acessibilidade e o Playwright são de desenho, não de ADR.
-Conceitos já dados: estado de servidor × de interface, query × mutation, componente e
-*re-render*, middleware, rota no navegador × no servidor, rota de layout e `<Outlet />`, promessa e
-*single-flight*, regra dos hooks, `unknown` × `any`, `state` do histórico (sobrevive ao F5, não a
-aba nova), `<Link>` × `<a>`, fragmento, marcos de acessibilidade, os quatro estados com retornos
-antecipados (*narrowing*), `isPending` × `isFetching`, `retry` só para `5xx`/rede, chave de cache
-hierárquica, instante × dia do calendário × hora de relógio, `formatToParts`, predicado de tipo
-(`texto is string`), consulta dependente resolvida por composição, atualização otimista pela UI
-× pelo cache, callback do hook × do `mutate()` (o segundo não roda depois de desmontar), `key` e
-desmontagem ao mudar de pai, `useRef` e `<dialog>` com `showModal()`, foco por código
-(`tabIndex={-1}`), região viva (`aria-live` × `role="alert"`), dados antes do erro, `toSorted`,
-`=> ( )` × `=> { }`, `@theme` com cor por papel e tema por variável (não `@theme inline`),
-escala de espaço, prefixo de tela (`md:`, *mobile-first*) e de estado (`hover:`, `aria-pressed:`),
-`@custom-variant`, `NavLink`, inicialização preguiçosa do `useState`, script antes do primeiro
-desenho (*flash of incorrect theme*), `:focus-visible`, margem automática em flex, valor
-arbitrário (`grid-cols-[...]`), `auto-fill` × `auto-fit`, `col-span-full`, `sr-only` ×
-`aria-hidden`, `<dl>`, link × botão (muda a URL → link), `aria-current="page"` à mão, `display` do
-filho ignorado num pai flex, *render prop*, *spread* e a ordem dos atributos, `autoFocus`, ref de
-função (e por que estável), regra de três para extrair componente, escala de espaço contínua
-(`w-19`, `px-4.5`), `flex-[1_1_16rem]` (o `_` vira espaço; grow, shrink, basis), `basis-full`
-num pai flex com quebra, `items-baseline` × `items-center`, `backdrop:` e o `::backdrop`,
-desestruturação de objeto, inferência do tipo de retorno, `key` nova força a montagem (e o ref de
-função age de novo), atributo JSX sem valor vale `true`, interseção de tipos (`&`).
+- **Visual (ADR 0027):** Tailwind v4 pelo `@tailwindcss/vite`, variáveis de design no `@theme` do
+  `index.css`, `prettier-plugin-tailwindcss`. Tela nova começa num protótipo (artifact) com as
+  classes que irão para o código. Layout no limite exato não conta como cabendo: a fonte de reserva
+  e o zoom só do texto mudam a largura. Grade de cartões por
+  `grid-cols-[repeat(auto-fill,minmax(...))]`, não por `md:`/`lg:` — o prefixo mede a janela, e a
+  coluna perde 256px para a barra (`auto-fit` quando o conjunto é fixo).
+- **O Tailwind não avisa:** classe errada é ignorada em silêncio (o Prettier põe as desconhecidas no
+  começo da lista — sinal que falha quando a errada **já é** a primeira); valor arbitrário com
+  unidade errada é gerado e o navegador descarta; borda e grade pedem duas classes (`border` +
+  `border-X`, `grid` + `grid-cols-X`); `aria-invalid:` não existe (criado com `@custom-variant`);
+  valor de atributo no seletor diferencia maiúscula. O Preflight zera margens (o `<dialog>` leva
+  `m-auto`) e marcadores (`<ul>` sem marcador leva `role="list"`, pelo VoiceOver). Contraste AA e
+  foco visível são critério, não enfeite.
+- **Faixa da semana:** derivada do `?dia=`, sem parâmetro novo; dias e semanas são `<Link
+  replace>` (muda a URL → link); dia passado é texto fora do Tab, com `sr-only` "(já passou)";
+  "Semana anterior" nunca leva antes de hoje. A `<section>` se nomeia por `aria-label` (o `<h2>` é
+  a data, que muda). A lacuna se conta como período ("livre por 8h30").
+- **Foco:** abrir o cartão → `autoFocus` no "Início"; cancelar → volta ao "Reservar" da mesma
+  lacuna; terminar, ou cancelar uma reserva → a tarja do aviso (`tabIndex={-1}`,
+  `ref={focarAoMontar}`). A função do ref mora **fora** do componente: nova a cada desenho, o React
+  a chamaria de novo e roubaria o foco; `key` nova na tarja faz o ref agir outra vez. O `Campo`
+  liga rótulo, controle e erro por *render prop*; classe a mais vai depois do *spread*.
+- **Ambiente do e2e** (sem ADR; o Playwright é de desenho): dentro do front (`frontend/e2e/`,
+  `tsconfig.e2e.json`). O `webServer` sobe a API e o Vite em **portas próprias** (`:8001`, `:5174`,
+  `reuseExistingServer: false`) e o banco **`reservare_e2e`** (criado à mão), zerado a cada rodada
+  por `downgrade base` → `upgrade head`, atrás de uma **guarda** que sai com `1` se o
+  `POSTGRES_DB` for outro. O alvo do proxy vem de `ALVO_DA_API` (sem `VITE_`, que exporia ao
+  navegador). `... is already used` = `uvicorn` órfão: `Get-NetTCPConnection -State Listen
+  -LocalPort 8001,5174` dá o PID. Usuárias no projeto de setup; **recurso novo por teste** (o
+  *retry* do CI não zera o banco). Só Chromium. Job `e2e` com `needs: [backend, frontend]`.
+- **Como se escreve um e2e:** prepara pela API (`e2e/api.ts`), age pela tela (`e2e/tela.ts`);
+  instante da API + milissegundos, nunca hora local montada. Antes da conferência, a **condição**
+  (`toHaveCount(2)`, item fora da tela) — sem ela o teste passa verde com o defeito. Um
+  `toBeVisible()` antes de mexer pela API é sincronização. Botão repetido se acha pelo escopo do
+  item; texto procurado é copiado da tela, nunca redigitado (localizador errado não dá erro: espera
+  30 s, e o `waiting for` cita a string). Nenhum `page.goto` no meio quando o cache importa
+  (recarregar zera a memória). Para ver um estado que dura milissegundos, **segurar** o pedido
+  (`page.route` sem resposta). Arquivo sem `.spec.ts` no nome é ignorado em silêncio (`npx
+  playwright test --list`).
+- **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
+  fora do repositório** (`tsc`, ESLint, Prettier, e o e2e quando couber; para instalar pacote, a
+  cópia leva `node_modules` próprio), conceito ao lado; ela digita, roda e explica. Os conceitos
+  já dados estão no `docs/aprendizados.md` e no histórico: não reexplicar o básico.
 
 ## Decisões em vigor fora dos ADRs
 
@@ -416,29 +321,19 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
   o `setQueryData(["sessao"], false)` — limpar ali exigiria contornar a guarda montada; no
   `/login` ela não está. `removeQueries`, não `clear()`: o `clear()` apagaria a mutation que roda.
 - **Minhas reservas** (decidido em 2026-10-14): otimista **pela UI** (o "Cancelada" deriva do
-  `isPending`; o cache nunca é alterado), porque só uma tela mostra reservas — com uma segunda,
-  vale o cache ou o `useMutationState`. **Uma mutation por item** (`ItemDeReserva`), confirmação
-  num `<dialog>` com `showModal()` ("Manter reserva" primeiro, recebe o foco). No sucesso o hook
-  devolve a invalidação (a mutation fica pendente até a lista nova, sem piscar); no erro dispara
-  sem esperar (a tela volta já). Os avisos (sucesso e `409`) sobem à tela por `aoAvisar`,
-  chamado nos callbacks **do hook**: o item muda de seção e desmonta, e o callback do `mutate()`
-  não roda depois disso. **Foco depois de cancelar** (decidido em 2026-10-19): vai para a tarja
-  do aviso, por `ref={focarAoMontar}`, como no formulário de reserva. O sucesso avisa **antes**
-  de devolver a invalidação, para a tarja pegar o foco enquanto o item ainda existe (avisar
-  depois da lista nova passaria pelo `<body>`); a tarja leva `key={aviso.id_reserva}`, para cada
-  aviso montar de novo e o ref agir outra vez — o `id` basta porque, depois de um aviso, a reserva
-  muda de seção e não gera outro. `role="status"`, não `alert`: o foco já faz a leitura.
-  Nome e fuso do recurso pela junção com o `useRecursos` (um `Map`); recurso ausente → "Recurso nº
-  X" no fuso do navegador, com a etiqueta. A tela pergunta `data` antes de `isError`.
+  `isPending`; o cache não muda), porque só uma tela mostra reservas. **Uma mutation por item**,
+  confirmação num `<dialog>` com `showModal()` ("Manter reserva" primeiro). No sucesso o hook avisa
+  **antes** de devolver a invalidação (a tarja pega o foco enquanto o item existe; a mutation fica
+  pendente até a lista nova, sem piscar); no erro, invalida sem esperar. Os avisos sobem por
+  `aoAvisar`, nos callbacks **do hook** (o do `mutate()` não roda depois que o item desmonta).
+  Nome e fuso do recurso pela junção com o `useRecursos`; ausente → "Recurso nº X". A tela
+  pergunta `data` antes de `isError`.
 - **Fuso na tela:** o do recurso (`RecursoResposta.fuso`), formatado com `Intl` (`timeZone:`), sem
   biblioteca, com a etiqueta do fuso visível; o `dia` se calcula nesse fuso. `useParams()` é
   `string | undefined` e `?dia=` chega como texto: a URL é entrada e se interpreta na borda.
-- **Reservar clicando numa lacuna** (decidido em 2026-10-13): o clique abre início e fim numa
-  grade de 30 minutos (`PASSO_MINUTOS`, `src/grade.ts`), gerada somando milissegundos aos
-  instantes que a API devolveu — nunca construindo instante a partir de hora local, a volta
-  relógio → instante que o `Intl` não faz. O início arredonda para cima; o fim da lacuna entra
-  mesmo fora da grade. A lacuna aberta se identifica pelo **fim** (o início da de hoje é o
-  "agora", que muda a cada busca).
+- **Reservar clicando numa lacuna:** início e fim numa grade de 30 minutos (`src/grade.ts`),
+  somando milissegundos aos instantes da API — nunca instante montado de hora local. A lacuna
+  aberta se identifica pelo **fim** (o início da de hoje é o "agora", que muda a cada busca).
 - **Tela em branco (preta no tema escuro) = erro lançado durante o desenho**: sem *error
   boundary*, o React desmonta a árvore inteira. A causa está no Console do DevTools, não na
   Network. **`npm run build` antes do navegador.**
@@ -580,55 +475,23 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
 
 ## Backlog (regra 7 — nenhum é v1)
 
-- **Limite de tentativas no `/auth/login`** — o Argon2, caro de propósito, vira vetor de negação de
-  serviço. O mercado limita por IP e por conta.
-- **Login em tempo constante** — com e-mail inexistente a resposta sai mais rápido; o mercado
-  verifica um hash falso mesmo quando o usuário não existe.
-- **Teste de mutação** (`mutmut`) e **teste baseado em propriedades** (`Hypothesis`, para
-  `calcular_lacunas` e `cabe_no_horario`).
-- **Mínimo de senha 8 × 15** — a revisão 4 (2025) do NIST SP 800-63B exige 15 quando a senha é o
-  único fator. Mudar exige trocar `"senha456"` nos testes e a senha do admin de desenvolvimento.
-- **Padrão BFF** — recomendação atual do IETF para aplicações de navegador (ADRs 0013 e 0023).
-- **Janela de tolerância no reuso do refresh** — duas abas com F5 ao mesmo tempo mandam o mesmo
-  cookie, e a segunda revoga a família. O mercado aceita o refresh recém-usado por alguns segundos
-  (*reuse interval* da Auth0, *grace period* da Okta). Muda o back-end e o ADR 0023.
-- **Teste de concorrência determinístico, direto no banco** (ADR 0015) — duas conexões sem HTTP.
-- **Encerrar a reserva mais cedo** (ADR 0016) — o "check-out": encurta o `periodo` em vez de
-  cancelar.
-- **Chave desconhecida vira `422`** (`extra="forbid"` nos schemas de entrada; muda o contrato).
-- **Sentinela `MISSING`** no `RecursoAtualizar`, quando sair do `experimental` do Pydantic — o
-  contrato deixaria de dizer `string | null`.
-- **Telas de admin de recursos** (criar, editar, remover) — fora do critério de pronto da Etapa 7.
-- **Paginar a lista de recursos na tela** — hoje o `useRecursos` pede `limite: 100`, o teto da
-  API: o 101º recurso some em silêncio. Só no front: `?pagina=` na URL, `deslocamento` calculado,
-  a página na `queryKey`, `placeholderData: keepPreviousData`. "Página X de Y" exige o total, que
-  a API não devolve (mudança de contrato).
-- **Junção no servidor para as reservas** — o `ReservaResposta` traz o nome e o fuso do recurso
-  (como o `expand[]` da Stripe ou o `include` do JSON:API); a tela de minhas reservas deixa de
-  juntar com o `useRecursos` no cliente, e some o caso de borda do recurso fora dos 100 primeiros.
-  Muda o contrato, o service e os testes.
-- **e2e no Firefox e no WebKit** — hoje só o Chromium (os projetos ficam comentados no
-  `playwright.config.ts`). Ressalva: o Safari, por padrão, não passa por links e botões com o Tab
-  (só com Option+Tab), e os testes de foco e de teclado são os mais sensíveis a isso — diferença de motor, não
-  defeito do Reservare. Depois, um job agendado com os três é o meio-termo do mercado.
-- **e2e da imagem Docker da API** — o e2e sobe a API pelo `uv`, não pelo container (sem bind
-  mount, a imagem não acompanha o código); testar a imagem vale quando houver deploy.
-- **Dados antes do erro nas telas de recursos** — `recursos.tsx` e `recurso.tsx` perguntam
-  `isError` antes de `data`: uma busca em segundo plano que falha (foco na janela com a API fora)
-  troca a lista que estava na tela pela mensagem de erro. A `TelaReservas` já pergunta `data`
-  primeiro. Regra 6: o teste que reproduz vem com o Playwright.
-- **Nome acessível com contexto nos botões repetidos** — cada lacuna tem um "Reservar" e cada
-  próxima reserva um "Cancelar reserva": na lista de botões do leitor de tela, todos soam iguais.
-  O mercado completa o nome com um trecho `sr-only` ("Reservar das 14:00 às 18:00"), como os
-  links "Change" do GOV.UK Design System. Não é falha AA (o cartão dá o contexto), é boa prática:
-  regra 7, não 6. Em commit próprio; o e2e passa a conferir o nome completo (o escopo pelo item
-  fica).
-- **Minhas reservas além de 100** — a API ordena por `id_reserva` crescente, então o `limite: 100`
-  corta as **mais novas** (as Próximas somem primeiro). Corrigir pede ordenação decrescente ou
-  filtro por status na API (mudança de contrato). As anteriores se acumulam para sempre (em
-  2026-10-16, 46 no banco de desenvolvimento para 1 próxima): na tela, mostrar só as últimas N
-  com um "ver todas"; com o filtro por status na API, as anteriores viriam numa consulta à parte.
-- `str_strip_whitespace` para o nome feito só de espaços; `httpx2` no lugar de `httpx`.
+- **Segurança:** limite de tentativas no `/auth/login` (o Argon2 caro vira negação de serviço);
+  login em tempo constante (hash falso quando o e-mail não existe); senha mínima de 15 (NIST
+  SP 800-63B rev. 4; muda `"senha456"` nos testes); padrão BFF (IETF); janela de tolerância no
+  reuso do refresh (duas abas com F5 revogam a família; muda o ADR 0023).
+- **Testes:** mutação (`mutmut`); propriedades (`Hypothesis`, para `calcular_lacunas` e
+  `cabe_no_horario`); concorrência direto no banco, sem HTTP (ADR 0015); e2e no Firefox e no
+  WebKit (o Safari não passa por botões com o Tab por padrão); e2e da imagem Docker da API;
+  testes de componente e verificação automática de acessibilidade (axe).
+- **Contrato:** chave desconhecida vira `422` (`extra="forbid"`); sentinela `MISSING` no
+  `RecursoAtualizar` quando sair do experimental; junção no servidor (nome e fuso do recurso no
+  `ReservaResposta`); minhas reservas além de 100 (a API ordena por `id` crescente e corta as mais
+  novas: pede ordenação decrescente ou filtro por status).
+- **Telas:** admin de recursos; paginar recursos (`?pagina=`, hoje o 101º some); dados antes do
+  erro em `recursos.tsx` e `recurso.tsx` (regra 6 quando reproduzido); nome acessível com contexto
+  nos botões repetidos (`sr-only`, como o GOV.UK); *error boundary*; encerrar a reserva mais cedo
+  (ADR 0016).
+- `str_strip_whitespace` para nome só de espaços; `httpx2` no lugar de `httpx`.
 
 > Atualize "Estado atual" e "Próximo passo" ao fechar cada etapa. O README tem a tabela de status
 > completa e não deve listar nada como pronto antes de estar funcionando.
@@ -637,9 +500,8 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
 
 Python 3.14 · FastAPI · SQLAlchemy 2.0 tipado · Pydantic v2 (+ `email-validator`) · Alembic ·
 PostgreSQL 16 · `uv` · `ruff` · `mypy` · `pwdlib` (Argon2) · `PyJWT` · pytest + httpx ·
-Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v8 ·
-Tailwind CSS v4
-(declarativo) · `openapi-typescript` + `openapi-fetch` · Playwright.
+Docker Compose · GitHub Actions · Vite + React + TypeScript + TanStack Query + React Router v8
+(declarativo) · Tailwind CSS v4 · `openapi-typescript` + `openapi-fetch` · Playwright.
 
 As escolhas já foram decididas com critério em
 [`docs/ROADMAP.md`](docs/ROADMAP.md#4-stack-e-por-quê) — não as reabra sem
