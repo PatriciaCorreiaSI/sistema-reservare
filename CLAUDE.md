@@ -87,55 +87,34 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 3 — autenticação | 2026-09-23 | ADRs 0012–0013 |
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
-| **7 — front-end** | **em andamento** | ADRs 0023–0027, emendas aos 0018 e 0022 |
+| 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
+| **8 — observabilidade e deploy** | **próxima** | — |
 
-Suíte do back-end em `122 passed`. O detalhe de cada etapa está no ROADMAP; a história de cada
+Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP; a história de cada
 sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem do código:
 decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e armadilhas.
 
 **Início de sessão:** Docker Desktop aberto e **não pausado** (pausado, o `docker compose ps`
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
 db` até `(healthy)`; de `backend/`, `uv run pytest` → `122 passed` (e o aviso do `httpx`, backlog)
-antes de mexer em qualquer coisa. Para a API à mão e o front, o banco de desenvolvimento precisa
+antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test` →
+`14 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa
 do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
 ## Próximo passo
 
-**Etapa 7, subpasso 5: Playwright e o job `e2e`** (o job entra no commit do primeiro teste),
-percorrendo "logar → reservar → ver na agenda → cancelar", e cumprindo os compromissos (a)–(g)
-abaixo. **O (1) fechou em 2026-10-20** (`e625e19` + o job `e2e`, CI verde nos três jobs; o `e2e`
-leva ~70 s, quase tudo instalação). **O (2) fechou em 2026-10-20** (`foco-ao-cancelar.spec.ts`,
-três testes: sucesso, `409` e segunda tarja; contra-teste: sem o `key` só o da segunda tarja
-fica vermelho, sem o `ref` os três). **O (3) fechou em 2026-10-20** (`teclado-na-reserva.spec.ts`,
-três testes: abrir, cancelar e confirmar; estragos conferidos na cópia — sem `autoFocus`, foco
-devolvido ao primeiro cartão, sem `ref` na tarja — cada um derruba só o seu). **O (4) fechou em 2026-10-21** (`9175eed`, `troca-de-pessoa.spec.ts`,
-dois testes: depois do "Sair" e depois da sessão vencida; contra-teste: sem o `removeQueries()`
-só o da sessão vencida fica vermelho, sem ele e sem o `clear()` os dois). **O (5) fechou em 2026-10-21**
-(`servidor-fora.spec.ts`: `page.route` responde `502` a todo `/api/`, `goto` numa tela protegida
-sem login, confere a mensagem da guarda; contra-teste: `status === 401` → `!response.ok` no
-`renovarSessao`, o código de antes do `563dc9e`). **O (6) fechou em 2026-10-21**
-(`barra-lateral.spec.ts`: oito reservas pela API, a última fora da tela como condição, a barra
-conferida no topo e depois de rolar; contra-teste: sem `md:sticky md:top-0 md:h-svh` falha no
-topo, sem só o `md:sticky` falha no fim). **Com ele, o subpasso 5 e os sete compromissos
-fecharam: suíte e2e em `12 passed`.** O login pela tela foi para o `e2e/tela.ts`
-(`e0d5060`). **Os dois exercícios do fim da etapa foram feitos em 2026-10-21**, em rascunho fora
-do repositório: o `@hey-api` (nomes do `operationId`, chave de cache por objeto que não invalida
-em hierarquia, erro sem status, `baseUrl` errado sem `servers` no contrato; o ADR 0025 fica) e o
-TanStack Router (12 e2e verdes na versão portada; links e parâmetros tipados, mas o `<Navigate>`
-navega de novo a cada objeto de props e travou a guarda; o ADR 0026 fica). **Achado do segundo
-exercício: o `strict` está desligado no front** — nenhum dos três `tsconfig` o liga, e o
-TypeScript 5.9 o deixa desligado por padrão; ligado, o código atual dá zero erros. **Próximo:**
-ligar `"strict": true` nos três `tsconfig` (commit próprio, com a prova de que um erro de `null`
-passa a ser pego); depois, fechar a Etapa 7 (comparação com o mercado, README e ROADMAP). **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
-um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
-na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
-`502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
-está no código e ver o vermelho. Território novo: código pronto no chat, testado antes numa cópia
-do front. O 4.7 (minhas
-reservas e cancelar) fechou em 2026-10-14; o 4.8 (visual), em 2026-10-16 (`4bba07f`). Telas de
-admin de recursos ficam fora do critério de pronto (backlog). **Exercícios do fim da etapa:**
-gerar os hooks com o `@hey-api/openapi-ts` num rascunho e comparar com os dela (ADR 0025); portar
-as rotas para o TanStack Router num rascunho (ADR 0026).
+**Etapa 8 — observabilidade e deploy** (ROADMAP): URL pública com dados de demonstração e
+credenciais de teste no README, e um erro em produção rastreável pelo ID de correlação. Começa
+pela fase 1: as decisões que pedem ADR antes de qualquer código — onde hospedar (Fly.io × Render,
+com Postgres gerenciado), como os logs saem (JSON estruturado, sem dado sensível) e como o ID de
+correlação atravessa pedido, log e resposta; depois, migrations no deploy (antes da versão nova,
+sempre retrocompatíveis), segredos de produção e backup com restauração testada. A Etapa 7 fechou
+em 2026-10-21: os critérios de pronto cumpridos, 14 testes e2e no CI (os sete compromissos, o `409`
+ao reservar e a volta à origem pela guarda), os dois exercícios feitos (o `@hey-api` e o TanStack
+Router, num rascunho; os ADRs 0025 e 0026 ficam) e o `strict` ligado (`7a11a64`). Telas de admin
+de recursos seguem no backlog.
+
+## Front-end: o que o desenho decidiu e o código não conta
 
 **Visual (4.8, ADR 0027):** Tailwind CSS v4 pelo `@tailwindcss/vite`, variáveis de design no
 `@theme` do `index.css`, `prettier-plugin-tailwindcss`. Direção aprovada no protótipo (artifact
@@ -164,8 +143,7 @@ propriedade com a do `Campo` (`min-w-32`, `w-28`). Login e formulário de reserv
 cartão: abrir → `autoFocus` no "Início"; cancelar → volta ao "Reservar" da mesma lacuna
 (`devolverFocoA`, limpo ao abrir de novo, senão disputa com o aviso); terminar → a tarja do aviso
 (`tabIndex={-1}`). Os dois últimos por `ref={focarAoMontar}`, função **fora** do componente (a
-mesma a cada desenho, senão o React a chama de novo e rouba o foco). Sem teste ainda: entra no e2e
-(compromisso (f)).
+mesma a cada desenho, senão o React a chama de novo e rouba o foco). Coberto pelo `teclado-na-reserva.spec.ts`.
 
 **Minhas reservas (desenho de 2026-10-16):** dois componentes, porque os visuais não compartilham
 marcação — `ItemDeReserva` (próximas, em cartão: mutation, `<dialog>`, foco) e `LinhaDeReserva`
@@ -206,7 +184,7 @@ achar a reserva da primeira (dois itens, modo estrito) e os testes dependerem un
 **Chromium** (Firefox e WebKit no backlog). CI: job `e2e` com `needs: [backend, frontend]` — o
 teste caro roda depois dos baratos.
 
-**Teste 1 (desenho de 2026-10-20):** cada passo é ação + conferência. `/login` (`getByLabel` —
+**Caminho feliz, `reserva.spec.ts` (desenho de 2026-10-20):** cada passo é ação + conferência. `/login` (`getByLabel` —
 `type="password"` não tem papel) → o recurso em `/recursos` (`link` pelo nome) → "Ir para a data"
 com **amanhã no fuso do recurso** (sempre futuro e vazio; calculado com `Intl` e `timeZone`, o
 mesmo fuso do `timezoneId` e do `FUSO_FUNCIONAMENTO`, escrito num lugar só; o campo, e não a faixa
@@ -222,7 +200,7 @@ Localizador errado não dá erro na hora — espera até o prazo do teste (30 s)
 da mensagem cita a string procurada: quase tudo o que o e2e procura é texto da tela, copiado,
 nunca redigitado.
 
-**Teste 2, o (g) (desenho de 2026-10-20):** prepara pela API, age pela tela. As funções de
+**Foco ao cancelar, `foco-ao-cancelar.spec.ts` (desenho de 2026-10-20):** prepara pela API, age pela tela. As funções de
 preparação moram em `e2e/api.ts` (`entrarPelaApi`, `criarRecursoPelaApi`,
 `reservarAmanhaPelaApi`, `cancelarPelaApi`); a fixture `recurso` só entrega uma, porque o teste
 da segunda tarja precisa de dois recursos. A reserva pela API pega o início da primeira lacuna
@@ -233,7 +211,7 @@ tarja do `409` se acha pelo começo da mensagem dele, para o teste só passar se
 no da segunda tarja, a primeira se confere **visível**, não focada (é a condição, não a prova).
 O VS Code auto-importou `any` do `zod` no `api.ts` (o ESLint pegou).
 
-**Teste 3, o (f) (desenho de 2026-10-20):** a ação se dispara no localizador
+**Teclado, `teclado-na-reserva.spec.ts` (desenho de 2026-10-20):** a ação se dispara no localizador
 (`.press("Enter")`, que foca e aperta) e o `toBeFocused()` confere onde o foco para; contar Tabs
 seria um segundo motivo para falhar. A tela do recurso se abre pela URL (`?dia=` de amanhã),
 depois de esperar o `toHaveURL("/recursos")` do login. O do "Cancelar" usa **dois cartões**
@@ -243,7 +221,7 @@ O Enter final vai por `page.keyboard` (onde o foco está) e confere o formulári
 o "Início" focado — senão o teste também dependeria do `autoFocus`. Renomear por `F2`, não à mão
 (um uso de `MINUTOS_MS` ficou para trás).
 
-**Teste 4, o (b) (desenho de 2026-10-21):** a segunda usuária (`OUTRA_USUARIA`, Bia) nasce no
+**Troca de pessoa, `troca-de-pessoa.spec.ts` (desenho de 2026-10-21):** a segunda usuária (`OUTRA_USUARIA`, Bia) nasce no
 setup. Nenhum `page.goto` depois do primeiro: recarregar zera a memória da página, e o cache com
 ela. A sessão vence com a tela aberta por `context.clearCookies()` (o refresh dá `401` de
 verdade) + `page.route` com `401` uma vez no `/api/recursos` (o access, um JWT, não vence de
@@ -253,23 +231,6 @@ A lista da segunda pessoa fica **segurada** (`page.route` sem resposta) e se con
 `toHaveCount(0)` passou verde com o defeito (conferido na cópia). O caminho do "Sair" tem **duas
 defesas** (o `clear()` e o `removeQueries()`): tirar uma só não o derruba. Arquivo de teste sem
 `.spec.ts` no nome é ignorado em silêncio (`npx playwright test --list` mostra o que conta).
-
-**Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
-servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
-(b) entrar como outra pessoa não mostra dado da anterior, nos dois caminhos: depois do logout (o
-`queryClient.clear()`) e depois da sessão vencida com a tela aberta (o `removeQueries()` no
-`onSuccess` do `useLogin`); a tela de minhas reservas é onde o contra-teste aparece; (c) o
-Playwright fixa `timezoneId` (o runner do CI é UTC); (d) o `<dialog>` de cancelar se acha por
-`getByRole("dialog")` e as seções por `getByRole("region", { name: ... })` — o teste confere a
-acessibilidade; (e) regra 6 — numa página mais alta que a tela (minhas reservas com vários
-itens), o seletor de tema e o "Sair" continuam visíveis (`toBeInViewport()`): a barra esticava
-com a página e o `md:mt-auto` os empurrava para o fim (corrigido em 2026-10-14 com `md:sticky
-md:top-0 md:h-svh`, sem teste); (f) só com o teclado, abrir um cartão de lacuna põe o foco no
-"Início", cancelar o devolve ao "Reservar" do mesmo cartão e confirmar o leva à tarja do aviso
-(`toBeFocused()`); (g) regra 6 — depois de cancelar uma reserva (sucesso ou `409`), o foco
-está na tarja do aviso, e não no `<body>`; e um segundo cancelamento, com a tarja do primeiro na
-tela, leva o foco à tarja nova (a lista nova muda a reserva de `<ul>` e o item desmonta; achado
-no protótipo de 2026-10-16, corrigido em 2026-10-19 sem teste).
 
 **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
 do front fora do repositório** (`tsc`, ESLint, Prettier), conceito ao lado; ela digita, roda e
@@ -406,6 +367,10 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
 - **TypeScript fixado em `~5.9`**: o `openapi-typescript` declara `peer typescript ^5.x`
   (`ERESOLVE`; issue `openapi-ts/openapi-typescript#2723`). Soltar quando ela fechar;
   `--legacy-peer-deps` descartado.
+- **`"strict": true` nos três `tsconfig`** (desde 2026-10-21): o template do Vite não escreve a
+  linha, e o 5.9 deixa o modo estrito desligado por padrão — por cinco subpassos, `null` cabia em
+  qualquer tipo sem aviso. `tsconfig` novo leva a linha; `tsc --showConfig -p <arquivo>` mostra o
+  que vale de fato.
 - **Arquivos gerados** (`frontend/openapi.json`, `src/api/tipos.ts`) ficam fora do Prettier e do
   ESLint, dentro do `tsc`. Nunca se editam; o `pre-commit` os regenera quando `backend/app/` muda.
 - **Abrir sempre `http://localhost:5173`**, nunca `127.0.0.1:5173`: o cookie é `Secure`, e só
@@ -644,7 +609,7 @@ função age de novo), atributo JSX sem valor vale `true`, interseção de tipos
   Muda o contrato, o service e os testes.
 - **e2e no Firefox e no WebKit** — hoje só o Chromium (os projetos ficam comentados no
   `playwright.config.ts`). Ressalva: o Safari, por padrão, não passa por links e botões com o Tab
-  (só com Option+Tab), e os compromissos (f) e (g) são de teclado — diferença de motor, não
+  (só com Option+Tab), e os testes de foco e de teclado são os mais sensíveis a isso — diferença de motor, não
   defeito do Reservare. Depois, um job agendado com os três é o meio-termo do mercado.
 - **e2e da imagem Docker da API** — o e2e sobe a API pelo `uv`, não pelo container (sem bind
   mount, a imagem não acompanha o código); testar a imagem vale quando houver deploy.
