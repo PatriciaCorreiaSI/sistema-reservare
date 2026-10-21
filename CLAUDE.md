@@ -108,9 +108,14 @@ leva ~70 s, quase tudo instalação). **O (2) fechou em 2026-10-20** (`foco-ao-c
 três testes: sucesso, `409` e segunda tarja; contra-teste: sem o `key` só o da segunda tarja
 fica vermelho, sem o `ref` os três). **O (3) fechou em 2026-10-20** (`teclado-na-reserva.spec.ts`,
 três testes: abrir, cancelar e confirmar; estragos conferidos na cópia — sem `autoFocus`, foco
-devolvido ao primeiro cartão, sem `ref` na tarja — cada um derruba só o seu). **Próximo: o (4),
-o compromisso (b)** (trocar de pessoa não mostra dado da anterior) — começar pelo desenho por
-dentro, em especial como simular a sessão vencida com a tela aberta. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+devolvido ao primeiro cartão, sem `ref` na tarja — cada um derruba só o seu). **O (4) fechou em 2026-10-21** (`9175eed`, `troca-de-pessoa.spec.ts`,
+dois testes: depois do "Sair" e depois da sessão vencida; contra-teste: sem o `removeQueries()`
+só o da sessão vencida fica vermelho, sem ele e sem o `clear()` os dois). **O (5) fechou em 2026-10-21**
+(`servidor-fora.spec.ts`: `page.route` responde `502` a todo `/api/`, `goto` numa tela protegida
+sem login, confere a mensagem da guarda; contra-teste: `status === 401` → `!response.ok` no
+`renovarSessao`, o código de antes do `563dc9e`). **Próximo: o (6), o compromisso (e)** (barra
+lateral visível numa página mais alta que a tela), com o contra-teste de desfazer o `md:sticky
+md:top-0 md:h-svh`; depois, os exercícios do fim da etapa. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
@@ -226,6 +231,17 @@ depois de esperar o `toHaveURL("/recursos")` do login. O do "Cancelar" usa **doi
 O Enter final vai por `page.keyboard` (onde o foco está) e confere o formulário **visível**, não
 o "Início" focado — senão o teste também dependeria do `autoFocus`. Renomear por `F2`, não à mão
 (um uso de `MINUTOS_MS` ficou para trás).
+
+**Teste 4, o (b) (desenho de 2026-10-21):** a segunda usuária (`OUTRA_USUARIA`, Bia) nasce no
+setup. Nenhum `page.goto` depois do primeiro: recarregar zera a memória da página, e o cache com
+ela. A sessão vence com a tela aberta por `context.clearCookies()` (o refresh dá `401` de
+verdade) + `page.route` com `401` uma vez no `/api/recursos` (o access, um JWT, não vence de
+fora); o clique em "Recursos" dispara o pedido (`staleTime` 0: a lista montada se busca de novo).
+A lista da segunda pessoa fica **segurada** (`page.route` sem resposta) e se confere o
+"Carregando reservas": sem segurar, a lista nova troca a velha em milissegundos, e um
+`toHaveCount(0)` passou verde com o defeito (conferido na cópia). O caminho do "Sair" tem **duas
+defesas** (o `clear()` e o `removeQueries()`): tirar uma só não o derruba. Arquivo de teste sem
+`.spec.ts` no nome é ignorado em silêncio (`npx playwright test --list` mostra o que conta).
 
 **Compromissos para o primeiro `e2e`:** (a) regra 6 — API parada → a guarda mostra a mensagem de
 servidor, **não** o `/login` (o `502` do proxy virava login; corrigido em 2026-10-09 sem teste);
