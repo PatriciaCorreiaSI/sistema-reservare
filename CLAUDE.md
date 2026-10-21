@@ -113,9 +113,13 @@ dois testes: depois do "Sair" e depois da sessão vencida; contra-teste: sem o `
 só o da sessão vencida fica vermelho, sem ele e sem o `clear()` os dois). **O (5) fechou em 2026-10-21**
 (`servidor-fora.spec.ts`: `page.route` responde `502` a todo `/api/`, `goto` numa tela protegida
 sem login, confere a mensagem da guarda; contra-teste: `status === 401` → `!response.ok` no
-`renovarSessao`, o código de antes do `563dc9e`). **Próximo: o (6), o compromisso (e)** (barra
-lateral visível numa página mais alta que a tela), com o contra-teste de desfazer o `md:sticky
-md:top-0 md:h-svh`; depois, os exercícios do fim da etapa. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+`renovarSessao`, o código de antes do `563dc9e`). **O (6) fechou em 2026-10-21**
+(`barra-lateral.spec.ts`: oito reservas pela API, a última fora da tela como condição, a barra
+conferida no topo e depois de rolar; contra-teste: sem `md:sticky md:top-0 md:h-svh` falha no
+topo, sem só o `md:sticky` falha no fim). **Com ele, o subpasso 5 e os sete compromissos
+fecharam: suíte e2e em `12 passed`.** **Próximo:** extrair o login pela tela (cinco cópias nos
+specs) para um módulo do `e2e/`, num commit só de refatoração; depois, os exercícios do fim da
+etapa, e então fechar a Etapa 7. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
