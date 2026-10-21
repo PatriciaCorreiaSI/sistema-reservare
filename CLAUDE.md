@@ -117,9 +117,16 @@ sem login, confere a mensagem da guarda; contra-teste: `status === 401` → `!re
 (`barra-lateral.spec.ts`: oito reservas pela API, a última fora da tela como condição, a barra
 conferida no topo e depois de rolar; contra-teste: sem `md:sticky md:top-0 md:h-svh` falha no
 topo, sem só o `md:sticky` falha no fim). **Com ele, o subpasso 5 e os sete compromissos
-fecharam: suíte e2e em `12 passed`.** **Próximo:** extrair o login pela tela (cinco cópias nos
-specs) para um módulo do `e2e/`, num commit só de refatoração; depois, os exercícios do fim da
-etapa, e então fechar a Etapa 7. **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
+fecharam: suíte e2e em `12 passed`.** O login pela tela foi para o `e2e/tela.ts`
+(`e0d5060`). **Os dois exercícios do fim da etapa foram feitos em 2026-10-21**, em rascunho fora
+do repositório: o `@hey-api` (nomes do `operationId`, chave de cache por objeto que não invalida
+em hierarquia, erro sem status, `baseUrl` errado sem `servers` no contrato; o ADR 0025 fica) e o
+TanStack Router (12 e2e verdes na versão portada; links e parâmetros tipados, mas o `<Navigate>`
+navega de novo a cada objeto de props e travou a guarda; o ADR 0026 fica). **Achado do segundo
+exercício: o `strict` está desligado no front** — nenhum dos três `tsconfig` o liga, e o
+TypeScript 5.9 o deixa desligado por padrão; ligado, o código atual dá zero erros. **Próximo:**
+ligar `"strict": true` nos três `tsconfig` (commit próprio, com a prova de que um erro de `null`
+passa a ser pego); depois, fechar a Etapa 7 (comparação com o mercado, README e ROADMAP). **Ordem combinada em 2026-10-19** — um teste, um motivo para falhar;
 um commit por teste: (1) infraestrutura + caminho feliz + job `e2e` no CI, com (c) no config e (d)
 na forma de todos os testes; (2) (g); (3) (f); (4) (b); (5) (a), por `page.route()` respondendo
 `502`; (6) (e). Os de regra 6 — (g), (a), (e) — levam contra-teste: desfazer a correção que já
