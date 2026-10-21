@@ -5,7 +5,14 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 7 — front-end.** A API está pronta; no front, já dá para entrar, ver os horários livres, reservar e cancelar.
+> Fase atual: **Etapa 8 — observabilidade e deploy.** A API e o front estão prontos e testados; falta a URL pública.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/telas/login-escuro.png">
+  <img alt="Tela de entrada do Reservare: à esquerda, o título “Salas, equipamentos e estações, sem conflito de horário”; à direita, o formulário com e-mail e senha e o seletor de tema claro ou escuro." src="docs/telas/login-claro.png">
+</picture>
+
+Mais telas em [Telas](#telas).
 
 ---
 
@@ -44,6 +51,24 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp
 ```
 
 [`docs/prova-invariante.sql`](docs/prova-invariante.sql) percorre sete casos, cada um com o resultado esperado escrito antes de rodar — entre eles: reservas sobrepostas são recusadas; reservas que apenas se encostam (`[14h,16h)` e `[16h,18h)`) são as duas aceitas; e cancelar uma reserva devolve o horário para quem vier depois.
+
+---
+
+## Telas
+
+O app tem tema claro e escuro: na primeira visita segue o do sistema, e a escolha feita na tela fica guardada no navegador. As telas abaixo mostram os dois.
+
+Depois de entrar, a lista de recursos, aqui no tema escuro. Recurso inativo aparece, mas não aceita reserva.
+
+![Lista de recursos no tema escuro: a Sala Azul, ativa, e a Sala Amarela, inativa, cada uma com a ocupação e o horário de funcionamento.](docs/telas/recursos-escuro.png)
+
+Ao abrir um recurso, os horários livres do dia, no fuso dele: a faixa da semana muda o dia pela URL, e clicar numa lacuna abre o formulário de reserva. Se outra pessoa reservar o mesmo horário antes, o banco recusa e a tela explica o conflito.
+
+![Página da Sala Azul: ocupação, funcionamento e situação no topo; a faixa da semana com o dia de hoje destacado; abaixo, um período livre aberto com início, fim, convidados e o botão “Confirmar reserva”.](docs/telas/horarios-livres-claro.png)
+
+Por fim, minhas reservas: as próximas em cartões, com o cancelamento confirmado numa caixa de diálogo; as anteriores em linhas, concluídas ou canceladas.
+
+![Minhas reservas: uma reserva confirmada na Sala Azul em “Próximas”, com o botão “Cancelar reserva”, e cinco reservas em “Anteriores”, concluídas ou canceladas.](docs/telas/minhas-reservas-claro.png)
 
 ---
 
