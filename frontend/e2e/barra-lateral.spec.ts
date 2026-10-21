@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { USUARIA } from "./ambiente.ts";
 import { entrarPelaApi, reservarAmanhaPelaApi } from "./api.ts";
 import { expect, test } from "./fixtures.ts";
+import { entrarPelaTela } from "./tela.ts";
 
 // Numa página mais alta que a tela, o tema e o "Sair"
 // continuam à vista. Sem a correção de 2026-10-14 (md:sticky md:top-0 md:h-svh), a
@@ -25,9 +26,7 @@ test("numa página mais alta que a tela, o tema e o sair continuam à vista", as
     await reservarAmanhaPelaApi(request, recurso, token);
   }
   await page.goto("/login");
-  await page.getByLabel("E-mail").fill(USUARIA.email);
-  await page.getByLabel("Senha").fill(USUARIA.senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await entrarPelaTela(page, USUARIA);
   await page
     .getByRole("navigation", { name: "Principal" })
     .getByRole("link", { name: "Minhas reservas" })

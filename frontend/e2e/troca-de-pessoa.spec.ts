@@ -3,21 +3,13 @@ import type { components } from "../src/api/tipos.ts";
 import { OUTRA_USUARIA, USUARIA } from "./ambiente.ts";
 import { entrarPelaApi, reservarAmanhaPelaApi } from "./api.ts";
 import { expect, test } from "./fixtures.ts";
+import { entrarPelaTela } from "./tela.ts";
 
 // Quem entra depois de outra pessoa, na mesma aba, não vê os dados
 // dela. O cache do TanStack query vive na memória da página; por isso os dois testes
 // nunca recarregam: só uma página que continua aberta guarda o que a anterior viu.
 
 type Recurso = components["schemas"]["RecursoResposta"];
-
-async function entrarPelaTela(
-  page: Page,
-  pessoa: { email: string; senha: string },
-) {
-  await page.getByLabel("E-mail").fill(pessoa.email);
-  await page.getByLabel("Senha").fill(pessoa.senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
 
 function menu(page: Page) {
   return page.getByRole("navigation", { name: "Principal" });

@@ -4,6 +4,7 @@ import { USUARIA } from "./ambiente.ts";
 import { entrarPelaApi, reservarAmanhaPelaApi } from "./api.ts";
 import { amanhaNoFuso } from "./datas.ts";
 import { expect, test } from "./fixtures.ts";
+import { entrarPelaTela } from "./tela.ts";
 
 // No cartão de uma lacuna, o foco acompanha quem usa só o teclado.
 // Cada ação é disparada no próprio botão; o que se confere é onde o foco para depois.
@@ -12,9 +13,7 @@ type Recurso = components["schemas"]["RecursoResposta"];
 
 async function entrarEAbrirAmanha(page: Page, recurso: Recurso) {
   await page.goto("/login");
-  await page.getByLabel("E-mail").fill(USUARIA.email);
-  await page.getByLabel("Senha").fill(USUARIA.senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await entrarPelaTela(page, USUARIA);
   await expect(page).toHaveURL("/recursos");
   await page.goto(
     `/recursos/${recurso.id_recurso}?dia=${amanhaNoFuso(recurso.fuso)}`,

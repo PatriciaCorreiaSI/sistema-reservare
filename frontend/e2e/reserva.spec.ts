@@ -1,6 +1,7 @@
 import { USUARIA } from "./ambiente.ts";
 import { amanhaNoFuso } from "./datas.ts";
 import { expect, test } from "./fixtures.ts";
+import { entrarPelaTela } from "./tela.ts";
 
 test("logar, reservar, ver em minhas reservas e cancelar", async ({
   page,
@@ -8,9 +9,7 @@ test("logar, reservar, ver em minhas reservas e cancelar", async ({
 }) => {
   // Logar
   await page.goto("/login");
-  await page.getByLabel("E-mail").fill(USUARIA.email);
-  await page.getByLabel("Senha").fill(USUARIA.senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await entrarPelaTela(page, USUARIA);
   await expect(page).toHaveURL("/recursos");
 
   // Escolher o recurso e o dia: amanhã é sempre futuro e, com o recurso novo, vazio.

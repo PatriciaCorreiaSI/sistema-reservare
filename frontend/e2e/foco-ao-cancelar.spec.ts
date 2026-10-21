@@ -7,15 +7,14 @@ import {
   reservarAmanhaPelaApi,
 } from "./api.ts";
 import { expect, test } from "./fixtures.ts";
+import { entrarPelaTela } from "./tela.ts";
 
 // Compromisso (g), regra 6: o item cancelado muda de seção e desmonta; sem a
 // correção de 2026-10-19, o foco caía no <body>.
 
 async function entrarEAbrirMinhasReservas(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("E-mail").fill(USUARIA.email);
-  await page.getByLabel("Senha").fill(USUARIA.senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await entrarPelaTela(page, USUARIA);
   await page
     .getByRole("navigation", { name: "Principal" })
     .getByRole("link", { name: "Minhas reservas" })
