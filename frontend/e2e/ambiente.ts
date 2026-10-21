@@ -1,5 +1,4 @@
 // O que o config e os testes precisam saber igual, escrito num lugar só.
-
 // O fuso da API (FUSO_FUNCIONAMENTO) e o do navegador (timezoneId): o runner do CI
 // é UTC, e a tela calcularia "hoje" num fuso e a API em outro.
 export const FUSO = "America/Sao_Paulo";
@@ -21,4 +20,11 @@ export const USUARIA = {
   nome: "Ana do e2e",
   email: "ana@teste.com",
   senha: "senha-da-ana-e2e",
+};
+
+// A segunda usuária comum: quem entra depois da primeira, na mesma aba.
+export const OUTRA_USUARIA = {
+  nome: "Bia do e2e",
+  email: "bia@teste.com",
+  senha: "senha-da-bia-e2e",
 };
