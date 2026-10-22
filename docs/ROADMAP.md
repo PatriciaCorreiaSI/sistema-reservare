@@ -479,6 +479,11 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 > plano grátis, com a API servindo o front; logs em JSON com ID de correlação; migration na partida
 > do container, por *expand/contract*; configuração por Blueprint, com deploy só com o CI verde;
 > backup noturno restaurado antes de ser guardado; demonstração semeada e reiniciada na partida.
+>
+> **Feito (2026-10-22):** logs e ID de correlação (ADR 0029). Cada resposta leva um
+> `X-Request-ID`, também no `500`, e cada linha de log sai em JSON com o mesmo `request_id`. Num
+> erro do servidor, a tela mostra esse código. **Falta:** a URL do banco de produção, a semeadura,
+> a imagem com o front e a partida, o primeiro deploy e o backup.
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 

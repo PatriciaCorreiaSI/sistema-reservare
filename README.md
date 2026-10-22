@@ -83,8 +83,8 @@ Por fim, minhas reservas: as próximas em cartões, com o cancelamento confirmad
 | Autenticação e autorização | ✅ concluída — login, refresh com rotação e detecção de reuso, logout que revoga de verdade, cadastro de usuário só para admin ([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md), [ADR 0013](docs/adr/0013-transportar-token-no-cabecalho-authorization.md)) |
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
-| Front-end | ✅ concluída — login, recursos, horários livres, reservar e cancelar, em tema claro e escuro ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0027](docs/adr/0027-estilizar-front-com-tailwind.md)); 14 testes de ponta a ponta (Playwright) no CI |
-| Deploy | 🔨 próxima etapa |
+| Front-end | ✅ concluída — login, recursos, horários livres, reservar e cancelar, em tema claro e escuro ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0027](docs/adr/0027-estilizar-front-com-tailwind.md)); 16 testes de ponta a ponta (Playwright) no CI |
+| Deploy | 🔨 em curso — logs em JSON com ID de correlação: cada resposta leva o código, e a tela o mostra num erro do servidor ([ADR 0029](docs/adr/0029-logs-em-json-com-id-de-correlacao.md)); falta a URL pública |
 
 Nada é listado como pronto antes de estar funcionando.
 
