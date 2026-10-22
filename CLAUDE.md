@@ -89,7 +89,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0031 |
+| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0033 |
 
 Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -105,22 +105,25 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 ## Próximo passo
 
 **Etapa 8 — observabilidade e deploy** (ROADMAP): URL pública com dados de demonstração e
-credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. Fase 1, os
-ADRs antes do código. Decididos: hospedagem (ADR 0028, pesquisa conferida nas páginas oficiais em
-2026-10-22) e logs com ID de correlação (ADR 0029). Próximo ADR: migrations no deploy (antes da
-versão nova, sempre retrocompatíveis); depois, segredos de produção e backup com restauração
-testada.
+credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. **Fase 1
+concluída em 2026-10-22** (ADRs 0028–0033, pesquisa conferida nas páginas oficiais nesse dia).
+Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desenho:
 
-**O que o ADR 0029 deixou para o desenho:** nomes dos campos do JSON, nível de log por variável de
-ambiente, o handler que põe o `X-Request-ID` no `500` (o `asgi-correlation-id` não o põe sozinho),
-o log de acesso do `uvicorn` e como o front mostra o código do erro. Em ADR, alternativa se
-descarta por custo **da opção**, nunca por "exigiria estudar mais" (decidido pela autora em
-2026-10-22).
+- **0029 (logs):** nomes dos campos do JSON; nível de log por variável de ambiente; o handler que
+  põe o `X-Request-ID` no `500` (o `asgi-correlation-id` não o põe sozinho); o log de acesso do
+  `uvicorn`; como o front mostra o código do erro.
+- **0031 (configuração):** onde a `DATABASE_URL` entra no `url_do_ambiente()` e a troca do prefixo
+  `postgresql://` → `postgresql+psycopg`; o `sslmode` (testado contra o Neon); o `render.yaml`.
+- **0028 (front servido pela API):** como o FastAPI serve o `dist/` com o *SPA fallback* sem engolir
+  `/api`, `/health` e `/docs`; o `Dockerfile` passa a construir o front.
+- **0030 e 0033 (partida):** o comando de partida — `alembic upgrade head`, a semeadura, o
+  `uvicorn` —; a imagem leva `migrations/` e `alembic.ini`; a semeadura idempotente, a guarda
+  (`DEMONSTRACAO`), as usuárias e reservas de exemplo.
+- **0032 (backup):** o papel só de leitura no Neon, o horário, a criptografia, o que a conferência
+  confere.
 
-**O que o ADR 0028 deixou para os próximos:** o Render Free não tem *pre-deploy command* (a
-migration vai no comando de partida, antes do `uvicorn`) nem shell (o `criar_admin` e os dados de
-demonstração precisam de outro caminho); o backup do Neon Free é 6 h de histórico + 1 snapshot
-manual, então o backup com restauração testada é nosso.
+Ordem sugerida: o que se prova local e com pytest primeiro (logs, URL do banco, semeadura), depois
+a imagem e a partida, depois o primeiro deploy, por último o backup (precisa do Neon no ar).
 
 ## Front-end: o que o desenho decidiu e o código não conta
 
@@ -521,7 +524,8 @@ motivo novo. Em particular: **não** SQLModel (funde modelo e schema), **não**
   incompleto.
 - **ADRs** em `docs/adr/NNNN-titulo-curto.md`, seguindo
   [`docs/adr/TEMPLATE.md`](docs/adr/TEMPLATE.md). Toda seção importa — inclusive
-  "Alternativas consideradas" e "Como eu saberia que errei".
+  "Alternativas consideradas" e "Como eu saberia que errei". Alternativa se descarta por um custo
+  **da opção**, nunca por "exigiria estudar mais" (decidido em 2026-10-22).
 - **Camadas:** `routers/` conhece HTTP e chama `services/`; `services/` tem a
   regra e chama `repositories/`; `repositories/` conhece o banco. O domínio não
   conhece FastAPI nem SQLAlchemy. Router não contém regra de negócio.

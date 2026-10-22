@@ -473,6 +473,13 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 
 ### 📡 Etapa 8 — Observabilidade e deploy
 
+> **🔨 Em curso.** Decisões tomadas em 2026-10-22, nos ADRs
+> [0028](adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a
+> [0033](adr/0033-semear-demonstracao-na-partida.md): API no Render e banco no Neon, os dois no
+> plano grátis, com a API servindo o front; logs em JSON com ID de correlação; migration na partida
+> do container, por *expand/contract*; configuração por Blueprint, com deploy só com o CI verde;
+> backup noturno restaurado antes de ser guardado; demonstração semeada e reiniciada na partida.
+
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 
 **Conceitos novos**
