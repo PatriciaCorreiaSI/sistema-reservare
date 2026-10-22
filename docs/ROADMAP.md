@@ -517,7 +517,7 @@ Uma pessoa desconhecida entende o que o sistema faz, abre a demonstração e rod
 
 **Idempotência é o primeiro a fazer.** O usuário clica "Reservar", a conexão engasga, ele clica de novo. Sem tratamento: duas reservas. O padrão `Idempotency-Key` — o cliente manda um identificador único, o servidor guarda pedido e resposta, e repetições devolvem o resultado original sem executar nada. É como todo gateway de pagamento funciona, é o assunto de maior retorno em entrevista, e fica barato depois que a Etapa 4 já ensinou o raciocínio.
 
-Depois dele: recursos com N unidades · histórico completo de eventos · testes de propriedade com `hypothesis` · fuzzing de contrato com `schemathesis` · teste de carga · rate limiting · reserva por linguagem natural com LLM (onde o modelo **interpreta** e nunca **decide**).
+Depois dele: recursos com N unidades · histórico completo de eventos · testes de propriedade com `hypothesis` · fuzzing de contrato com `schemathesis` · teste de carga · rate limiting · rastreio com OpenTelemetry (ADR 0029) · reserva por linguagem natural com LLM (onde o modelo **interpreta** e nunca **decide**).
 
 ---
 

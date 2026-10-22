@@ -89,7 +89,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| **8 — observabilidade e deploy** | **em curso** | ADR 0028 |
+| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0029 |
 
 Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -106,10 +106,16 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 
 **Etapa 8 — observabilidade e deploy** (ROADMAP): URL pública com dados de demonstração e
 credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. Fase 1, os
-ADRs antes do código. Hospedagem decidida (ADR 0028, pesquisa conferida nas páginas oficiais em
-2026-10-22). Próximo ADR: como os logs saem (JSON estruturado, sem dado sensível) e como o ID de
-correlação atravessa pedido, log e resposta; depois, migrations no deploy (antes da versão nova,
-sempre retrocompatíveis), segredos de produção e backup com restauração testada.
+ADRs antes do código. Decididos: hospedagem (ADR 0028, pesquisa conferida nas páginas oficiais em
+2026-10-22) e logs com ID de correlação (ADR 0029). Próximo ADR: migrations no deploy (antes da
+versão nova, sempre retrocompatíveis); depois, segredos de produção e backup com restauração
+testada.
+
+**O que o ADR 0029 deixou para o desenho:** nomes dos campos do JSON, nível de log por variável de
+ambiente, o handler que põe o `X-Request-ID` no `500` (o `asgi-correlation-id` não o põe sozinho),
+o log de acesso do `uvicorn` e como o front mostra o código do erro. Em ADR, alternativa se
+descarta por custo **da opção**, nunca por "exigiria estudar mais" (decidido pela autora em
+2026-10-22).
 
 **O que o ADR 0028 deixou para os próximos:** o Render Free não tem *pre-deploy command* (a
 migration vai no comando de partida, antes do `uvicorn`) nem shell (o `criar_admin` e os dados de
@@ -490,6 +496,7 @@ manual, então o backup com restauração testada é nosso.
   erro em `recursos.tsx` e `recurso.tsx` (regra 6 quando reproduzido); nome acessível com contexto
   nos botões repetidos (`sr-only`, como o GOV.UK); *error boundary*; encerrar a reserva mais cedo
   (ADR 0016).
+- **Observabilidade:** OpenTelemetry (`traceparent`), se um dia houver mais de um serviço (ADR 0029).
 - `str_strip_whitespace` para nome só de espaços; `httpx2` no lugar de `httpx`.
 
 > Atualize "Estado atual" e "Próximo passo" ao fechar cada etapa. O README tem a tabela de status
