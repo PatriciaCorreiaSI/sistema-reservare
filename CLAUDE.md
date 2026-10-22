@@ -89,7 +89,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0029 |
+| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0031 |
 
 Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
