@@ -91,7 +91,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0033 |
 
-Suíte do back-end em `127 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
+Suíte do back-end em `127 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
@@ -100,7 +100,7 @@ armadilhas.
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
 db` até `(healthy)`; de `backend/`, `uv run pytest` → `127 passed` (e o aviso do `httpx`, backlog)
 antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
-→ `14 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
+→ `16 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
 ## Próximo passo
 
@@ -109,8 +109,11 @@ credenciais de teste no README; um erro em produção rastreável pelo ID de cor
 concluída em 2026-10-22** (ADRs 0028–0033, pesquisa conferida nas páginas oficiais nesse dia).
 Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desenho:
 
-- **0029 (logs):** back-end pronto (`logging_config.py`, middleware, handler do `500`,
-  `test_logs.py`). Falta o front mostrar o código do erro (o `X-Request-ID` da resposta).
+- **0029 (logs):** pronto. Back-end: `logging_config.py`, middleware, handler do `500`,
+  `test_logs.py`. Front: o `ErroDaApi` guarda o `X-Request-ID` em `codigo`, e o `CodigoDoErro` o
+  mostra só nos 5xx, dentro das oito mensagens de erro do servidor (é um `<span>` em bloco, porque
+  `<p>` dentro de `<p>` não é HTML válido). O e2e monta a resposta com `page.route` + `fulfill`,
+  porque a API não quebra de propósito.
 - **0031 (configuração):** onde a `DATABASE_URL` entra no `url_do_ambiente()` e a troca do prefixo
   `postgresql://` → `postgresql+psycopg`; o `sslmode` (testado contra o Neon); o `render.yaml`.
 - **0028 (front servido pela API):** como o FastAPI serve o `dist/` com o *SPA fallback* sem engolir
@@ -163,7 +166,9 @@ a imagem e a partida, depois o primeiro deploy, por último o backup (precisa do
   item; texto procurado é copiado da tela, nunca redigitado (localizador errado não dá erro: espera
   30 s, e o `waiting for` cita a string). Nenhum `page.goto` no meio quando o cache importa
   (recarregar zera a memória). Para ver um estado que dura milissegundos, **segurar** o pedido
-  (`page.route` sem resposta). Arquivo sem `.spec.ts` no nome é ignorado em silêncio (`npx
+  (`page.route` sem resposta); para um erro que a API não produz de propósito, responder no lugar
+  dela (`rota.fulfill`). Nome de cabeçalho no `fulfill` é string: `X-Request_ID` faz o teste de
+  ausência passar verde pelo motivo errado. Arquivo sem `.spec.ts` no nome é ignorado em silêncio (`npx
   playwright test --list`).
 - **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
   fora do repositório** (`tsc`, ESLint, Prettier, e o e2e quando couber; para instalar pacote, a
