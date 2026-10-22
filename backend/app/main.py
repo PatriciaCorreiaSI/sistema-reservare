@@ -1,3 +1,4 @@
+from asgi_correlation_id import CorrelationIdMiddleware, correlation_id
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -20,6 +21,7 @@ from app.services.excecoes import (
 configurar_logs()
 
 app = FastAPI(title="Reservare")
+app.add_middleware(CorrelationIdMiddleware)
 
 api = APIRouter(prefix="/api")
 api.include_router(recurso.router)
@@ -135,4 +137,13 @@ def traduzir_horario_de_funcionamento_invalido(
     return JSONResponse(
         status_code=422,
         content={"detail": exc.detalhe},
+    )
+
+
+@app.exception_handler(Exception)
+def traduzir_erro_inesperado(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erro interno"},
+        headers={"X-Request-ID": correlation_id.get() or ""},
     )
