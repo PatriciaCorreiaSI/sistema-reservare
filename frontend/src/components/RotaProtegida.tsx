@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { renovarSessao } from "../api/auth";
 import { obterAccessToken } from "../api/sessao";
+import { CodigoDoErro } from "./CodigoDoErro";
 
 // Rota de layout das telas que exigem sessão (ADRs 0023 e 0026). Conveniência, não
 // segurança: quem protege os dados é o 401 da API. Ela só evita desenhar uma tela que
@@ -27,7 +28,10 @@ export function RotaProtegida() {
   }
   if (renovacao.isError) {
     return (
-      <p>Não foi possível falar com o servidor. Tente de novo em instantes.</p>
+      <p>
+        Não foi possível falar com o servidor. Tente de novo em instantes.
+        <CodigoDoErro erro={renovacao.error} />
+      </p>
     );
   }
   if (!renovacao.data) {

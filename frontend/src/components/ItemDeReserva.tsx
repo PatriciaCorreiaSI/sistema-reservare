@@ -9,6 +9,7 @@ import {
   diaNoFuso,
   mesCurto,
 } from "../formato";
+import { CodigoDoErro } from "./CodigoDoErro";
 import type { Aviso } from "./FormularioDeReserva";
 
 type ReservaResposta = components["schemas"]["ReservaResposta"];
@@ -136,6 +137,7 @@ export function ItemDeReserva({
           className="basis-full rounded-xl bg-perigo-suave px-4 py-3 font-semibold text-perigo"
         >
           Não foi possível cancelar agora. Tente de novo.
+          <CodigoDoErro erro={cancelar.error} />
         </p>
       )}
       {/* showModal() prende o foco aqui dentro, fecha com Esc e torna inerte o resto

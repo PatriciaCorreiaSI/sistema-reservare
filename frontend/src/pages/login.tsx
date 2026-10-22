@@ -6,6 +6,7 @@ import { useLogin } from "../api/auth";
 import { ErroDaApi } from "../api/erro";
 import type { components } from "../api/tipos";
 import { Campo } from "../components/Campo";
+import { CodigoDoErro } from "../components/CodigoDoErro";
 import { SeletorDeTema } from "../components/SeletorDeTema";
 
 type LoginEntrada = components["schemas"]["LoginEntrada"];
@@ -113,6 +114,7 @@ export function TelaLogin() {
                 {credenciaisErradas
                   ? "E-mail ou senha incorretos."
                   : "Não foi possível entrar agora. Tente de novo em instantes."}
+                <CodigoDoErro erro={login.error} />
               </p>
             )}
             <button

@@ -14,7 +14,7 @@ export function useCriarReserva() {
         body: reserva,
       });
       if (!data) {
-        throw new ErroDaApi(response.status, "Reserva recusada");
+        throw new ErroDaApi(response, "Reserva recusada");
       }
       return data;
     },
@@ -42,7 +42,7 @@ export function useReservas() {
         params: { query: { limite: 100 } },
       });
       if (!data) {
-        throw new ErroDaApi(response.status, "Listagem de reservas recusada");
+        throw new ErroDaApi(response, "Listagem de reservas recusada");
       }
       return data;
     },
@@ -73,7 +73,7 @@ export function useCancelarReserva({
         { params: { path: { id_reserva: reserva.id_reserva } } },
       );
       if (!data) {
-        throw new ErroDaApi(response.status, "Cancelamento recusado");
+        throw new ErroDaApi(response, "Cancelamento recusado");
       }
       return data;
     },

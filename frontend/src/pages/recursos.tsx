@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { useRecursos } from "../api/recurso";
 import type { components } from "../api/tipos";
+import { CodigoDoErro } from "../components/CodigoDoErro";
 import { horaCurta } from "../formato";
 
 type RecursoResposta = components["schemas"]["RecursoResposta"];
@@ -41,6 +42,7 @@ function ListaDeRecursos() {
       >
         <p className="font-semibold text-perigo">
           Não foi possível carregar os recursos.
+          <CodigoDoErro erro={recursos.error} />
         </p>
         <button
           type="button"

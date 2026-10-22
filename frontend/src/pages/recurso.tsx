@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router";
 import { useRecurso } from "../api/recurso";
 import { ErroDaApi } from "../api/erro";
 import { horaCurta } from "../formato";
+import { CodigoDoErro } from "../components/CodigoDoErro";
 import { Disponibilidade } from "../components/Disponibilidade";
 
 // A URL é entrada: chega como texto, ou nem chega. Só um inteiro positivo vira id;
@@ -70,6 +71,7 @@ function DetalheDoRecurso({ idRecurso }: { idRecurso: number }) {
       >
         <p className="font-semibold text-perigo">
           Não foi possível carregar o recurso.
+          <CodigoDoErro erro={recurso.error} />
         </p>
         <button
           type="button"

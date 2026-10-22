@@ -7,6 +7,7 @@ import {
   ItemDeReserva,
   type AvisoDeCancelamento,
 } from "../components/ItemDeReserva";
+import { CodigoDoErro } from "../components/CodigoDoErro";
 import { LinhaDeReserva } from "../components/LinhaDeReserva";
 
 type ReservaResposta = components["schemas"]["ReservaResposta"];
@@ -83,6 +84,7 @@ function ListaDeReservas({
       >
         <p className="font-semibold text-perigo">
           Não foi possível carregar as reservas.
+          <CodigoDoErro erro={reservas.error ?? recursos.error} />
         </p>
         <button
           type="button"

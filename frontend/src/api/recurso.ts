@@ -11,7 +11,7 @@ export function useRecursos() {
         params: { query: { limite: 100 } },
       });
       if (!data) {
-        throw new Error(`Listagem recusada: ${response.status}`);
+        throw new ErroDaApi(response, "Listagem recusada");
       }
       return data;
     },
@@ -36,7 +36,7 @@ export function useRecurso(idRecurso: number) {
         { params: { path: { id_recurso: idRecurso } } },
       );
       if (!data) {
-        throw new ErroDaApi(response.status, "Recurso recusado");
+        throw new ErroDaApi(response, "Recurso recusado");
       }
       return data;
     },
@@ -54,7 +54,7 @@ export function useDisponibilidade(idRecurso: number, dia: string) {
         { params: { path: { id_recurso: idRecurso }, query: { dia } } },
       );
       if (!data) {
-        throw new ErroDaApi(response.status, "Disponibilidade recusada");
+        throw new ErroDaApi(response, "Disponibilidade recusada");
       }
       return data;
     },

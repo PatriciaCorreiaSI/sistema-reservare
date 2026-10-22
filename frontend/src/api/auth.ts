@@ -20,7 +20,7 @@ export function useLogin() {
         body: credenciais,
       });
       if (!data) {
-        throw new ErroDaApi(response.status, "Login recusado");
+        throw new ErroDaApi(response, "Login recusado");
       }
       return data;
     },
@@ -44,7 +44,7 @@ export function useLogout() {
     mutationFn: async () => {
       const { response } = await cliente.POST("/api/auth/logout");
       if (!response.ok) {
-        throw new ErroDaApi(response.status, "Logout recusado");
+        throw new ErroDaApi(response, "Logout recusado");
       }
     },
     onSettled: () => {
@@ -68,7 +68,7 @@ export function renovarSessao(): Promise<boolean> {
         return false;
       }
       if (!data) {
-        throw new Error(`Renovação recusada: ${response.status}`);
+        throw new ErroDaApi(response, "Renovação recusada");
       }
       guardarAccessToken(data.access_token);
       return true;

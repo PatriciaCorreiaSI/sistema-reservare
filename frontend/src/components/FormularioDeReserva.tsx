@@ -5,6 +5,7 @@ import type { components } from "../api/tipos";
 import { horaNoFuso } from "../formato";
 import { finsPossiveis, iniciosPossiveis } from "../grade";
 import { Campo } from "./Campo";
+import { CodigoDoErro } from "./CodigoDoErro";
 
 type Lacuna = components["schemas"]["Lacuna"];
 
@@ -140,6 +141,7 @@ export function FormularioDeReserva({
         >
           A reserva foi recusada. O horário pode ter passado enquanto a tela
           estava aberta: escolha outro.
+          <CodigoDoErro erro={criar.error} />
         </p>
       )}
       <div className="flex flex-wrap justify-end gap-2">

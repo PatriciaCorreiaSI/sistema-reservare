@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { ErroDaApi } from "../api/erro";
 import { useDisponibilidade } from "../api/recurso";
+import { CodigoDoErro } from "./CodigoDoErro";
 import {
   diaDaSemanaCurto,
   diaNoFuso,
@@ -227,6 +228,7 @@ function Lacunas({
       >
         <p className="font-semibold text-perigo">
           Não foi possível carregar os horários.
+          <CodigoDoErro erro={erro} />
         </p>
         <button
           type="button"
