@@ -89,7 +89,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| **8 — observabilidade e deploy** | **próxima** | — |
+| **8 — observabilidade e deploy** | **em curso** | ADR 0028 |
 
 Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -105,17 +105,16 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 ## Próximo passo
 
 **Etapa 8 — observabilidade e deploy** (ROADMAP): URL pública com dados de demonstração e
-credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. Começa pela
-fase 1, os ADRs antes do código: onde hospedar, como os logs saem (JSON estruturado, sem dado
-sensível) e como o ID de correlação atravessa pedido, log e resposta; depois, migrations no deploy
-(antes da versão nova, sempre retrocompatíveis), segredos de produção e backup com restauração
-testada.
+credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. Fase 1, os
+ADRs antes do código. Hospedagem decidida (ADR 0028, pesquisa conferida nas páginas oficiais em
+2026-10-22). Próximo ADR: como os logs saem (JSON estruturado, sem dado sensível) e como o ID de
+correlação atravessa pedido, log e resposta; depois, migrations no deploy (antes da versão nova,
+sempre retrocompatíveis), segredos de produção e backup com restauração testada.
 
-**Hospedagem (pesquisa de 2026-10-21, a conferir nas páginas oficiais):** o Fly.io não tem mais
-plano grátis para conta nova (o ROADMAP ainda o cita: motivo novo para reabrir); o Postgres grátis
-do Render expira em 30 dias. Custo zero = API no Render (dorme após 15 min sem acesso) + banco no
-Neon Free (permanente) — **confirmar o `btree_gist` no Neon antes de tudo**. O cookie de refresh
-pede front e API no mesmo site: provavelmente a API servindo o front.
+**O que o ADR 0028 deixou para os próximos:** o Render Free não tem *pre-deploy command* (a
+migration vai no comando de partida, antes do `uvicorn`) nem shell (o `criar_admin` e os dados de
+demonstração precisam de outro caminho); o backup do Neon Free é 6 h de histórico + 1 snapshot
+manual, então o backup com restauração testada é nosso.
 
 ## Front-end: o que o desenho decidiu e o código não conta
 

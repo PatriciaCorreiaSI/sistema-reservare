@@ -481,7 +481,7 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 - **ID de correlação:** um identificador que atravessa requisição, log e resposta
 - `Dockerfile` simples e imagem enxuta
 - Migrations no deploy: rodar antes de subir a versão nova; toda migration retrocompatível
-- Deploy em Fly.io ou Render, com Postgres gerenciado
+- Deploy com Postgres gerenciado: API no Render e banco no Neon, os dois no plano grátis, com a API servindo o front (ADR 0028; o Fly.io saiu por não ter mais plano grátis para conta nova)
 - Segredos em produção, jamais no repositório
 - Backup e **restauração testada**, não só backup
 
