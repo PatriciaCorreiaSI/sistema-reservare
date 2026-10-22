@@ -145,3 +145,11 @@
 |👮‍♂️**Guarda de rota é conveniência, não segurança:** |  A tela protegida só evita mostrar algo vazio. Quem protege o dado é o `401` da API. Vale também para a validação no cliente: ela poupa uma ida à API, mas a garantia é do servidor. |
 |✍️ **Opcional × anulável:** | O "campo pode faltar" e o "campo pode ser `null`" são promessas diferentes. Num `PATCH`, ausente quer dizer "não mexer", e `null` quer dizer "apagar o valor", que coluna `NOT NULL` não aceita. |
 |📃 **Final de linha (LF × CRLF) e `.gitattributes`:** | O mesmo arquivo pode ter finais de linha diferentes no repositório e no disco. O `.gitattributes` fixa a regra no repositório, para valer em qualquer máquina. |
+
+
+### 📡 Etapa 8 — Observabilidade e deploy
+
+| **Conceitos** | **Novo aprendizado** |
+|---------------|----------------------|
+|🌾 **Semeadura (seed):** | Comando que põe dados iniciais no banco. Uma migration descreve a forma do banco; a semeadura, o conteúdo. |
+|🛑 **Idempotência:** | Uma operação é idempotente quando aplicá-la várias vezes deixa o sistema no mesmo estado que aplicá-la uma vez só: a segunda vez não duplica nem desfaz nada. A resposta pode mudar (um `DELETE` repetido responde `404`), mas o efeito, não. É o que permite repetir com segurança algo que pode rodar de novo, como uma semeadura a cada partida do container ou um pedido reenviado depois de uma falaha de rede. |
