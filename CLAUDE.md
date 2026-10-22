@@ -91,14 +91,14 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0033 |
 
-Suíte do back-end em `122 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
+Suíte do back-end em `127 passed`; e2e em `14 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
 
 **Início de sessão:** Docker Desktop aberto e **não pausado** (pausado, o `docker compose ps`
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
-db` até `(healthy)`; de `backend/`, `uv run pytest` → `122 passed` (e o aviso do `httpx`, backlog)
+db` até `(healthy)`; de `backend/`, `uv run pytest` → `127 passed` (e o aviso do `httpx`, backlog)
 antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
 → `14 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
@@ -109,9 +109,8 @@ credenciais de teste no README; um erro em produção rastreável pelo ID de cor
 concluída em 2026-10-22** (ADRs 0028–0033, pesquisa conferida nas páginas oficiais nesse dia).
 Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desenho:
 
-- **0029 (logs):** nomes dos campos do JSON; nível de log por variável de ambiente; o handler que
-  põe o `X-Request-ID` no `500` (o `asgi-correlation-id` não o põe sozinho); o log de acesso do
-  `uvicorn`; como o front mostra o código do erro.
+- **0029 (logs):** back-end pronto (`logging_config.py`, middleware, handler do `500`,
+  `test_logs.py`). Falta o front mostrar o código do erro (o `X-Request-ID` da resposta).
 - **0031 (configuração):** onde a `DATABASE_URL` entra no `url_do_ambiente()` e a troca do prefixo
   `postgresql://` → `postgresql+psycopg`; o `sslmode` (testado contra o Neon); o `render.yaml`.
 - **0028 (front servido pela API):** como o FastAPI serve o `dist/` com o *SPA fallback* sem engolir
@@ -440,7 +439,18 @@ a imagem e a partida, depois o primeiro deploy, por último o backup (precisa do
   (rota sem `401` e com `422`). No `/docs`, rota protegida tem cadeado e GET não tem
   `requestBody`. `prefix` do `APIRouter` se soma à rota.
 - **Exceção de domínio sem handler:** o `TestClient` **relança** a exceção no teste (aparece o
-  nome em vez de um número); em produção seria `500`.
+  nome em vez de um número); em produção seria `500`. Para ver o `500` de propósito:
+  `TestClient(..., raise_server_exceptions=False)` (a `client_sem_relancar` do `test_logs.py`).
+- **O Alembic reconfigura o log do processo:** o `fileConfig` do `migrations/env.py` troca os
+  handlers da raiz pelos do `alembic.ini`. Em produção não importa (a migration é outro processo,
+  ADR 0030); no pytest, o `conftest.py` migra no mesmo processo e apaga o handler JSON — teste de
+  log chama `configurar_logs()` antes (ela limpa e repõe; chamar de novo não duplica).
+- **`**kwargs` esconde nome errado:** `JsonFormatter(reservrd_attrs=...)` passa no `mypy` e só
+  falha ao importar. Mesma cura: `uv run python -c "import app.main"`.
+- **Log:** nunca `logging.py` como nome de módulo; campos do JSON em inglês (`level` é o que o
+  Render lê); o handler do `500` não loga — o `ServerErrorMiddleware` relança e o `uvicorn`
+  registra o traceback com o `request_id`. `contextvar` mudada em teste volta com `reset(token)`.
+- **`env:` do GitHub Actions não expande `$VAR`** (o Compose expande): no CI, o valor vai escrito.
 - **Schema copiado para um segundo módulo** vira **outro tipo** (tipagem nominal). Um schema mora
   num módulo só.
 - **O Pydantic ignora chave desconhecida em silêncio:** `PATCH` com nome de campo errado responde
