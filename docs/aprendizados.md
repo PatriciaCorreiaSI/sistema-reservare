@@ -152,4 +152,4 @@
 | **Conceitos** | **Novo aprendizado** |
 |---------------|----------------------|
 |🌾 **Semeadura (seed):** | Comando que põe dados iniciais no banco. Uma migration descreve a forma do banco; a semeadura, o conteúdo. |
-|🛑 **Idempotência:** | Uma operação é idempotente quando aplicá-la várias vezes deixa o sistema no mesmo estado que aplicá-la uma vez só: a segunda vez não duplica nem desfaz nada. A resposta pode mudar (um `DELETE` repetido responde `404`), mas o efeito, não. É o que permite repetir com segurança algo que pode rodar de novo, como uma semeadura a cada partida do container ou um pedido reenviado depois de uma falaha de rede. |
+|🛑 **Idempotência:** | Uma operação é idempotente quando aplicá-la várias vezes deixa o sistema no mesmo estado que aplicá-la uma vez só: a segunda vez não duplica nem desfaz nada. A resposta pode mudar (um `DELETE` repetido responde `404`), mas o efeito, não. É o que permite repetir com segurança algo que pode rodar de novo, como uma semeadura a cada partida do container ou um pedido reenviado depois de uma fallha de rede. |
