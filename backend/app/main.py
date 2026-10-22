@@ -1,6 +1,7 @@
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.logging_config import configurar_logs
 from app.routers import auth, health, recurso, reserva, usuario
 from app.services.excecoes import (
     CredenciaisInvalidas,
@@ -15,6 +16,8 @@ from app.services.excecoes import (
     ReservaNaoCancelavel,
     ReservaNaoEncontrada,
 )
+
+configurar_logs()
 
 app = FastAPI(title="Reservare")
 

@@ -28,6 +28,7 @@ jobs:
       POSTGRES_PASSWORD: postgres-password-test
       POSTGRES_DB: reservare_test
       DB_HOST: 127.0.0.1
+      LOG_NIVEL: INFO
       JWT_SEGREDO: segredo-do-ci-de-32-bytes-testes
       FUSO_FUNCIONAMENTO: America/Sao_Paulo
 
@@ -130,6 +131,7 @@ jobs:
     env:
       POSTGRES_USER: postgres-user-test
       POSTGRES_PASSWORD: postgres-password-test
+      LOG_NIVEL: INFO
       JWT_SEGREDO: segredo-do-ci-de-32-bytes-testes
 
     defaults:

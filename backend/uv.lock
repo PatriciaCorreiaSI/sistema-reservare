@@ -105,6 +105,18 @@ wheels = [
 ]
 
 [[package]]
+name = "asgi-correlation-id"
+version = "5.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2a/25/df29145ef02ca69548e82b50ed15ac5c438ab5caf7b8e717d2b1258f5bea/asgi_correlation_id-5.0.1.tar.gz", hash = "sha256:ad54374a300f000b8bef3b39738768842394de0a3c528a6f77ef3ca053eb89a1", size = 10642, upload-time = "2026-06-09T15:09:49.112Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/fe/3f5a304ddc2b625a6a2fda913b29bc4675c434016557592791cf1aa39a60/asgi_correlation_id-5.0.1-py3-none-any.whl", hash = "sha256:dfea97c1fc41e8eadc3e518a311427cba6e7e79d9ddb6a6c7ea8879f2408d91d", size = 12026, upload-time = "2026-06-09T15:09:48.155Z" },
+]
+
+[[package]]
 name = "ast-serialize"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -899,6 +911,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-json-logger"
+version = "4.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/25/5473e46b179f8e8b4ad3aeeb36773d1701b7770eaf5e5bc2025c7303b598/python_json_logger-4.2.0.tar.gz", hash = "sha256:e371ebe22ec01e289850102091a2b1f6fc9e655c7f1f5f29073936756c290afa", size = 18211, upload-time = "2026-08-15T11:36:38.232Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/55/6467fde553886cb293e41538f3a8b4e4fd4688c6df242cf982162d8367fb/python_json_logger-4.2.0-py3-none-any.whl", hash = "sha256:158a52126fcd6869e09574d2b66272666f3dc8f468c62637ef9a1fa883719cb9", size = 14988, upload-time = "2026-08-15T11:36:36.821Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -955,12 +976,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
+    { name = "asgi-correlation-id" },
     { name = "email-validator" },
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pwdlib", extra = ["argon2"] },
     { name = "pyjwt" },
     { name = "python-dotenv" },
+    { name = "python-json-logger" },
     { name = "sqlalchemy" },
     { name = "tzdata" },
     { name = "uvicorn" },
@@ -979,12 +1002,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.19.2" },
+    { name = "asgi-correlation-id", specifier = ">=5.0.1" },
     { name = "email-validator", specifier = ">=2.3.0" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.5" },
     { name = "pwdlib", extras = ["argon2"], specifier = ">=0.3.1" },
     { name = "pyjwt", specifier = ">=2.14.0" },
     { name = "python-dotenv", specifier = ">=1.2.3" },
+    { name = "python-json-logger", specifier = ">=4.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
     { name = "tzdata", specifier = ">=2026.3" },
     { name = "uvicorn", specifier = ">=0.52.4" },
