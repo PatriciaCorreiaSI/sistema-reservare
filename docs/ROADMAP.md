@@ -482,8 +482,16 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 >
 > **Feito (2026-10-22):** logs e ID de correlação (ADR 0029). Cada resposta leva um
 > `X-Request-ID`, também no `500`, e cada linha de log sai em JSON com o mesmo `request_id`. Num
-> erro do servidor, a tela mostra esse código. **Falta:** a URL do banco de produção, a semeadura,
-> a imagem com o front e a partida, o primeiro deploy e o backup.
+> erro do servidor, a tela mostra esse código.
+>
+> **Feito (2026-10-23):** a URL do banco de produção (ADR 0031): uma `DATABASE_URL` pronta é aceita
+> com o driver trocado para o `psycopg` 3; sem ela, desenvolvimento e CI continuam derivando a URL.
+> A semeadura da demonstração (ADR 0033): um comando idempotente, ligado só por `DEMONSTRACAO=1`,
+> que cria o admin, duas contas, três recursos e seis reservas nos três estados (confirmada,
+> concluída, cancelada), e a cada execução apaga só as reservas das contas de demonstração.
+>
+> **Falta:** a imagem com o front e a partida que chama a migration e a semeadura (ADRs 0028 e
+> 0030), o primeiro deploy (com o `sslmode` testado contra o Neon e o `render.yaml`) e o backup.
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 

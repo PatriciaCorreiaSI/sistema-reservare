@@ -91,14 +91,14 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0033 |
 
-Suíte do back-end em `127 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
+Suíte do back-end em `144 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
 
 **Início de sessão:** Docker Desktop aberto e **não pausado** (pausado, o `docker compose ps`
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
-db` até `(healthy)`; de `backend/`, `uv run pytest` → `127 passed` (e o aviso do `httpx`, backlog)
+db` até `(healthy)`; de `backend/`, `uv run pytest` → `144 passed` (e o aviso do `httpx`, backlog)
 antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
 → `16 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
@@ -114,18 +114,28 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
   mostra só nos 5xx, dentro das oito mensagens de erro do servidor (é um `<span>` em bloco, porque
   `<p>` dentro de `<p>` não é HTML válido). O e2e monta a resposta com `page.route` + `fulfill`,
   porque a API não quebra de propósito.
-- **0031 (configuração):** onde a `DATABASE_URL` entra no `url_do_ambiente()` e a troca do prefixo
-  `postgresql://` → `postgresql+psycopg`; o `sslmode` (testado contra o Neon); o `render.yaml`.
+- **0031 (configuração):** a `DATABASE_URL` está pronta (`make_url` + `.set(drivername=...)`;
+  vazia conta como ausente, `test_db.py`). Falta o `sslmode`, no primeiro deploy, contra o Neon
+  (`require` só cifra; `verify-full` também confere o certificado), e o `render.yaml`.
 - **0028 (front servido pela API):** como o FastAPI serve o `dist/` com o *SPA fallback* sem engolir
   `/api`, `/health` e `/docs`; o `Dockerfile` passa a construir o front.
-- **0030 e 0033 (partida):** o comando de partida — `alembic upgrade head`, a semeadura, o
-  `uvicorn` —; a imagem leva `migrations/` e `alembic.ini`; a semeadura idempotente, a guarda
-  (`DEMONSTRACAO`), as usuárias e reservas de exemplo.
+- **0033 (semeadura):** pronto (`app/comandos/semear_demonstracao.py`). Desenho que o código não
+  conta: a guarda liga só com `"1"` exato (comando destrutivo; `"false"` é string verdadeira); "cria
+  o que faltar" **pergunta antes** (tentar e pegar o `IntegrityError` abortaria a transação); o
+  `DELETE` só alcança a lista fixa de e-mails; todas as reservas passam pelo `ReservaService` — o
+  histórico (concluída e cancelada) com o relógio de três dias atrás, porque reserva de exemplo
+  que a regra recusaria é demonstração que mente; horários e funcionamento realistas (8h–18h),
+  decisão da autora; domínio `.example` (RFC 2606). Se o admin reservar em produção um horário de
+  exemplo, a partida para com `HorarioOcupado` (falhar alto, de propósito).
+- **0030 (partida):** o comando de partida — `alembic upgrade head`, `python -m
+  app.comandos.semear_demonstracao`, o `uvicorn` —; a imagem leva `migrations/` e `alembic.ini`.
+  A semeadura desligada sai com `0` para a partida seguir.
 - **0032 (backup):** o papel só de leitura no Neon, o horário, a criptografia, o que a conferência
   confere.
 
-Ordem sugerida: o que se prova local e com pytest primeiro (logs, URL do banco, semeadura), depois
-a imagem e a partida, depois o primeiro deploy, por último o backup (precisa do Neon no ar).
+Feito o que se prova local e com pytest (logs, URL do banco, semeadura, até 2026-10-23). Agora a
+imagem e a partida (0028 e 0030), depois o primeiro deploy (com o `sslmode` e o `render.yaml`), por
+último o backup (precisa do Neon no ar).
 
 ## Front-end: o que o desenho decidiu e o código não conta
 
@@ -399,7 +409,12 @@ a imagem e a partida, depois o primeiro deploy, por último o backup (precisa do
 - **O contra-teste:** depois de verde, estragar a **regra** (no service), não a preparação, de um
   jeito **plausível** (`>` → `>=`, id errado mas existente) e ver falhar com o número certo.
   `git add` antes, para o `git restore` voltar à versão certa; desfazer com `git restore`, nunca à
-  mão. Teste que copia outro herda o motivo dele.
+  mão. Teste que copia outro herda o motivo dele. **Um estrago por vez:** `git diff` antes de cada
+  contra-teste mostra só o dele — um estrago esquecido faz o seguinte derrubar "um teste a mais".
+  Teste a peça **e** quem a usa: testar `demonstracao_ligada()` não prova que o `main` a chama.
+- **Variável de ambiente no teste:** `monkeypatch.setenv`/`delenv(..., raising=False)`; ele
+  restaura o valor anterior no fim (não apaga). Teste sem `assert` vale: exceção que escapa é
+  `FAILED` (o do `main` apaga as `ADMIN_*` e só chama; sem a guarda, `KeyError` antes da sessão).
 - **Teste pela API:** o teste é o cliente — manda **dicionário** em `json=` (instantes ISO 8601
   com fuso, `None` para `null`) e lê `resposta.json()`. Parâmetro de URL vai em `params=`. No
   `POST`, o corpo de referência é o do teste do `201` (copiar de um teste de erro traz o defeito
@@ -436,7 +451,11 @@ a imagem e a partida, depois o primeiro deploy, por último o backup (precisa do
   chamada sem guardar o retorno, `consulta.where(...)` sem reatribuir (o `select` é imutável),
   comparação guardada numa variável em vez de `assert` (o `F841` é o defeito).
 - **Classe × objeto:** `Classe.campo` dentro de `where` pergunta ao banco; num `if`, comparar o
-  campo da classe é sempre falso.
+  campo da classe é sempre falso. `Coluna == lista` não é `IN` (é `.in_(...)`); `scalar` devolve um
+  valor, `scalars(...).all()` a lista; função sem `()` é a própria função (`url.drivername` →
+  `AttributeError`). Nenhum dos três o `mypy` pega.
+- **`return 0` não é código de saída:** o Python sai com `0` ao terminar, `1` com exceção não
+  pegada, `n` com `sys.exit(n)`.
 - **`mypy` e o SQLAlchemy:** `IntegrityError.orig` é `BaseException | None` (`.diag` só depois de
   `isinstance(erro.orig, psycopg.Error)`); o `rowcount` só existe no `CursorResult`. Função sem
   anotação não é conferida: o verde do `mypy` não prova nada nela.
