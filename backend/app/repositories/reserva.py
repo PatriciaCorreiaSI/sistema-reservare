@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 import psycopg
-from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -66,6 +66,14 @@ class ReservaRepository:
         resultado = self._sessao.execute(comando)
         assert isinstance(resultado, CursorResult)
         return resultado.rowcount == 1
+
+    def apagar_dos_usuarios(self, ids_usuario: Sequence[int]) -> None:
+        """DELETE físico (não é o cancelar do ADR 0016) de toda reserva
+        cujo id_usuario está em ids_usuario. Só a semeadura chama."""
+        comando = delete(Reserva).where(
+            Reserva.id_usuario.in_(ids_usuario),
+        )
+        self._sessao.execute(comando)
 
     def listar_ativas_na_janela(
         self,

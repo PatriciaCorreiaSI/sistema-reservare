@@ -14,6 +14,16 @@ class RecursoRepository:
         consulta = select(Recurso).where(Recurso.id_recurso == id_recurso)
         return self._sessao.scalar(consulta)
 
+    def buscar_por_nome(self, nome_recurso: str) -> Recurso | None:
+        """O de menor id_recurso com esse nome, ou None. Sem UNIQUE no nome:
+        o order_by é o desempate decidido no desenho da semeadura."""
+        consulta = (
+            select(Recurso)
+            .where(Recurso.nome_recurso == nome_recurso)
+            .order_by(Recurso.id_recurso)
+        )
+        return self._sessao.scalar(consulta)
+
     def listar(self, limite: int, deslocamento: int) -> Sequence[Recurso]:
         consulta = (
             select(Recurso)
