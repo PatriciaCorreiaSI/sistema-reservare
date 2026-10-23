@@ -1,11 +1,15 @@
 import os
 from collections.abc import Iterator
 
-from sqlalchemy import URL, create_engine
+from sqlalchemy import URL, create_engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 
 def url_do_ambiente() -> URL:
+    pronta = os.environ.get("DATABASE_URL")
+    if pronta:
+        return make_url(pronta).set(drivername="postgresql+psycopg")
+
     POSTGRES_USER = os.environ["POSTGRES_USER"]
     POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
     POSTGRES_DB = os.environ["POSTGRES_DB"]
