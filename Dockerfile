@@ -16,8 +16,11 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked
 
 COPY backend/app ./app
+COPY backend/migrations ./migrations
+COPY backend/alembic.ini ./
 COPY --from=front /front/dist ./dist
 ENV PASTA_DO_FRONT=/app/dist
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.comandos.semear_demonstracao && exec uvicorn app.main:app --host 0.0.0.0 --port 8000" ]
