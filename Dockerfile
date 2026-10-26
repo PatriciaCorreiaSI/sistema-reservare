@@ -13,7 +13,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.8 /uv /bin/
 WORKDIR /app
 
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv sync --locked
+RUN uv sync --locked --no-dev
 
 COPY backend/app ./app
 COPY backend/migrations ./migrations
