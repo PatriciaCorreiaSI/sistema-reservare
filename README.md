@@ -84,7 +84,7 @@ Por fim, minhas reservas: as próximas em cartões, com o cancelamento confirmad
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
 | Front-end | ✅ concluída — login, recursos, horários livres, reservar e cancelar, em tema claro e escuro ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0027](docs/adr/0027-estilizar-front-com-tailwind.md)); 16 testes de ponta a ponta (Playwright) no CI |
-| Deploy | 🔨 em curso — logs em JSON com ID de correlação: cada resposta leva o código, e a tela o mostra num erro do servidor ([ADR 0029](docs/adr/0029-logs-em-json-com-id-de-correlacao.md)); a API aceita a URL pronta do banco de produção ([ADR 0031](docs/adr/0031-configurar-producao-por-blueprint.md)); o comando que semeia a demonstração está escrito e testado, ainda fora da partida ([ADR 0033](docs/adr/0033-semear-demonstracao-na-partida.md)); falta a URL pública |
+| Deploy | 🔨 em curso — logs em JSON com ID de correlação: cada resposta leva o código, e a tela o mostra num erro do servidor ([ADR 0029](docs/adr/0029-logs-em-json-com-id-de-correlacao.md)); a API aceita a URL pronta do banco de produção ([ADR 0031](docs/adr/0031-configurar-producao-por-blueprint.md)); uma imagem só serve a API e as telas, e a cada partida migra o banco e semeia a demonstração antes de atender ([ADR 0028](docs/adr/0028-hospedar-api-no-render-e-banco-no-neon.md), [0030](docs/adr/0030-migrar-na-partida-do-container.md), [0033](docs/adr/0033-semear-demonstracao-na-partida.md), [0034](docs/adr/0034-construir-imagem-da-raiz-do-repositorio.md)); falta a URL pública |
 
 Nada é listado como pronto antes de estar funcionando.
 
@@ -118,6 +118,14 @@ uv run uvicorn app.main:app --reload
 ```
 
 A API sobe em `http://127.0.0.1:8000` — `/health` responde `200`, e `/docs` traz a documentação interativa. O `.env` é obrigatório: a URL do banco é montada a partir dele na importação, sem valor padrão — a ausência de uma chave falha alto, de propósito.
+
+Para ver o sistema como ele vai para produção — a mesma imagem serve a API e as telas, e migra o banco ao subir:
+
+```bash
+docker compose up -d --build    # constrói o front e a API numa imagem só
+```
+
+As telas abrem em `http://localhost:8000` (`localhost`, não `127.0.0.1`: o cookie da sessão é `Secure`, e só `localhost` conta como contexto seguro em `http://`). Para entrar, o banco precisa de um admin: `uv run python -m app.comandos.criar_admin`, de `backend/`.
 
 ### Testes
 

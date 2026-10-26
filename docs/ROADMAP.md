@@ -479,6 +479,8 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 > plano grátis, com a API servindo o front; logs em JSON com ID de correlação; migration na partida
 > do container, por *expand/contract*; configuração por Blueprint, com deploy só com o CI verde;
 > backup noturno restaurado antes de ser guardado; demonstração semeada e reiniciada na partida.
+> Em 2026-10-26, o [ADR 0034](adr/0034-construir-imagem-da-raiz-do-repositorio.md): a imagem passa a
+> ser construída da raiz do repositório, com front e API num `Dockerfile` só (substitui o 0006).
 >
 > **Feito (2026-10-22):** logs e ID de correlação (ADR 0029). Cada resposta leva um
 > `X-Request-ID`, também no `500`, e cada linha de log sai em JSON com o mesmo `request_id`. Num
@@ -490,8 +492,14 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 > que cria o admin, duas contas, três recursos e seis reservas nos três estados (confirmada,
 > concluída, cancelada), e a cada execução apaga só as reservas das contas de demonstração.
 >
-> **Falta:** a imagem com o front e a partida que chama a migration e a semeadura (ADRs 0028 e
-> 0030), o primeiro deploy (com o `sslmode` testado contra o Neon e o `render.yaml`) e o backup.
+> **Feito (2026-10-26):** a imagem e a partida (ADRs 0028, 0030 e 0034). O `Dockerfile` constrói o
+> front numa etapa com Node e leva só o `dist/` para a imagem que roda; a API o serve pelo
+> `app.frontend()` do FastAPI, que devolve o `index.html` à navegação e `404` ao resto. A partida
+> migra, semeia e só então sobe o `uvicorn`, como processo principal, para encerrar com calma
+> quando o Render o parar. A imagem leva só as dependências de produção (de 472 MB para 329 MB).
+>
+> **Falta:** o primeiro deploy (com o `render.yaml`, a porta que o Render espera e o `sslmode`
+> testado contra o Neon) e o backup.
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 

@@ -89,7 +89,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0033 |
+| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0034 |
 
 Suíte do back-end em `144 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -117,8 +117,14 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
 - **0031 (configuração):** a `DATABASE_URL` está pronta (`make_url` + `.set(drivername=...)`;
   vazia conta como ausente, `test_db.py`). Falta o `sslmode`, no primeiro deploy, contra o Neon
   (`require` só cifra; `verify-full` também confere o certificado), e o `render.yaml`.
-- **0028 (front servido pela API):** como o FastAPI serve o `dist/` com o *SPA fallback* sem engolir
-  `/api`, `/health` e `/docs`; o `Dockerfile` passa a construir o front.
+- **0028 e 0034 (front servido pela API):** pronto (2026-10-26). `app.frontend()` nativo do
+  FastAPI, não subclasse do `StaticFiles`: decide pelo `Accept` (navegação recebe o `index.html`;
+  `fetch`, `<script>` e asset sumido recebem `404` em JSON), sem lista de prefixos para manter. Só
+  monta com `PASTA_DO_FRONT` (vazia = ausente), com `check_dir=True`; **não** o `FASTAPI_ENV`, que
+  sem o `dist/` faz toda rota inexistente virar `500`. O pytest não vê o front (o `app` monta na
+  importação, sem a variável); a prova é a imagem. `Dockerfile` e `.dockerignore` na raiz (ADR 0034
+  substitui o 0006), em duas etapas; o `.dockerignore` protege (`.env`, `node_modules` e `.venv`
+  do Windows).
 - **0033 (semeadura):** pronto (`app/comandos/semear_demonstracao.py`). Desenho que o código não
   conta: a guarda liga só com `"1"` exato (comando destrutivo; `"false"` é string verdadeira); "cria
   o que faltar" **pergunta antes** (tentar e pegar o `IntegrityError` abortaria a transação); o
@@ -127,15 +133,19 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
   que a regra recusaria é demonstração que mente; horários e funcionamento realistas (8h–18h),
   decisão da autora; domínio `.example` (RFC 2606). Se o admin reservar em produção um horário de
   exemplo, a partida para com `HorarioOcupado` (falhar alto, de propósito).
-- **0030 (partida):** o comando de partida — `alembic upgrade head`, `python -m
-  app.comandos.semear_demonstracao`, o `uvicorn` —; a imagem leva `migrations/` e `alembic.ini`.
-  A semeadura desligada sai com `0` para a partida seguir.
+- **0030 (partida):** pronto (2026-10-26). `CMD ["sh", "-c", "... && ... && exec uvicorn ..."]`
+  com o `.venv` no `PATH`, sem `uv run`: o `exec` faz o `uvicorn` ser o PID 1 e receber o `SIGTERM`
+  do Render (sem `exec`, saída `137`; com `exec uv run`, `143`; assim, `0`). Linha no `CMD`, não
+  `partida.sh`: o VS Code cria o arquivo em CRLF, e o `docker build` copia do disco, antes do
+  `.gitattributes` agir. Imagem com `uv sync --locked --no-dev` (472 → 329 MB). O `docker compose
+  up` migra o banco de desenvolvimento.
 - **0032 (backup):** o papel só de leitura no Neon, o horário, a criptografia, o que a conferência
   confere.
 
-Feito o que se prova local e com pytest (logs, URL do banco, semeadura, até 2026-10-23). Agora a
-imagem e a partida (0028 e 0030), depois o primeiro deploy (com o `sslmode` e o `render.yaml`), por
-último o backup (precisa do Neon no ar).
+Feito tudo o que se prova localmente (até 2026-10-26: logs, URL do banco, semeadura, imagem e
+partida). Agora o **primeiro deploy**: contas no Render e no Neon (da autora), o `render.yaml`
+(contexto na raiz, ADR 0034), a porta que o Render espera e o `sslmode` contra o Neon. Por último o
+backup (precisa do Neon no ar).
 
 ## Front-end: o que o desenho decidiu e o código não conta
 
@@ -202,7 +212,8 @@ imagem e a partida (0028 e 0030), depois o primeiro deploy (com o `sslmode` e o 
 - **`load_dotenv` mora em `app/__init__.py`**; toda chave obrigatória é `os.environ[...]`, e o app
   falha no startup se faltar. `alembic.ini` tem `sqlalchemy.url` **comentada de propósito**. Toda
   variável nova também entra no `environment:` do `api` no `docker-compose.yml` — o container não
-  vê o `.env`.
+  vê o `.env`. Exceção: variável que descreve a própria imagem nasce no `ENV` do `Dockerfile`
+  (`PASTA_DO_FRONT`, o `PATH` do `.venv`), não no compose.
 - **`docs/esquema-alvo.sql` está congelado**; a verdade é a migration. **`docs/prova-invariante.sql`
   continua vivo**, rodado **sem** `ON_ERROR_STOP`.
 - **Migrations:** `CREATE EXTENSION IF NOT EXISTS btree_gist` escrito à mão como primeira
