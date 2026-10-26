@@ -19,7 +19,7 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     environment:
       POSTGRES_USER: $POSTGRES_USER

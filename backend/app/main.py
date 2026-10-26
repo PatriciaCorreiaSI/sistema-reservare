@@ -1,3 +1,5 @@
+import os
+
 from asgi_correlation_id import CorrelationIdMiddleware, correlation_id
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -31,6 +33,11 @@ api.include_router(reserva.router)
 
 app.include_router(health.router)
 app.include_router(api)
+
+# O front só existe na imagem (o Dockerfile constrói o dist/ e define a variável);
+# no desenvolvimento quem o serve é o Vite, e no pytest ele não existe.
+if pasta := os.environ.get("PASTA_DO_FRONT"):
+    app.frontend("/", directory=pasta, check_dir=True)
 
 
 @app.exception_handler(RecursoNaoEncontrado)
