@@ -155,8 +155,20 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
 
 **No ar desde 2026-10-27** em `https://reservare.onrender.com`. Conferido em produção: `/health`,
 o front e o F5, `401` e `404` em JSON, login da Ana e do admin, e um `X-Request-ID` achado na busca
-dos logs do Render (o `500` em si só se prova localmente: a API não quebra de propósito). Agora
-**só o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
+dos logs do Render (o `500` em si só se prova localmente: a API não quebra de propósito).
+
+**Primeiro, um bug (achado em 2026-10-27, regra 6):** a API responde **antes** de comitar. O
+`obter_sessao` comita depois do `yield`, e com o `scope` padrão (`"request"`) esse trecho roda
+**depois** de a resposta sair (documentação do FastAPI, versão 0.141 no `uv.lock`). Sintoma: e2e
+intermitente no CI (run `40533409306`) — `404` na disponibilidade de um recurso recém-criado, e
+`409` com chave idêntica no `barra-lateral` (a disponibilidade ofereceu o horário que a reserva
+anterior, sem commit, ainda ocupava). Em produção: leitura velha logo após gravar, e `201` sobre um
+commit que pode falhar. Ordem: emenda ao ADR 0010 (opção conhecida: `Depends(obter_sessao,
+scope="function")`; comparar alternativas), o teste que reproduz (o `TestClient` espera a
+requisição inteira — o teste precisa observar a **ordem** commit × início da resposta), a correção,
+o contra-teste. As três cópias do ciclo (`conftest.py`, `api_com_sessao_real`) entram na conta.
+
+Depois, **o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
 criptografia, o que a conferência confere. Com ele, a Etapa 8 fecha.
 
 **A URL do Neon nunca passa pelo chat nem por arquivo:** entra no terminal por `Read-Host` (o que

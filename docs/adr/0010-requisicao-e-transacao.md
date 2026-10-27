@@ -21,15 +21,15 @@ O ganho é que um *service* que faz três escritas produz uma transação. O pad
 
 ## Emenda (2026-09-21): a única escrita que sobrevive à exceção
 
-### **Problema:** 
+### Problema:
 No `POST /auth/refresh`, um refresh já revogado que é apresentado de novo é sinal de reuso (ADR 0012 e `api.md`): o serviço revoga a família inteira e responde `401`. O `401` nasce de `CredenciaisInvalidas`, que atravessa o `yield` do `obter_sessao`. E ele faz `rollback`, desfazendo o `UPDATE` que revogou a família. O cliente recebe `401`, a família continua viva no banco e quem roubou o token tenta de novo com outro da mesma família. A detecção existe no código e não existe no banco.
 
 A regra geral ("exceção desfaz tudo") pressupõe que a escrita é parte do que deu errado. Aqui ela não é: a revogação é a resposta ao erro, e precisa sobreviver a ele.
 
-### **Decisão:** 
+### Decisão:
 O `AuthService` chama `self._sessao.commit()` logo depois de `revogar_familia`, antes de levantar `CredenciaisInvalidas`. Quando o `rollback` do `obter_sessao` chega, a revogação já é definitiva. É o único `commit()` fora do `obter_sessao`, e fica nomeado aqui por isso
 
-### **Alternativas descartadas:**
+### Alternativas descartadas:
 - **Não levantar exceção:** o service devolve `None` e o router responde `401` com JSONResponse; sem exceção, o `obter_sessao` comita normalmente. Custo: o router passa a ter regra ("se veio `None`, é `401`"), o que viola a convenção de camadas.  E o `401` passa a nascer em dois lugares diferentes (handler global para login e router para refresh).
 
 - **Sessão independente** só para o `UPDATE` da família: abre uma segunda `Session` do zero, faz o `UPDATE`, comita e fecha. A da requisição é desfeita pelo `rollback` como sempre. Custo: duas conexões por requisição, código de infraestrutura dentro do service, a fixture de teste não enxerga essa segunda sessão. Ela escreveria de verdade no banco de teste, quebrando o isolamento do [ADR 0011](0011-isolar-teste-em-transacao-desfeita-no-fim.md).
@@ -45,3 +45,29 @@ a família ficou revogada: com a detecção desfeita ele passaria igual.
 ## Como eu saberia que errei
 
 Se um `IntegrityError` chegar ao cliente como `500`. É o sinal de um repository sem `flush` ou de que a regra não segurou.
+
+
+## Emenda (2026-10-27): o commit acontece antes da resposta
+
+### Problema:
+
+Um experimento, chamando o app diret e anotando a ordem dos eventos, mostrou que o caminho com exceção já faz o `rollback` antes da resposta. Só o sucesso estava errado. O ADR decidiu que "a dependência comita no fim", mas não disse quando, em relação à resposta. Pelo padrão do FastAPI (`scope="request"`), o trecho depois do `yield` roda depois de a resposta sair. A consequência: o cliente recebe `201` antes do commit. Um pedido logo em seguida lê o dado velho. E, se o commit falhar, o `201` já terá dito "gravado" sobre algo que não ficou. Como apareceu: e2e instável no CI desde 2026-10-23, escondido pelo *retry*, com `404` num recurso recém-criado e `409` num horário que a disponibilidade dava como livre. O experimento mostrou que o caminho com exceção já faz o `rollback` antes da resposta. Só o sucesso estava errado.
+
+### Decisão:
+Um tipo `Sessao = Annotated[Session, Depends(obter_sessao, scope="function")]` em `db.py`, que os quatro serviços usam no lugar do `Depends(obter_sessao)`. O porquê: o escopo é decidido num lugar só, e um serviço novo nasce certo.
+
+### Alternativas descartadas:
+- **`scope="function"` em cada `Depends`:** quatro lugares para lembrar, e um serviço novo escrito do jeito antigo traz o bug de volta em silêncio, porque o padrão é o errado.
+
+- **`commit()` explícito em cada rota:** desfaz o "nenhuma camada comita" deste ADR, e cada rota nova precisa lembrar.
+
+- **Comitar num middleware:** o middleware fica fora do sistema de dependências, então não alcança a sessão; seria reescrever o ciclo inteiro. 
+
+### Consequências
+Os ganhos: o `201` só sai sobre o que está gravado; um commit que falhe vira `500`, uma resposta honesta.
+
+Os custos: a resposta espera o commit, alguns milissegundos a mais; e o serviço novo precisa usar `Sessao`, não `Depends(obter_sessao)` direto.
+
+### Como eu saberia que errei
+
+Um teste que lê depois de gravar volta a falhar de vez em quando. Um run do CI verde aparece com `flaky`.
