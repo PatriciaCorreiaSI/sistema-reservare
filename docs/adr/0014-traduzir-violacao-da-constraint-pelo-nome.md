@@ -73,3 +73,31 @@ O ganho: o `PATCH` continua parcial, e o banco continua sendo só a última defe
 ### Como eu saberia que errei
 
 Se um `PATCH` voltar a dar `500` por uma `CHECK`, existe uma combinação de campos que o service não confere. Se o `POST` e o `PATCH` divergirem, a duplicação cobrou o seu preço. Exemplo: um aceita horários iguais e o outro recusa.
+
+
+## Emenda (2026-10-27): o deadlock da `EXCLUDE` também é horário ocupado
+
+### Problema
+
+Dois `INSERT` no mesmo horário, no mesmo instante: cada um grava a sua linha antes de conferir a `EXCLUDE`, e cada um espera o outro: um deadlock. O Postgres aborta um com `40P01`. O erro chega como `OperationalError`, não como `IntegrityError`. O `criar` não o reconhece, ele sobe, e o cliente recebe `500` num caso de negócio comum. Como apareceu: o teste de concorrência falhou uma vez em ~25 rodadas, em 2026-10-27. O próprio Postgres, no comentário do `execIndexing.c`, diz que esse deadlock é *"fairly harmless, as one of them was bound to abort with a duplicate key error anyway"*.
+
+### Decisão
+
+No `ReservaRepository.criar`, o deadlock do `INSERT` vira `HorarioOcupado` (`409`), ao lado da tradução por nome que já existe. Por que o código basta, se este ADR descartou identificar pelo SQLSTATE: nesse `INSERT`, a conferência da `EXCLUDE` é o único ponto em que a transação espera outra em círculo. A chave estrangeira só lê o recurso. O nome serve para distinguir constraints do mesmo tipo; aqui só existe uma causa possível. A tradução vale só nesse método. Fora dele, um deadlock continua subindo como `500`, porque o ADR manda nunca engolir o que não se reconhece. 
+
+### Alternativas descartadas
+
+- **Repetir o `INSERT` num savepoint** — por que descartei: um savepoint em toda reserva, e um laço com limite, para chegar ao mesmo `409`.
+
+- **Travar o recurso antes do `INSERT`** — por que descartei: põe em fila todas as reservas do recurso, inclusive as que não se sobrepõem, e devolve ao Python uma garantia que o projeto deu ao banco.
+
+- **Não fazer nada** — por que descartei: um caso de negócio esperado responde "erro do servidor", e o teste de concorrência fica instável.
+
+### Consequências
+O ganho: dois cliques no mesmo horário dão sempre `201` + `409`, por qualquer um dos dois caminhos.
+
+Os custos: a perdedora recebe o `409` sem esperar o fim da vencedora; se a vencedora ainda falhasse depois, o horário ficaria livre. E pela primeira vez um erro é reconhecido pelo código, não pelo nome.
+
+### Como eu saberia que errei
+
+O `INSERT` de reserva ganha outra espera que pode entrar em círculo (um *trigger*, outra constraint), e um deadlock que não é de horário vira `409`. Ou o teste de concorrência volta a dar `500`.
