@@ -473,40 +473,16 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 
 ### 📡 Etapa 8 — Observabilidade e deploy
 
-> **🔨 Em curso.** Decisões tomadas em 2026-10-22, nos ADRs
+> **🔨 Em curso.** No ar desde 2026-10-27 em `https://reservare.onrender.com`: API no Render e
+> banco no Neon, no plano grátis, com a API servindo o front numa imagem só; a cada partida, migra
+> o banco e semeia a demonstração; deploy só com o CI verde; logs em JSON com um ID de correlação
+> que a tela mostra num erro do servidor. Decisões nos ADRs
 > [0028](adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a
-> [0033](adr/0033-semear-demonstracao-na-partida.md): API no Render e banco no Neon, os dois no
-> plano grátis, com a API servindo o front; logs em JSON com ID de correlação; migration na partida
-> do container, por *expand/contract*; configuração por Blueprint, com deploy só com o CI verde;
-> backup noturno restaurado antes de ser guardado; demonstração semeada e reiniciada na partida.
-> Em 2026-10-26, o [ADR 0034](adr/0034-construir-imagem-da-raiz-do-repositorio.md): a imagem passa a
-> ser construída da raiz do repositório, com front e API num `Dockerfile` só (substitui o 0006).
+> [0034](adr/0034-construir-imagem-da-raiz-do-repositorio.md). O e2e instável no CI revelou dois
+> bugs de transação: o commit saía depois da resposta (corrigido, emenda ao 0010) e o deadlock da
+> `EXCLUDE` vira `500` (decidido, emenda ao 0014). 145 testes verdes.
 >
-> **Feito (2026-10-22):** logs e ID de correlação (ADR 0029). Cada resposta leva um
-> `X-Request-ID`, também no `500`, e cada linha de log sai em JSON com o mesmo `request_id`. Num
-> erro do servidor, a tela mostra esse código.
->
-> **Feito (2026-10-23):** a URL do banco de produção (ADR 0031): uma `DATABASE_URL` pronta é aceita
-> com o driver trocado para o `psycopg` 3; sem ela, desenvolvimento e CI continuam derivando a URL.
-> A semeadura da demonstração (ADR 0033): um comando idempotente, ligado só por `DEMONSTRACAO=1`,
-> que cria o admin, duas contas, três recursos e seis reservas nos três estados (confirmada,
-> concluída, cancelada), e a cada execução apaga só as reservas das contas de demonstração.
->
-> **Feito (2026-10-26):** a imagem e a partida (ADRs 0028, 0030 e 0034). O `Dockerfile` constrói o
-> front numa etapa com Node e leva só o `dist/` para a imagem que roda; a API o serve pelo
-> `app.frontend()` do FastAPI, que devolve o `index.html` à navegação e `404` ao resto. A partida
-> migra, semeia e só então sobe o `uvicorn`, como processo principal, para encerrar com calma
-> quando o Render o parar. A imagem leva só as dependências de produção (de 472 MB para 329 MB).
->
-> **Feito (2026-10-27):** o primeiro deploy, em `https://reservare.onrender.com`. Região Virgínia
-> nos dois serviços (emenda ao 0028). A conexão com o Neon confere o certificado do banco
-> (`verify-full`, emenda ao 0031): o OpenSSL que vem dentro do `psycopg` não acha sozinho as raízes
-> do sistema, e a imagem as aponta com `SSL_CERT_FILE`. O serviço é descrito no `render.yaml` e o
-> `uvicorn` escuta na `PORT` que a plataforma define (8000 sem ela, como no compose). Conferido em
-> produção: o front e o F5, o login da demonstração e do admin, e um `X-Request-ID` de resposta
-> achado na busca dos logs do Render.
->
-> **Falta:** o backup (ADR 0032).
+> **Falta:** o teste e o conserto do deadlock, e o backup (ADR 0032).
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 

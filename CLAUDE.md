@@ -165,13 +165,16 @@ Agora os serviços recebem `sessao: Sessao` (`app/db.py`, `scope="function"`). O
 `http.response.start`, conta as reservas por outra conexão (o `TestClient` sozinho espera a
 requisição inteira e passa verde com o defeito). **Run verde com `flaky` é sintoma, não sorte.**
 
-**Próximo: um bug achado no mesmo dia, ainda sem ADR.** O teste de concorrência deu, uma vez em ~25
+**Próximo: um bug achado no mesmo dia, decidido na emenda de 2026-10-27 ao ADR 0014.** O teste de concorrência deu, uma vez em ~25
 rodadas, `DeadlockDetected` "while checking exclusion constraint" — os dois `INSERT` entram antes
 de qualquer um conferir a `EXCLUDE`, e cada um espera o outro. O Postgres aborta um com `40P01`, que
 chega como `OperationalError`; o `ReservaRepository.criar` só traduz `IntegrityError` → a perdedora
 recebe `500` em vez de `409`. O invariante segura (nada se sobrepõe); a resposta é que mente.
-Ordem: decidir (traduzir o `40P01` para `HorarioOcupado`? repetir a transação?), o teste que o
-reproduz (não determinístico hoje), o conserto.
+Decidido: no `ReservaRepository.criar`, o `40P01` do `INSERT` vira `HorarioOcupado` (`409`), ao
+lado da tradução por nome; o Postgres chama esse deadlock de *"fairly harmless"* (comentário do
+`execIndexing.c`). Falta a fase 2: **o desenho do teste** — o deadlock depende de um instante
+dentro do Postgres que o cliente não controla, então reproduzir de forma determinística é a
+questão a resolver —, depois o conserto e o contra-teste.
 
 Depois, **o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
 criptografia, o que a conferência confere. Com ele, a Etapa 8 fecha.
