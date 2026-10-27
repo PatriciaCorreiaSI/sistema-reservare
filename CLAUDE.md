@@ -115,8 +115,15 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
   `<p>` dentro de `<p>` não é HTML válido). O e2e monta a resposta com `page.route` + `fulfill`,
   porque a API não quebra de propósito.
 - **0031 (configuração):** a `DATABASE_URL` está pronta (`make_url` + `.set(drivername=...)`;
-  vazia conta como ausente, `test_db.py`). Falta o `sslmode`, no primeiro deploy, contra o Neon
-  (`require` só cifra; `verify-full` também confere o certificado), e o `render.yaml`.
+  vazia conta como ausente, `test_db.py`). `sslmode` decidido em 2026-10-27, testado contra o
+  Neon: `sslmode=verify-full&sslrootcert=system&channel_binding=require` na URL, e `ENV
+  SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` no `Dockerfile`. O `psycopg-binary` traz
+  OpenSSL próprio, que não acha as raízes do sistema sozinho (`certificate verify failed` no
+  Windows e na imagem); a variável aponta o `system` para o pacote `ca-certificates` do Debian, e
+  o caminho do arquivo fica na imagem, não na URL. Por isso a URL do Neon com `verify-full` **não
+  conecta do Windows** — teste contra o Neon roda dentro da imagem (`docker run -e NEON_URL`, sem
+  valor, para a senha não ir ao histórico). Região: Virgínia no Render e no Neon (`us-east-1`),
+  API e banco juntos. Falta o `render.yaml`.
 - **0028 e 0034 (front servido pela API):** pronto (2026-10-26). `app.frontend()` nativo do
   FastAPI, não subclasse do `StaticFiles`: decide pelo `Accept` (navegação recebe o `index.html`;
   `fetch`, `<script>` e asset sumido recebem `404` em JSON), sem lista de prefixos para manter. Só

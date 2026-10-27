@@ -21,6 +21,9 @@ COPY backend/alembic.ini ./
 COPY --from=front /front/dist ./dist
 ENV PASTA_DO_FRONT=/app/dist
 ENV PATH="/app/.venv/bin:$PATH"
+# O psycopg-binary traz OpenSSL próprio, que não acha as raízes do Debian sozinho:
+# sem esta linha, o sslrootcert=system da DATABASE_URL dá "certificate verify failed".
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8000
 CMD ["sh", "-c", "alembic upgrade head && python -m app.comandos.semear_demonstracao && exec uvicorn app.main:app --host 0.0.0.0 --port 8000" ]

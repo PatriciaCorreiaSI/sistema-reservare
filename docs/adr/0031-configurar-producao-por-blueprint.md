@@ -45,3 +45,34 @@ Os custos:
 ## Como eu saberia que errei
 
 Um deploy acontece com o CI vermelho. Um valor secreto aparece no repositório. A API sobe em produção conectada sem TLS, ou pela URL com pool. O desenvolvimento ou o CI passam a precisar da `DATABASE_URL`.
+
+
+## Emenda (2026-10-27): o sslmode é verify-full, com as raízes da imagem
+
+### Problema
+
+O ADR deixou o valor do `sslmode` para o desenho. Os testes mostraram:
+
+- `require` conecta, mas não confere quem é o servidor;
+- `verify-full` precisa de uma lista de raízes;
+- o `system` falhou no Windows e na imagem, porque o `psycopg-binary` traz OpenSSL próprio, que procura as raízes em outra pasta.
+
+### Decisão
+
+A `DATABASE_URL` de produção termina em `?sslmode=verify-full&sslrootcert=system&channel_binding=require`, e o `Dockerfile` leva `ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`. A URL diz só "confie nas raízes do sistema"; o caminho do arquivo é um fato da imagem e mora no `Dockerfile`.
+
+### Alternativas consideradas
+
+- **O caminho na URL** — por que descartei: um fato da imagem morando fora dela. Trocar a imagem base exigiria mudar uma variável no painel do Render, longe do código que causou a mudança.
+
+- **O `require`** — por que descartei: a identidade do servidor fica protegida só pela senha.
+
+### Consequências
+
+Os ganhos: a identidade do servidor é conferida pelo certificado, não só pela senha; a URL não depende de onde a imagem guarda os certificados.
+
+Os custos: uma linha `ENV` que não se explica sozinha; a URL de produção não conecta do Windows, então todo teste contra o Neon roda dentro da imagem; sem a linha, a partida falha alto.
+
+### Como eu saberia que errei
+
+A produção passa a conectar com o `sslmode=require`, porque alguém colou no Render a URL como o Neon a entrega. Ou a partida falha com `certificate verify failed` depois de trocar a imagem base.

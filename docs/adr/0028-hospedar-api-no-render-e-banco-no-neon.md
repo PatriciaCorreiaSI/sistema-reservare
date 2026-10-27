@@ -35,3 +35,18 @@ Se precisar mudar de ideia, é barato: um container e um Postgres comum, sem nad
 ## Como eu saberia que errei
 
 O Neon ou o Render mudam o plano grátis (fim do plano, expiração, perda do `btree_gist`). A espera de 1 minuto faz quem visita desistir da demonstração. Os limites de horas ou de espaço são atingidos.
+
+
+## Emenda (2026-10-27): a região é Virgínia, nos dois serviços
+
+### Problema
+O ADR não fixou a região. O Render grátis oferece Oregon, Ohio, Virgínia, Frankfurt e Singapura; o Neon tem São Paulo, mas o Render não.
+
+### Decisão
+A região é Virgínia, nos dois serviços: no Neon, `AWS US East 1 (N. Virginia)`. O que mais pesa é a distância entre API e banco, porque uma requisição faz várias consultas em sequência; entre as regiões do Render, Virgínia é a mais perto do Brasil.
+
+### Alternativas consideradas
+
+- **São Paulo** — por que descartei: o Render grátis não tem região na América do Sul;
+
+- **Frankfurt** — por que descartei: fica mais longe do Brasil.
