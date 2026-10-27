@@ -1,0 +1,29 @@
+# Blueprint do Render (ADR 0031): o serviço recriável a partir do repositório.
+services:
+  - type: web
+    name: reservare
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SEGREDO
+        generateValue: true
+      - key: FUSO_FUNCIONAMENTO
+        value: America/Sao_Paulo
+      - key: LOG_NIVEL
+        value: INFO
+      - key: DEMONSTRACAO
+        value: "1"
+      - key: ADMIN_NOME
+        value: Admin Demonstração
+      - key: ADMIN_EMAIL
+        value: admin@reservare.example
+      - key: ADMIN_SENHA
+        sync: false
