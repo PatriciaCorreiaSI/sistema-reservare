@@ -123,7 +123,11 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
   o caminho do arquivo fica na imagem, não na URL. Por isso a URL do Neon com `verify-full` **não
   conecta do Windows** — teste contra o Neon roda dentro da imagem (`docker run -e NEON_URL`, sem
   valor, para a senha não ir ao histórico). Região: Virgínia no Render e no Neon (`us-east-1`),
-  API e banco juntos. Falta o `render.yaml`.
+  API e banco juntos. `render.yaml` pronto: `plan: free` escrito (sem ele o Render cria pago),
+  `region` imutável depois de criado, `sync: false` só pergunta o valor na criação do Blueprint
+  (`DATABASE_URL`, `ADMIN_SENHA`), `JWT_SEGREDO` por `generateValue`. O `CMD` usa `--port
+  ${PORT:-8000}` (o Render manda o tráfego para a `PORT`, 10000; o compose fica no 8000). O app
+  do Render no GitHub só tem acesso ao `sistema-reservare`.
 - **0028 e 0034 (front servido pela API):** pronto (2026-10-26). `app.frontend()` nativo do
   FastAPI, não subclasse do `StaticFiles`: decide pelo `Accept` (navegação recebe o `index.html`;
   `fetch`, `<script>` e asset sumido recebem `404` em JSON), sem lista de prefixos para manter. Só
@@ -149,10 +153,18 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
 - **0032 (backup):** o papel só de leitura no Neon, o horário, a criptografia, o que a conferência
   confere.
 
-Feito tudo o que se prova localmente (até 2026-10-26: logs, URL do banco, semeadura, imagem e
-partida). Agora o **primeiro deploy**: contas no Render e no Neon (da autora), o `render.yaml`
-(contexto na raiz, ADR 0034), a porta que o Render espera e o `sslmode` contra o Neon. Por último o
-backup (precisa do Neon no ar).
+**No ar desde 2026-10-27** em `https://reservare.onrender.com`. Conferido em produção: `/health`,
+o front e o F5, `401` e `404` em JSON, login da Ana e do admin, e um `X-Request-ID` achado na busca
+dos logs do Render (o `500` em si só se prova localmente: a API não quebra de propósito). Agora
+**só o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
+criptografia, o que a conferência confere. Com ele, a Etapa 8 fecha.
+
+**A URL do Neon nunca passa pelo chat nem por arquivo:** entra no terminal por `Read-Host` (o que
+se digita no comando vai para o histórico do PSReadLine), sai para o Render por `Set-Clipboard`, e
+no container por `-e NEON_URL` sem valor. Em 2026-10-27 ela foi colada no chat e a senha do
+`neondb_owner` foi trocada (Neon: **Reset password** do papel; a tela muda de versão, e o
+`ALTER ROLE` por SQL é o caminho que não depende dela). Senha nova = `DATABASE_URL` nova no painel
+do Render.
 
 ## Front-end: o que o desenho decidiu e o código não conta
 

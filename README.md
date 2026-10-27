@@ -5,7 +5,25 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 8 — observabilidade e deploy.** A API e o front estão prontos e testados; falta a URL pública.
+> Fase atual: **Etapa 8 — observabilidade e deploy.** O sistema está no ar; falta o backup do banco de produção.
+
+## Experimente
+
+**https://reservare.onrender.com**
+
+| Conta | E-mail | Senha |
+|---|---|---|
+| Ana | `ana@reservare.example` | `demonstracao` |
+| Bruno | `bruno@reservare.example` | `demonstracao` |
+
+São contas de demonstração, com três recursos e reservas de exemplo nos três estados (confirmada,
+concluída, cancelada). Duas coisas a saber:
+
+- **A primeira visita pode levar cerca de um minuto.** O plano grátis adormece o serviço sem uso, e
+  ele acorda no primeiro pedido.
+- **A demonstração se reinicia sozinha.** A cada partida do serviço, as reservas das contas de
+  demonstração voltam ao estado inicial ([ADR 0033](docs/adr/0033-semear-demonstracao-na-partida.md)):
+  o que você reservar pode sumir.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/telas/login-escuro.png">
@@ -84,7 +102,7 @@ Por fim, minhas reservas: as próximas em cartões, com o cancelamento confirmad
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
 | Front-end | ✅ concluída — login, recursos, horários livres, reservar e cancelar, em tema claro e escuro ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0027](docs/adr/0027-estilizar-front-com-tailwind.md)); 16 testes de ponta a ponta (Playwright) no CI |
-| Deploy | 🔨 em curso — logs em JSON com ID de correlação: cada resposta leva o código, e a tela o mostra num erro do servidor ([ADR 0029](docs/adr/0029-logs-em-json-com-id-de-correlacao.md)); a API aceita a URL pronta do banco de produção ([ADR 0031](docs/adr/0031-configurar-producao-por-blueprint.md)); uma imagem só serve a API e as telas, e a cada partida migra o banco e semeia a demonstração antes de atender ([ADR 0028](docs/adr/0028-hospedar-api-no-render-e-banco-no-neon.md), [0030](docs/adr/0030-migrar-na-partida-do-container.md), [0033](docs/adr/0033-semear-demonstracao-na-partida.md), [0034](docs/adr/0034-construir-imagem-da-raiz-do-repositorio.md)); falta a URL pública |
+| Deploy | 🔨 em curso — logs em JSON com ID de correlação: cada resposta leva o código, e a tela o mostra num erro do servidor ([ADR 0029](docs/adr/0029-logs-em-json-com-id-de-correlacao.md)); a API aceita a URL pronta do banco de produção ([ADR 0031](docs/adr/0031-configurar-producao-por-blueprint.md)); uma imagem só serve a API e as telas, e a cada partida migra o banco e semeia a demonstração antes de atender ([ADR 0028](docs/adr/0028-hospedar-api-no-render-e-banco-no-neon.md), [0030](docs/adr/0030-migrar-na-partida-do-container.md), [0033](docs/adr/0033-semear-demonstracao-na-partida.md), [0034](docs/adr/0034-construir-imagem-da-raiz-do-repositorio.md)); no ar em [reservare.onrender.com](https://reservare.onrender.com), com API no Render e banco no Neon, conexão com o certificado do banco conferido, e deploy só com o CI verde ([ADR 0031](docs/adr/0031-configurar-producao-por-blueprint.md)); falta o backup |
 
 Nada é listado como pronto antes de estar funcionando.
 
@@ -95,7 +113,7 @@ Nada é listado como pronto antes de estar funcionando.
 **Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16 · `pwdlib` (Argon2) · PyJWT
 **Front-end** — Vite · React · TypeScript · TanStack Query · Tailwind CSS v4
 **Qualidade** — pytest · Playwright · ruff · mypy · GitHub Actions
-**Infra** — Docker Compose
+**Infra** — Docker · Docker Compose · Render · Neon
 
 As justificativas de cada escolha estão no [roadmap](docs/ROADMAP.md#4-stack-e-por-quê).
 

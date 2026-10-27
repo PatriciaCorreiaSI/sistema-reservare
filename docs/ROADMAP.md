@@ -498,8 +498,15 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 > migra, semeia e só então sobe o `uvicorn`, como processo principal, para encerrar com calma
 > quando o Render o parar. A imagem leva só as dependências de produção (de 472 MB para 329 MB).
 >
-> **Falta:** o primeiro deploy (com o `render.yaml`, a porta que o Render espera e o `sslmode`
-> testado contra o Neon) e o backup.
+> **Feito (2026-10-27):** o primeiro deploy, em `https://reservare.onrender.com`. Região Virgínia
+> nos dois serviços (emenda ao 0028). A conexão com o Neon confere o certificado do banco
+> (`verify-full`, emenda ao 0031): o OpenSSL que vem dentro do `psycopg` não acha sozinho as raízes
+> do sistema, e a imagem as aponta com `SSL_CERT_FILE`. O serviço é descrito no `render.yaml` e o
+> `uvicorn` escuta na `PORT` que a plataforma define (8000 sem ela, como no compose). Conferido em
+> produção: o front e o F5, o login da demonstração e do admin, e um `X-Request-ID` de resposta
+> achado na busca dos logs do Render.
+>
+> **Falta:** o backup (ADR 0032).
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 
