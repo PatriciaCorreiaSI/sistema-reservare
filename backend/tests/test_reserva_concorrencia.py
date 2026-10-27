@@ -4,13 +4,13 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import sessionmaker
 
 from app.db import obter_sessao
 from app.dependencies import obter_agora, obter_fuso
 from app.main import app
-from app.models import Recurso, Usuario
+from app.models import Recurso, Reserva, Usuario
 from app.security import criar_access_token
 
 AGORA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
@@ -129,3 +129,42 @@ def test_reservas_simultaneas_no_mesmo_horario_devolvem_um_201_e_um_409(
     # Conferir
     assert not any(thread.is_alive() for thread in threads), "uma thread pendurou"
     assert sorted(status) == [201, 409]
+
+
+@pytest.mark.concorrencia
+def test_a_reserva_ja_esta_gravada_quando_o_201_sai(
+    api_com_sessao_real, fabrica_de_teste, id_usuaria, id_recurso
+):
+    # O TestClient só devolve a resposta depois que tudo terminou, inclusive um
+    # commit atrasado. Para ver o instante em que o 201 sai, o app vai embrulhado:
+    # no http.response.start, outra conexão conta as reservas (ADR 0010, emenda
+    # de 2026-10-27).
+    # Preparar
+    token = criar_access_token(id_usuaria, "usuario", datetime.now(UTC))
+    cabecalho = {"Authorization": f"Bearer {token}"}
+    corpo = {
+        "id_recurso": id_recurso,
+        "convidados": 4,
+        "inicio": "2026-10-01T15:00:00Z",
+        "fim": "2026-10-01T16:00:00Z",
+    }
+    vistas_no_201: list[int] = []
+
+    async def app_que_espia(scope, receive, send):
+        async def send_que_espia(mensagem):
+            if mensagem["type"] == "http.response.start":
+                with fabrica_de_teste() as outra_conexao:
+                    contagem = select(func.count()).select_from(Reserva)
+                    vistas_no_201.append(outra_conexao.scalar(contagem))
+            await send(mensagem)
+
+        await app(scope, receive, send_que_espia)
+
+    cliente = TestClient(app_que_espia, base_url="https://testserver/api")
+
+    # Agir
+    resposta = cliente.post("/reservas", json=corpo, headers=cabecalho)
+
+    # Conferir
+    assert resposta.status_code == 201
+    assert vistas_no_201 == [1]

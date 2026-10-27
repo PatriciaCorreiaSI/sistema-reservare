@@ -3,9 +3,8 @@ from zoneinfo import ZoneInfo
 
 from fastapi import Depends
 from sqlalchemy.dialects.postgresql import Range
-from sqlalchemy.orm import Session
 
-from app.db import obter_sessao
+from app.db import Sessao
 from app.dependencies import UsuarioAtual, obter_agora, obter_fuso
 from app.models import Recurso, Reserva
 from app.repositories.recurso import RecursoRepository
@@ -73,7 +72,7 @@ def calcular_lacunas(
 class ReservaService:
     def __init__(
         self,
-        sessao: Session = Depends(obter_sessao),
+        sessao: Sessao,
         agora: datetime = Depends(obter_agora),
         fuso: ZoneInfo = Depends(obter_fuso),
     ) -> None:

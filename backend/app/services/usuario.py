@@ -1,8 +1,6 @@
-from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
-from app.db import obter_sessao
+from app.db import Sessao
 from app.models import Usuario
 from app.repositories.usuario import UsuarioRepository
 from app.schemas.usuario import UsuarioCriar
@@ -11,7 +9,7 @@ from app.services.excecoes import EmailJaCadastrado
 
 
 class UsuarioService:
-    def __init__(self, sessao: Session = Depends(obter_sessao)) -> None:
+    def __init__(self, sessao: Sessao) -> None:
         self._repo = UsuarioRepository(sessao)
 
     def criar(self, dados: UsuarioCriar) -> Usuario:

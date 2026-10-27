@@ -2,10 +2,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends
-from sqlalchemy.orm import Session
-
-from app.db import obter_sessao
+from app.db import Sessao
 from app.models import RefreshToken, Usuario
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.usuario import UsuarioRepository
@@ -27,7 +24,7 @@ class ParDeTokens:
 
 
 class AuthService:
-    def __init__(self, sessao: Session = Depends(obter_sessao)) -> None:
+    def __init__(self, sessao: Sessao) -> None:
         self._sessao = sessao
         self._refresh_tokens = RefreshTokenRepository(sessao)
         self._usuarios = UsuarioRepository(sessao)

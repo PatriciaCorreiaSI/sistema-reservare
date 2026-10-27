@@ -91,14 +91,14 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0034 |
 
-Suíte do back-end em `144 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
+Suíte do back-end em `145 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
 
 **Início de sessão:** Docker Desktop aberto e **não pausado** (pausado, o `docker compose ps`
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
-db` até `(healthy)`; de `backend/`, `uv run pytest` → `144 passed` (e o aviso do `httpx`, backlog)
+db` até `(healthy)`; de `backend/`, `uv run pytest` → `145 passed` (e o aviso do `httpx`, backlog)
 antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
 → `16 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
@@ -157,16 +157,21 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
 o front e o F5, `401` e `404` em JSON, login da Ana e do admin, e um `X-Request-ID` achado na busca
 dos logs do Render (o `500` em si só se prova localmente: a API não quebra de propósito).
 
-**Primeiro, um bug (achado em 2026-10-27, regra 6):** a API responde **antes** de comitar. O
-`obter_sessao` comita depois do `yield`, e com o `scope` padrão (`"request"`) esse trecho roda
-**depois** de a resposta sair (documentação do FastAPI, versão 0.141 no `uv.lock`). Sintoma: e2e
-intermitente no CI (run `40533409306`) — `404` na disponibilidade de um recurso recém-criado, e
-`409` com chave idêntica no `barra-lateral` (a disponibilidade ofereceu o horário que a reserva
-anterior, sem commit, ainda ocupava). Em produção: leitura velha logo após gravar, e `201` sobre um
-commit que pode falhar. Ordem: emenda ao ADR 0010 (opção conhecida: `Depends(obter_sessao,
-scope="function")`; comparar alternativas), o teste que reproduz (o `TestClient` espera a
-requisição inteira — o teste precisa observar a **ordem** commit × início da resposta), a correção,
-o contra-teste. As três cópias do ciclo (`conftest.py`, `api_com_sessao_real`) entram na conta.
+**Resolvido em 2026-10-27: o commit depois da resposta** (emenda ao ADR 0010). Com o `scope`
+padrão (`"request"`), o trecho depois do `yield` roda depois de a resposta sair: o `201` saía antes
+do commit, e o e2e do CI lia o dado velho (flaky desde 2026-10-23, escondido pelo `retries: 2`).
+Agora os serviços recebem `sessao: Sessao` (`app/db.py`, `scope="function"`). O teste é o
+`test_a_reserva_ja_esta_gravada_quando_o_201_sai`: embrulha o `app` num ASGI que, no
+`http.response.start`, conta as reservas por outra conexão (o `TestClient` sozinho espera a
+requisição inteira e passa verde com o defeito). **Run verde com `flaky` é sintoma, não sorte.**
+
+**Próximo: um bug achado no mesmo dia, ainda sem ADR.** O teste de concorrência deu, uma vez em ~25
+rodadas, `DeadlockDetected` "while checking exclusion constraint" — os dois `INSERT` entram antes
+de qualquer um conferir a `EXCLUDE`, e cada um espera o outro. O Postgres aborta um com `40P01`, que
+chega como `OperationalError`; o `ReservaRepository.criar` só traduz `IntegrityError` → a perdedora
+recebe `500` em vez de `409`. O invariante segura (nada se sobrepõe); a resposta é que mente.
+Ordem: decidir (traduzir o `40P01` para `HorarioOcupado`? repetir a transação?), o teste que o
+reproduz (não determinístico hoje), o conserto.
 
 Depois, **o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
 criptografia, o que a conferência confere. Com ele, a Etapa 8 fecha.
@@ -255,7 +260,9 @@ do Render.
 
 ### Camadas, erros e regras
 
-- **ADR 0010:** nenhuma camada chama `commit()`; repository que escreve faz `flush()`. Única
+- **ADR 0010:** nenhuma camada chama `commit()`; repository que escreve faz `flush()`. Serviço
+  recebe a sessão por `sessao: Sessao` (`app/db.py`), **nunca** `Depends(obter_sessao)` direto: o
+  `Sessao` leva o `scope="function"`, que comita antes de a resposta sair (emenda de 2026-10-27). Única
   exceção: o `commit()` logo após `revogar_familia` no `AuthService`. O `criar_admin` é outro
   **ponto de entrada**, com a própria unidade de trabalho (`with FabricaDeSessao() as sessao,
   sessao.begin():`).

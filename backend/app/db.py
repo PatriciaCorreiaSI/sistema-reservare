@@ -1,6 +1,8 @@
 import os
 from collections.abc import Iterator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy import URL, create_engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -39,3 +41,8 @@ def obter_sessao() -> Iterator[Session]:
         raise
     finally:
         sessao.close()
+
+
+# scope="function": o trecho depois do yield (o commit) roda antes de a resposta
+# sair. O padrão, "request", comitaria depois do 201 (ADR 0010, emenda de 2026-10-27).
+Sessao = Annotated[Session, Depends(obter_sessao, scope="function")]

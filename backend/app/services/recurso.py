@@ -1,10 +1,8 @@
 from collections.abc import Sequence
 
-from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
-from app.db import obter_sessao
+from app.db import Sessao
 from app.models import Recurso
 from app.repositories.recurso import RecursoRepository
 from app.schemas.recurso import RecursoAtualizar, RecursoCriar
@@ -16,7 +14,7 @@ from app.services.excecoes import (
 
 
 class RecursoService:
-    def __init__(self, sessao: Session = Depends(obter_sessao)) -> None:
+    def __init__(self, sessao: Sessao) -> None:
         self._repo = RecursoRepository(sessao)
 
     def buscar_por_id(self, id_recurso: int) -> Recurso:
