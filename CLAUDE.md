@@ -91,14 +91,14 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0034 |
 
-Suíte do back-end em `145 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
+Suíte do back-end em `146 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
 
 **Início de sessão:** Docker Desktop aberto e **não pausado** (pausado, o `docker compose ps`
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
-db` até `(healthy)`; de `backend/`, `uv run pytest` → `145 passed` (e o aviso do `httpx`, backlog)
+db` até `(healthy)`; de `backend/`, `uv run pytest` → `146 passed` (e o aviso do `httpx`, backlog)
 antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
 → `16 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
@@ -165,18 +165,19 @@ Agora os serviços recebem `sessao: Sessao` (`app/db.py`, `scope="function"`). O
 `http.response.start`, conta as reservas por outra conexão (o `TestClient` sozinho espera a
 requisição inteira e passa verde com o defeito). **Run verde com `flaky` é sintoma, não sorte.**
 
-**Próximo: um bug achado no mesmo dia, decidido na emenda de 2026-10-27 ao ADR 0014.** O teste de concorrência deu, uma vez em ~25
-rodadas, `DeadlockDetected` "while checking exclusion constraint" — os dois `INSERT` entram antes
-de qualquer um conferir a `EXCLUDE`, e cada um espera o outro. O Postgres aborta um com `40P01`, que
-chega como `OperationalError`; o `ReservaRepository.criar` só traduz `IntegrityError` → a perdedora
-recebe `500` em vez de `409`. O invariante segura (nada se sobrepõe); a resposta é que mente.
-Decidido: no `ReservaRepository.criar`, o `40P01` do `INSERT` vira `HorarioOcupado` (`409`), ao
-lado da tradução por nome; o Postgres chama esse deadlock de *"fairly harmless"* (comentário do
-`execIndexing.c`). Falta a fase 2: **o desenho do teste** — o deadlock depende de um instante
-dentro do Postgres que o cliente não controla, então reproduzir de forma determinística é a
-questão a resolver —, depois o conserto e o contra-teste.
+**Resolvido em 2026-10-28: o deadlock da `EXCLUDE`** (emenda de 2026-10-27 ao ADR 0014). Dois
+`INSERT` simultâneos gravam a linha antes de conferir a `EXCLUDE` e cada um espera o outro; o
+Postgres aborta um com `40P01` (`OperationalError`), e a perdedora recebia `500`. Agora o
+`ReservaRepository.criar` traduz o `DeadlockDetected` em `HorarioOcupado` (`409`). O teste
+(`test_deadlock_na_exclude_devolve_409`) não depende da coincidência: monta o mesmo círculo em
+câmera lenta — A gravada sem commit, B pela API (espera A), C pelo teste (sobrepõe B, encosta em
+A; espera a API) — e fecha o círculo assim que a `pg_stat_activity` mostra a API em `wait_event =
+'transactionid'`. Quem é abortado é quem começou a esperar primeiro (o `deadlock_timeout` dele
+vence antes), e a procura por círculo roda **uma vez por espera**: se C demorasse mais que o
+`deadlock_timeout` (1 s), o abortado seria o teste. A thread usa `raise_server_exceptions=False`,
+senão o defeito some dentro dela e o vermelho vira `[] == [409]`.
 
-Depois, **o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
+**Próximo: o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
 criptografia, o que a conferência confere. Com ele, a Etapa 8 fecha.
 
 **A URL do Neon nunca passa pelo chat nem por arquivo:** entra no terminal por `Read-Host` (o que

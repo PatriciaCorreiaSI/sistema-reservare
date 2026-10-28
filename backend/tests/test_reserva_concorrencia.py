@@ -1,10 +1,12 @@
 import threading
 from datetime import UTC, datetime, time
+from time import monotonic, sleep
 from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import sessionmaker
 
 from app.db import obter_sessao
@@ -168,3 +170,78 @@ def test_a_reserva_ja_esta_gravada_quando_o_201_sai(
     # Conferir
     assert resposta.status_code == 201
     assert vistas_no_201 == [1]
+
+
+def esperar_alguem_travado(fabrica_de_teste):
+    # Pergunta ao Postgres, por uma terceira conexão, se alguma transação está
+    # esperando outra terminar (wait_event 'transactionid'). Devolve quando vê.
+    consulta = text(
+        "SELECT count(*) FROM pg_stat_activity"
+        " WHERE datname = current_database()"
+        " AND wait_event_type = 'Lock' AND wait_event = 'transactionid'"
+    )
+    limite = monotonic() + PRAZO
+    while monotonic() < limite:
+        with fabrica_de_teste() as observadora:
+            if observadora.scalar(consulta) == 1:
+                return
+        sleep(0.01)
+    raise AssertionError("a API nunca ficou esperando a outra transação")
+
+
+@pytest.mark.concorrencia
+def test_deadlock_na_exclude_devolve_409(
+    api_com_sessao_real, fabrica_de_teste, id_usuaria, id_recurso
+):
+    # O deadlock da emenda de 2026-10-27 ao ADR 0014, montado de propósito:
+    #   A 15h-16h (o teste, sem comitar)
+    #   B 15h30-16h30 (a API): sobrepõe A -> espera o teste
+    #   C 16h-17h (o teste): sobrepõe B, encosta em A -> espera a API
+    # Cada uma espera a outra. A API começou a esperar primeiro, então o
+    # deadlock_timeout dela vence primeiro, e o Postgres a aborta com 40P01.
+    # Preparar
+    token = criar_access_token(id_usuaria, "usuario", datetime.now(UTC))
+    cabecalho = {"Authorization": f"Bearer {token}"}
+    corpo_b = {
+        "id_recurso": id_recurso,
+        "convidados": 4,
+        "inicio": "2026-10-01T15:30:00Z",
+        "fim": "2026-10-01T16:30:00Z",
+    }
+    status: list[int] = []
+
+    def reservar_b():
+        cliente = TestClient(
+            app, base_url="https://testserver/api", raise_server_exceptions=False
+        )
+        resposta = cliente.post("/reservas", json=corpo_b, headers=cabecalho)
+        status.append(resposta.status_code)
+
+    def reserva(inicio_h, inicio_m, fim_h, fim_m):
+        return Reserva(
+            id_usuario=id_usuaria,
+            id_recurso=id_recurso,
+            convidados=4,
+            periodo=Range(
+                datetime(2026, 10, 1, inicio_h, inicio_m, tzinfo=UTC),
+                datetime(2026, 10, 1, fim_h, fim_m, tzinfo=UTC),
+                bounds="[)",
+            ),
+            status_reserva="confirmada",
+        )
+
+    thread = threading.Thread(target=reservar_b, daemon=True)
+
+    # Agir
+    with fabrica_de_teste() as teste:
+        teste.add(reserva(15, 0, 16, 0))  # A
+        teste.flush()
+        thread.start()
+        esperar_alguem_travado(fabrica_de_teste)
+        teste.add(reserva(16, 0, 17, 0))  # C: fecha o círculo
+        teste.flush()
+    thread.join(timeout=PRAZO)
+
+    # Conferir
+    assert not thread.is_alive(), "a thread pendurou"
+    assert status == [409]

@@ -58,10 +58,12 @@ class ReservaNaoEncontrada(ErroDeDominio):
 
 
 class HorarioOcupado(ErroDeDominio):
-    """Violação da `ex_reserva_sem_sobreposicao`.
+    """O horário pedido já está ocupado no recurso.
 
-    O ReservaRepository traduz o IntegrityError nesta exceção pelo nome da
-    constraint (ADR 0014), e o main.py a devolve como 409.
+    O ReservaRepository traduz nesta exceção dois erros do INSERT (ADR 0014):
+    o IntegrityError da `ex_reserva_sem_sobreposicao`, pelo nome da constraint,
+    e o deadlock da conferência dessa mesma constraint, pelo código (40P01,
+    emenda de 2026-10-27). O main.py a devolve como 409.
     """
 
 

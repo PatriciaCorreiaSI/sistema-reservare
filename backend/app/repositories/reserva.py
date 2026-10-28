@@ -4,7 +4,7 @@ from datetime import datetime
 import psycopg
 from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.dialects.postgresql import Range
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.models import Reserva
@@ -46,6 +46,10 @@ class ReservaRepository:
                 raise HorarioOcupado from erro
             if constraint == FK_RECURSO:
                 raise RecursoNaoEncontrado from erro
+            raise
+        except OperationalError as erro:
+            if isinstance(erro.orig, psycopg.errors.DeadlockDetected):
+                raise HorarioOcupado from erro
             raise
         return reserva
 

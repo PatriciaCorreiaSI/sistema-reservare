@@ -479,10 +479,10 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 > que a tela mostra num erro do servidor. Decisões nos ADRs
 > [0028](adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a
 > [0034](adr/0034-construir-imagem-da-raiz-do-repositorio.md). O e2e instável no CI revelou dois
-> bugs de transação: o commit saía depois da resposta (corrigido, emenda ao 0010) e o deadlock da
-> `EXCLUDE` vira `500` (decidido, emenda ao 0014). 145 testes verdes.
+> bugs de transação, os dois corrigidos: o commit saía depois da resposta (emenda ao 0010) e o
+> deadlock da `EXCLUDE` virava `500` em vez de `409` (emenda ao 0014). 146 testes verdes.
 >
-> **Falta:** o teste e o conserto do deadlock, e o backup (ADR 0032).
+> **Falta:** o backup (ADR 0032).
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 
