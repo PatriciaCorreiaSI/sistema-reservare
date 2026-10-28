@@ -1,0 +1,106 @@
+name: Backup
+
+# ADR 0032: todo backup é restaurado e conferido antes de ser guardado.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+      timezone: "America/Sao_Paulo"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres-user-backup
+          POSTGRES_PASSWORD: postgres-password-backup
+          POSTGRES_DB: reservare_restaurado
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # As ferramentas do Postgres 16, pelo caminho: o pg_dump do PATH seria a
+      # versão mais nova instalada no runner, e o dump precisa voltar num 16.
+      PG_BIN: /usr/lib/postgresql/16/bin
+      URL_RESTAURADO: postgresql://postgres-user-backup:postgres-password-backup@127.0.0.1:5432/reservare_restaurado
+      CHAVE_PUBLICA: age1ncxpwlc7tu3r8tshppkfhnan94d89f4cc265dny2zsmg7khx245sn74xd7
+      CONTAGEM: >-
+        SELECT 'alembic_version', count(*) FROM alembic_version
+        UNION ALL SELECT 'recurso', count(*) FROM recurso
+        UNION ALL SELECT 'refresh_token', count(*) FROM refresh_token
+        UNION ALL SELECT 'reserva', count(*) FROM reserva
+        UNION ALL SELECT 'usuario', count(*) FROM usuario
+        ORDER BY 1
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Instalar o age
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          "$PG_BIN/pg_dump" --version
+          age --version
+
+      - name: Dump do Neon, com o papel só de leitura
+        env:
+          NEON_URL_BACKUP: ${{ secrets.NEON_URL_BACKUP }}
+        run: |
+          test -n "$NEON_URL_BACKUP" || { echo "::error::falta o secret NEON_URL_BACKUP"; exit 1; }
+          "$PG_BIN/pg_dump" "$NEON_URL_BACKUP" --format=custom --no-owner --no-privileges --file=reservare.dump
+          "$PG_BIN/psql" "$NEON_URL_BACKUP" -At -c "$CONTAGEM" > contagem-neon.txt
+
+      - name: Restaurar no Postgres descartável
+        run: |
+          "$PG_BIN/pg_restore" --dbname="$URL_RESTAURADO" --exit-on-error --no-owner --no-privileges reservare.dump
+
+      - name: Instalar o uv
+        uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Conferir o esquema e a revisão
+        working-directory: backend
+        env:
+          POSTGRES_USER: postgres-user-backup
+          POSTGRES_PASSWORD: postgres-password-backup
+          POSTGRES_DB: reservare_restaurado
+          DB_HOST: 127.0.0.1
+        run: |
+          uv sync --locked
+          uv run alembic check
+
+      - name: Conferir a EXCLUDE
+        run: |
+          achadas=$("$PG_BIN/psql" "$URL_RESTAURADO" -At -c "SELECT count(*) FROM pg_constraint WHERE conname = 'ex_reserva_sem_sobreposicao' AND contype = 'x'")
+          test "$achadas" = 1 || { echo "::error::a EXCLUDE não voltou na restauração"; exit 1; }
+
+      - name: Conferir as contagens
+        run: |
+          "$PG_BIN/psql" "$URL_RESTAURADO" -At -c "$CONTAGEM" > contagem-restaurada.txt
+          cat contagem-restaurada.txt
+          diff contagem-neon.txt contagem-restaurada.txt || { echo "::error::as contagens diferem: o banco mudou durante o backup, ou o dump veio incompleto. Rode de novo pelo botão."; exit 1; }
+
+      - name: Criptografar
+        run: |
+          age --recipient "$CHAVE_PUBLICA" --output reservare.dump.age reservare.dump
+          rm reservare.dump
+          echo "DATA=$(TZ=America/Sao_Paulo date +%F)" >> "$GITHUB_ENV"
+
+      - name: Guardar
+        uses: actions/upload-artifact@v7
+        with:
+          name: backup-${{ env.DATA }}
+          path: reservare.dump.age
+          retention-days: 90
+          if-no-files-found: error

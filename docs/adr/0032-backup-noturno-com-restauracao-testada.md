@@ -37,7 +37,7 @@ Os ganhos:
 - Reaproveita o *service container* do Postgres que o CI já usa.
 
 Os custos:
-- O dump precisa ser criptografado, e a senha da criptografia vira mais um segredo; perdê-la é perder todos os backups;
+- O dump precisa ser criptografado, e a chave privada que o abre fica fora do GitHub; perdê-la é perder todos os backups;
 - Os artifacts duram no máximo 90 dias em repositório público;
 - O GitHub desliga o agendamento depois de 60 dias sem atividade no repositório, e o backup para em silêncio;
 - Entre um backup e o seguinte, até um dia de dados pode se perder (o histórico de 6 horas do Neon cobre só parte disso).

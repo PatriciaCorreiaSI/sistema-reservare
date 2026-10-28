@@ -123,7 +123,8 @@ Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desen
   o caminho do arquivo fica na imagem, não na URL. Por isso a URL do Neon com `verify-full` **não
   conecta do Windows** — teste contra o Neon roda dentro da imagem (`docker run -e NEON_URL`, sem
   valor, para a senha não ir ao histórico). Região: Virgínia no Render e no Neon (`us-east-1`),
-  API e banco juntos. `render.yaml` pronto: `plan: free` escrito (sem ele o Render cria pago),
+  API e banco juntos. O Neon está em **Postgres 16**, o mesmo do compose e do CI (o `pg_dump`
+  recusa servidor mais novo que ele). `render.yaml` pronto: `plan: free` escrito (sem ele o Render cria pago),
   `region` imutável depois de criado, `sync: false` só pergunta o valor na criação do Blueprint
   (`DATABASE_URL`, `ADMIN_SENHA`), `JWT_SEGREDO` por `generateValue`. O `CMD` usa `--port
   ${PORT:-8000}` (o Render manda o tráfego para a `PORT`, 10000; o compose fica no 8000). O app
