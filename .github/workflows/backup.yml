@@ -34,7 +34,7 @@ jobs:
       # versão mais nova instalada no runner, e o dump precisa voltar num 16.
       PG_BIN: /usr/lib/postgresql/16/bin
       URL_RESTAURADO: postgresql://postgres-user-backup:postgres-password-backup@127.0.0.1:5432/reservare_restaurado
-      CHAVE_PUBLICA: age1ncxpwlc7tu3r8tshppkfhnan94d89f4cc265dny2zsmg7khx245sn74xd7
+      CHAVE_PUBLICA: age1r7xz6hndjt6h5eprj2ms3jctrghnfpmqxg3mk7ghe4ec5xr574ysg0p9je
       CONTAGEM: >-
         SELECT 'alembic_version', count(*) FROM alembic_version
         UNION ALL SELECT 'recurso', count(*) FROM recurso
