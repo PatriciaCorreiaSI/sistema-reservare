@@ -5,7 +5,7 @@
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
 > ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 8 — observabilidade e deploy.** O sistema está no ar; falta o backup do banco de produção.
+> Fase atual: **Etapa 9 — vitrine.** O sistema está no ar, com backup noturno e restauração testada.
 
 ## Experimente
 
@@ -102,7 +102,8 @@ Por fim, minhas reservas: as próximas em cartões, com o cancelamento confirmad
 | Reservas, concorrência e estados | ✅ concluída — criar, listar, consultar e cancelar reservas, consulta de horários livres, sobreposição recusada pelo banco e traduzida em `409`; testes de IDOR e de concorrência verdes ([ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md) a [0019](docs/adr/0019-disponibilidade-como-lacunas-livres.md)) |
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
 | Front-end | ✅ concluída — login, recursos, horários livres, reservar e cancelar, em tema claro e escuro ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0027](docs/adr/0027-estilizar-front-com-tailwind.md)); 16 testes de ponta a ponta (Playwright) no CI |
-| Deploy | 🔨 em curso — no ar em [reservare.onrender.com](https://reservare.onrender.com): API no Render e banco no Neon, uma imagem só para a API e as telas, deploy só com o CI verde, e logs em JSON com um ID de correlação que a tela mostra num erro do servidor ([ADR 0028](docs/adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a [0034](docs/adr/0034-construir-imagem-da-raiz-do-repositorio.md)); falta o backup |
+| Deploy | ✅ concluída — no ar em [reservare.onrender.com](https://reservare.onrender.com): API no Render e banco no Neon, uma imagem só para a API e as telas, deploy só com o CI verde, logs em JSON com um ID de correlação que a tela mostra num erro do servidor, e [backup noturno](#backup-e-restauração) restaurado e conferido antes de ser guardado ([ADR 0028](docs/adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a [0034](docs/adr/0034-construir-imagem-da-raiz-do-repositorio.md)) |
+| Vitrine | 🔨 em curso |
 
 Nada é listado como pronto antes de estar funcionando.
 
@@ -183,6 +184,76 @@ Para rodar as verificações à mão, sem commitar:
 ```bash
 cd backend && uv run pre-commit run --all-files
 ```
+
+---
+
+## Backup e restauração
+
+Toda noite, às 3h17 de Brasília, o workflow [`backup.yml`](.github/workflows/backup.yml) faz o
+dump do banco de produção com um papel do Postgres que só lê, **restaura o dump num Postgres
+descartável e o confere** — o esquema pelo `alembic check`, a `EXCLUDE` e a contagem de cada
+tabela contra a produção — e só então o criptografa com [`age`](https://github.com/FiloSottile/age)
+e o guarda como artifact, por 90 dias. Se a restauração ou a conferência falhar, o workflow fica
+vermelho e nada é guardado ([ADR 0032](docs/adr/0032-backup-noturno-com-restauracao-testada.md)).
+O botão **Run workflow** roda um backup fora de hora.
+
+O workflow só tem a chave **pública**: o backup se tranca no GitHub e só abre com a chave privada,
+que fica com a autora, fora do repositório.
+
+### Restaurar um backup
+
+Ensaiado de ponta a ponta em 2026-10-28, no Windows (PowerShell), restaurando num banco à parte do
+Postgres do compose. Precisa do `db` no ar, do `age` (`winget install --id FiloSottile.age
+--exact`, e um terminal aberto depois da instalação) e do arquivo da chave privada.
+
+1. Na execução mais recente do workflow **Backup**, em **Artifacts**, baixar o `backup-AAAA-MM-DD`
+   (vem como `.zip`).
+2. Abrir e descriptografar, da raiz do repositório:
+
+   ```powershell
+   $pasta = "$env:TEMP\restauracao"
+   New-Item -ItemType Directory -Force $pasta | Out-Null
+   Expand-Archive "$env:USERPROFILE\Downloads\backup-AAAA-MM-DD.zip" -DestinationPath $pasta
+   age -d -i "<arquivo da chave privada>" -o "$pasta\reservare.dump" "$pasta\reservare.dump.age"
+   ```
+
+3. Restaurar num banco novo, `restauracao`, sem tocar no de desenvolvimento:
+
+   ```powershell
+   docker compose cp "$pasta\reservare.dump" db:/tmp/reservare.dump
+   docker compose exec -T db sh -c 'createdb -U $POSTGRES_USER restauracao && pg_restore -U $POSTGRES_USER -d restauracao --exit-on-error --no-owner --no-privileges /tmp/reservare.dump && echo RESTAURADO'
+   ```
+
+4. Conferir: as contagens têm que ser as do passo **Conferir as contagens** daquela execução, e a
+   `EXCLUDE` tem que voltar com `contype` = `x`.
+
+   ```powershell
+   @'
+   SELECT 'alembic_version', count(*) FROM alembic_version
+   UNION ALL SELECT 'recurso', count(*) FROM recurso
+   UNION ALL SELECT 'refresh_token', count(*) FROM refresh_token
+   UNION ALL SELECT 'reserva', count(*) FROM reserva
+   UNION ALL SELECT 'usuario', count(*) FROM usuario
+   ORDER BY 1;
+   SELECT conname, contype FROM pg_constraint WHERE conname = 'ex_reserva_sem_sobreposicao';
+   '@ | Set-Content -Encoding ascii "$pasta\conferir.sql"
+   docker compose cp "$pasta\conferir.sql" db:/tmp/conferir.sql
+   docker compose exec -T db sh -c 'psql -U $POSTGRES_USER -d restauracao -f /tmp/conferir.sql'
+   ```
+
+5. Limpar — o dump aberto é a cópia legível dos dados de produção:
+
+   ```powershell
+   docker compose exec -T db sh -c 'dropdb -U $POSTGRES_USER restauracao && rm /tmp/reservare.dump /tmp/conferir.sql && echo LIMPO'
+   Remove-Item -Recurse -Force $pasta
+   ```
+
+Duas armadilhas do PowerShell 5.1 que o roteiro já contorna: ele come as aspas duplas dentro de um
+argumento de executável nativo (por isso `$POSTGRES_USER` vai sem aspas, e o SQL vai por arquivo,
+não por `psql -c`), e põe uma marca invisível (BOM) no começo do que manda por pipe (por isso a
+chave é lida de arquivo, e o `.sql` é gravado em `ascii`).
+
+Devolver um backup ao Neon, no lugar do banco de produção, ainda não foi ensaiado.
 
 ---
 

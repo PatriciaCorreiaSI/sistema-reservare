@@ -216,8 +216,8 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | —      | Etapa 5             | **suprimida** ao enxugar o plano original: o conteúdo foi diluído nas etapas vizinhas. A numeração seguinte foi mantida porque ADRs, commits e `CLAUDE.md` já a citam |
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
 | 10–12  | Etapa 7             | ✅ **concluída** — ADRs 0023 a 0027; sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna (com o `409` explicado) e minhas reservas com cancelar, com o visual final (Tailwind) em claro e escuro; 14 testes Playwright no CI |
-| 13     | **Etapa 8**         | 🔨 **é aqui que estamos** — **URL pública funcionando — projeto completo** |
-| 14     | Etapa 9             | README, ADRs consolidados, diagrama, post                                 |
+| 13     | Etapa 8             | ✅ **concluída** — **URL pública funcionando — projeto completo**: ADRs 0028 a 0034; logs com ID de correlação, deploy só com o CI verde, backup noturno restaurado antes de ser guardado; 146 testes verdes |
+| 14     | **Etapa 9**         | 🔨 **é aqui que estamos** — README, ADRs consolidados, diagrama, post     |
 
 **Total: 14 semanas de trabalho.** Com uma semana de folga a cada quatro — e vai precisar —, dá **cerca de 4 meses**.
 
@@ -473,16 +473,12 @@ Login, listagem, calendário de disponibilidade e criar/cancelar reserva funcion
 
 ### 📡 Etapa 8 — Observabilidade e deploy
 
-> **🔨 Em curso.** No ar desde 2026-10-27 em `https://reservare.onrender.com`: API no Render e
-> banco no Neon, no plano grátis, com a API servindo o front numa imagem só; a cada partida, migra
-> o banco e semeia a demonstração; deploy só com o CI verde; logs em JSON com um ID de correlação
-> que a tela mostra num erro do servidor. Decisões nos ADRs
+> **✅ Concluída em 2026-10-28.** No ar em `https://reservare.onrender.com` (Render e Neon, plano
+> grátis): deploy só com o CI verde, logs com ID de correlação e backup noturno restaurado antes de
+> ser guardado, com a restauração ensaiada (roteiro no README). ADRs
 > [0028](adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a
-> [0034](adr/0034-construir-imagem-da-raiz-do-repositorio.md). O e2e instável no CI revelou dois
-> bugs de transação, os dois corrigidos: o commit saía depois da resposta (emenda ao 0010) e o
-> deadlock da `EXCLUDE` virava `500` em vez de `409` (emenda ao 0014). 146 testes verdes.
->
-> **Falta:** o backup (ADR 0032).
+> [0034](adr/0034-construir-imagem-da-raiz-do-repositorio.md), e dois bugs de transação achados
+> pelo e2e instável (emendas aos 0010 e 0014). 146 testes verdes.
 
 **Objetivo:** existir uma URL pública — e você conseguir descobrir o que aconteceu quando algo quebra.
 

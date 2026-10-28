@@ -89,7 +89,8 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| **8 — observabilidade e deploy** | **em curso** | ADRs 0028–0034 |
+| 8 — observabilidade e deploy | 2026-10-28 | ADRs 0028–0034, emendas aos 0010 e 0014 |
+| **9 — vitrine** | **próxima** | — |
 
 Suíte do back-end em `146 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -104,89 +105,57 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 
 ## Próximo passo
 
-**Etapa 8 — observabilidade e deploy** (ROADMAP): URL pública com dados de demonstração e
-credenciais de teste no README; um erro em produção rastreável pelo ID de correlação. **Fase 1
-concluída em 2026-10-22** (ADRs 0028–0033, pesquisa conferida nas páginas oficiais nesse dia).
-Agora a **fase 2, o desenho**, um ADR por vez. O que cada um deixou para o desenho:
+**Etapa 9 — vitrine** (ROADMAP): o projeto legível em dois minutos por quem nunca o viu — README
+com GIF, diagrama de arquitetura e a seção "Decisões técnicas", `docs/colaboracao-ia.md`, "O que
+eu faria diferente", diagrama do modelo em Mermaid, `aprendizados.md` publicado e o post sobre a
+corrida de reservas. Critério de pronto: uma pessoa desconhecida entende, abre a demonstração e
+roda o projeto localmente sem perguntar nada. Primeiro, ver no ROADMAP o que dela já existe.
 
-- **0029 (logs):** pronto. Back-end: `logging_config.py`, middleware, handler do `500`,
-  `test_logs.py`. Front: o `ErroDaApi` guarda o `X-Request-ID` em `codigo`, e o `CodigoDoErro` o
-  mostra só nos 5xx, dentro das oito mensagens de erro do servidor (é um `<span>` em bloco, porque
-  `<p>` dentro de `<p>` não é HTML válido). O e2e monta a resposta com `page.route` + `fulfill`,
-  porque a API não quebra de propósito.
-- **0031 (configuração):** a `DATABASE_URL` está pronta (`make_url` + `.set(drivername=...)`;
-  vazia conta como ausente, `test_db.py`). `sslmode` decidido em 2026-10-27, testado contra o
-  Neon: `sslmode=verify-full&sslrootcert=system&channel_binding=require` na URL, e `ENV
-  SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` no `Dockerfile`. O `psycopg-binary` traz
-  OpenSSL próprio, que não acha as raízes do sistema sozinho (`certificate verify failed` no
-  Windows e na imagem); a variável aponta o `system` para o pacote `ca-certificates` do Debian, e
-  o caminho do arquivo fica na imagem, não na URL. Por isso a URL do Neon com `verify-full` **não
-  conecta do Windows** — teste contra o Neon roda dentro da imagem (`docker run -e NEON_URL`, sem
-  valor, para a senha não ir ao histórico). Região: Virgínia no Render e no Neon (`us-east-1`),
-  API e banco juntos. O Neon está em **Postgres 16**, o mesmo do compose e do CI (o `pg_dump`
-  recusa servidor mais novo que ele). `render.yaml` pronto: `plan: free` escrito (sem ele o Render cria pago),
-  `region` imutável depois de criado, `sync: false` só pergunta o valor na criação do Blueprint
-  (`DATABASE_URL`, `ADMIN_SENHA`), `JWT_SEGREDO` por `generateValue`. O `CMD` usa `--port
-  ${PORT:-8000}` (o Render manda o tráfego para a `PORT`, 10000; o compose fica no 8000). O app
-  do Render no GitHub só tem acesso ao `sistema-reservare`.
-- **0028 e 0034 (front servido pela API):** pronto (2026-10-26). `app.frontend()` nativo do
-  FastAPI, não subclasse do `StaticFiles`: decide pelo `Accept` (navegação recebe o `index.html`;
-  `fetch`, `<script>` e asset sumido recebem `404` em JSON), sem lista de prefixos para manter. Só
-  monta com `PASTA_DO_FRONT` (vazia = ausente), com `check_dir=True`; **não** o `FASTAPI_ENV`, que
-  sem o `dist/` faz toda rota inexistente virar `500`. O pytest não vê o front (o `app` monta na
-  importação, sem a variável); a prova é a imagem. `Dockerfile` e `.dockerignore` na raiz (ADR 0034
-  substitui o 0006), em duas etapas; o `.dockerignore` protege (`.env`, `node_modules` e `.venv`
-  do Windows).
-- **0033 (semeadura):** pronto (`app/comandos/semear_demonstracao.py`). Desenho que o código não
-  conta: a guarda liga só com `"1"` exato (comando destrutivo; `"false"` é string verdadeira); "cria
-  o que faltar" **pergunta antes** (tentar e pegar o `IntegrityError` abortaria a transação); o
-  `DELETE` só alcança a lista fixa de e-mails; todas as reservas passam pelo `ReservaService` — o
-  histórico (concluída e cancelada) com o relógio de três dias atrás, porque reserva de exemplo
-  que a regra recusaria é demonstração que mente; horários e funcionamento realistas (8h–18h),
-  decisão da autora; domínio `.example` (RFC 2606). Se o admin reservar em produção um horário de
-  exemplo, a partida para com `HorarioOcupado` (falhar alto, de propósito).
-- **0030 (partida):** pronto (2026-10-26). `CMD ["sh", "-c", "... && ... && exec uvicorn ..."]`
-  com o `.venv` no `PATH`, sem `uv run`: o `exec` faz o `uvicorn` ser o PID 1 e receber o `SIGTERM`
-  do Render (sem `exec`, saída `137`; com `exec uv run`, `143`; assim, `0`). Linha no `CMD`, não
-  `partida.sh`: o VS Code cria o arquivo em CRLF, e o `docker build` copia do disco, antes do
-  `.gitattributes` agir. Imagem com `uv sync --locked --no-dev` (472 → 329 MB). O `docker compose
-  up` migra o banco de desenvolvimento.
-- **0032 (backup):** o papel só de leitura no Neon, o horário, a criptografia, o que a conferência
-  confere.
+Pendência da autora: a **segunda cópia** da chave do backup, fora deste computador.
 
-**No ar desde 2026-10-27** em `https://reservare.onrender.com`. Conferido em produção: `/health`,
-o front e o F5, `401` e `404` em JSON, login da Ana e do admin, e um `X-Request-ID` achado na busca
-dos logs do Render (o `500` em si só se prova localmente: a API não quebra de propósito).
+## Produção (Etapa 8): o que o código não conta
 
-**Resolvido em 2026-10-27: o commit depois da resposta** (emenda ao ADR 0010). Com o `scope`
-padrão (`"request"`), o trecho depois do `yield` roda depois de a resposta sair: o `201` saía antes
-do commit, e o e2e do CI lia o dado velho (flaky desde 2026-10-23, escondido pelo `retries: 2`).
-Agora os serviços recebem `sessao: Sessao` (`app/db.py`, `scope="function"`). O teste é o
-`test_a_reserva_ja_esta_gravada_quando_o_201_sai`: embrulha o `app` num ASGI que, no
-`http.response.start`, conta as reservas por outra conexão (o `TestClient` sozinho espera a
-requisição inteira e passa verde com o defeito). **Run verde com `flaky` é sintoma, não sorte.**
-
-**Resolvido em 2026-10-28: o deadlock da `EXCLUDE`** (emenda de 2026-10-27 ao ADR 0014). Dois
-`INSERT` simultâneos gravam a linha antes de conferir a `EXCLUDE` e cada um espera o outro; o
-Postgres aborta um com `40P01` (`OperationalError`), e a perdedora recebia `500`. Agora o
-`ReservaRepository.criar` traduz o `DeadlockDetected` em `HorarioOcupado` (`409`). O teste
-(`test_deadlock_na_exclude_devolve_409`) não depende da coincidência: monta o mesmo círculo em
-câmera lenta — A gravada sem commit, B pela API (espera A), C pelo teste (sobrepõe B, encosta em
-A; espera a API) — e fecha o círculo assim que a `pg_stat_activity` mostra a API em `wait_event =
-'transactionid'`. Quem é abortado é quem começou a esperar primeiro (o `deadlock_timeout` dele
-vence antes), e a procura por círculo roda **uma vez por espera**: se C demorasse mais que o
-`deadlock_timeout` (1 s), o abortado seria o teste. A thread usa `raise_server_exceptions=False`,
-senão o defeito some dentro dela e o vermelho vira `[] == [409]`.
-
-**Próximo: o backup (ADR 0032)**, a fase 2 dele: o papel só de leitura no Neon, o horário, a
-criptografia, o que a conferência confere. Com ele, a Etapa 8 fecha.
-
-**A URL do Neon nunca passa pelo chat nem por arquivo:** entra no terminal por `Read-Host` (o que
-se digita no comando vai para o histórico do PSReadLine), sai para o Render por `Set-Clipboard`, e
-no container por `-e NEON_URL` sem valor. Em 2026-10-27 ela foi colada no chat e a senha do
-`neondb_owner` foi trocada (Neon: **Reset password** do papel; a tela muda de versão, e o
-`ALTER ROLE` por SQL é o caminho que não depende dela). Senha nova = `DATABASE_URL` nova no painel
-do Render.
+- **Logs (0029):** o `X-Request-ID` só aparece na tela nos 5xx (`CodigoDoErro`, um `<span>` em
+  bloco: `<p>` dentro de `<p>` não é HTML válido). O `500` se prova só localmente e, no e2e, por
+  `page.route` + `fulfill`: a API não quebra de propósito.
+- **Conexão com o Neon (0031):** `sslmode=verify-full&sslrootcert=system&channel_binding=require`
+  na URL e `SSL_CERT_FILE` no `Dockerfile`, porque o OpenSSL do `psycopg-binary` não acha as raízes
+  do sistema sozinho. Por isso essa URL **não conecta do Windows**: teste contra o Neon roda num
+  container (`-e NEON_URL` sem valor) — e a imagem `postgres:16` também não traz `ca-certificates`.
+  Render e Neon em `us-east-1`; Neon em Postgres 16 (o `pg_dump` recusa servidor mais novo que
+  ele). No `render.yaml`: `plan: free` escrito (sem ele o Render cria pago), `region` imutável,
+  `sync: false` só pergunta na criação do Blueprint; o `CMD` escuta a `PORT` (10000 no Render).
+- **Front pela API (0028, 0034):** `app.frontend()` decide pelo `Accept` (navegação recebe o
+  `index.html`; `fetch` e asset sumido, `404` em JSON). Liga pela `PASTA_DO_FRONT`, **não** pelo
+  `FASTAPI_ENV` (sem o `dist/`, toda rota inexistente viraria `500`). O pytest não vê o front; a
+  prova é a imagem. O `.dockerignore` protege `.env`, `node_modules` e o `.venv` do Windows.
+- **Partida (0030):** `exec uvicorn` no `CMD`, sem `uv run`, para o `uvicorn` ser o PID 1 e receber
+  o `SIGTERM` (saída `0`; sem `exec`, `137`). Linha no `CMD`, não `partida.sh`: o VS Code cria o
+  arquivo em CRLF, e o `docker build` copia do disco antes de o `.gitattributes` agir.
+- **Semeadura (0033):** a guarda liga só com `"1"` exato (`"false"` é string verdadeira); "cria o
+  que faltar" pergunta antes (o `IntegrityError` abortaria a transação); o `DELETE` só alcança a
+  lista fixa de e-mails; o histórico passa pelo `ReservaService` com o relógio três dias atrás
+  (exemplo que a regra recusaria é demonstração que mente). Se o admin reservar em produção um
+  horário de exemplo, a partida para com `HorarioOcupado`, de propósito.
+- **Backup (0032):** o `backup_leitura` foi criado **por SQL** (pelo painel do Neon entraria no
+  `neon_superuser`, que escreve), com `SELECT` também nas sequências (o dump guarda onde cada
+  `Identity` parou) e `ALTER DEFAULT PRIVILEGES` (tabelas de migrations futuras); host sem
+  `-pooler`. As contagens do Neon são lidas depois do dump: atividade no meio dá vermelho falso, e
+  basta rodar de novo. A chave privada é um **arquivo**, fora do repositório e de pasta
+  sincronizada, com segunda cópia fora do computador. Par só por `age-keygen -o`, nunca transcrito
+  à mão: o primeiro se perdeu na área de transferência, e só o ensaio de restauração descobriu.
+- **A URL do Neon nunca passa pelo chat nem por arquivo:** entra por `Read-Host` (o que se digita
+  no comando vai para o histórico do PSReadLine) e sai por `Set-Clipboard` ou `-e VAR` sem valor.
+  Se vazar, troca-se a senha do papel (Neon: **Reset password**, ou `ALTER ROLE`) e o destino dela:
+  a `DATABASE_URL` no Render (`neondb_owner`) ou o *secret* `NEON_URL_BACKUP` (`backup_leitura`).
+- **Os dois bugs de transação** que o e2e instável revelou (emendas aos 0010 e 0014). **Run verde
+  com `flaky` é sintoma, não sorte.** Commit antes da resposta: o serviço recebe `sessao: Sessao`
+  (`scope="function"`); o `TestClient` sozinho espera a requisição inteira e passa verde com o
+  defeito, então o teste espia o `http.response.start`. Deadlock da `EXCLUDE`: o teste monta o
+  círculo (A sem commit, B pela API, C pelo teste) e o fecha assim que a `pg_stat_activity` mostra
+  a API esperando; o abortado é quem esperou primeiro, e a procura por círculo roda **uma vez por
+  espera** (C tem até o `deadlock_timeout`, 1 s). A thread usa `raise_server_exceptions=False`,
+  senão o vermelho vira `[] == [409]`.
 
 ## Front-end: o que o desenho decidiu e o código não conta
 
@@ -567,6 +536,9 @@ do Render.
   (`node-version-file` e `cache-dependency-path` levam `frontend/` na frente).
 - **PowerShell não tem `head`** (`Select-Object -First 40`). O `npm` recusa conflito de *peer
   dependency* (`ERESOLVE`): é erro, não aviso.
+- **O pipe do PowerShell 5.1 para executável nativo põe BOM no começo** (`set: not found` com um
+  caractere invisível na frente, `unknown identity type`): passar por arquivo, ou
+  `[Console]::InputEncoding` e `$OutputEncoding` em UTF-8 sem BOM antes do pipe.
 - **Em tabela Markdown, todo `|` separa coluna**, mesmo dentro de *backticks*: escapar com `\|`.
 
 ## Backlog (regra 7 — nenhum é v1)
