@@ -139,6 +139,53 @@ guardado depois de restaurado e conferido.
 
 ---
 
+## Decisões técnicas
+
+**A regra de sobreposição mora no banco, não no código.** Conferir a disponibilidade antes de
+gravar deixa uma janela em que outra transação insere no mesmo horário. O período é um
+`tstzrange`, e uma `EXCLUDE` recusa a sobreposição na própria gravação — qualquer que seja o
+caminho que levou até ela ([ADR 0001](docs/adr/0001-periodo-como-valor-unico.md),
+[ADR 0007](docs/adr/0007-predicado-pelo-cancelamento.md)).
+
+**O cancelamento confere e grava no mesmo comando.** A mesma janela existe ao cancelar: entre ler
+"a reserva ainda não terminou" e gravar o cancelamento, o tempo passa. Um `UPDATE` com a condição
+no `WHERE` resolve num passo só; se nenhuma linha muda, a resposta é `409`
+([ADR 0016](docs/adr/0016-cancelar-pela-acao-com-update-condicional.md)).
+
+**Teste instável é investigado, não repetido.** Um e2e que falhava de vez em quando, escondido
+pelo *retry* do CI, revelou que a API respondia `201` antes de comitar; o teste de concorrência,
+que falhou uma vez em 25 rodadas, revelou um deadlock da `EXCLUDE` que chegava como `500`. Os dois
+viraram emendas, cada uma com um teste que reproduz o defeito
+([ADR 0010](docs/adr/0010-requisicao-e-transacao.md),
+[ADR 0014](docs/adr/0014-traduzir-violacao-da-constraint-pelo-nome.md)).
+
+**`404`, e não `403`, para a reserva de outra pessoa.** Com `403`, quem testa números de reserva
+descobre quais existem. Com `404`, "não existe" e "não é sua" são indistinguíveis por construção —
+a defesa contra o IDOR, primeiro da OWASP API Top 10, prevista na RFC 9110
+([ADR 0017](docs/adr/0017-404-a-quem-nao-pode-acessar-a-reserva.md)).
+
+**Testes contra o Postgres real, e a corrida provada de verdade.** Um dublê de banco não tem
+`EXCLUDE`, então o banco nunca é simulado — só o relógio e o fuso. O teste de concorrência libera
+duas requisições no mesmo instante por uma barreira entre threads, e o resultado tem de ser um
+`201` e um `409` ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md),
+[ADR 0015](docs/adr/0015-concorrencia-com-threads-e-barreira-pela-api.md)).
+
+**Access na memória, refresh num cookie que o JavaScript não lê.** O access dura 15 minutos e
+nunca vai para o `localStorage`; o refresh fica num cookie `HttpOnly`, troca a cada uso, e um
+refresh reapresentado é tratado como roubo: a família inteira de tokens é revogada
+([ADR 0012](docs/adr/0012-jwt-curto-com-refresh-no-banco.md),
+[ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md)).
+
+**Backup só é guardado depois de restaurado.** Toda noite, o dump é restaurado num Postgres
+descartável e conferido contra a produção antes de ser criptografado: backup que nunca foi
+restaurado é só uma esperança. Se a restauração ou a conferência falhar, nada é guardado e o
+workflow fica vermelho ([ADR 0032](docs/adr/0032-backup-noturno-com-restauracao-testada.md)).
+
+As demais decisões, cada uma com as alternativas descartadas e o sinal de que estaria errada,
+estão nos [ADRs](docs/adr/).
+
+---
+
 ## Stack
 
 **Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16 · `pwdlib` (Argon2) · PyJWT
