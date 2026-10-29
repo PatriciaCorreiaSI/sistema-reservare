@@ -1,5 +1,52 @@
 # 🛅 Modelo de Dados Conceitual para Banco de Dados PostgreSQL
 
+```mermaid
+erDiagram
+    USUARIO ||--o{ RESERVA : "faz"
+    RECURSO ||--o{ RESERVA : "é reservado em"
+    USUARIO |o--o{ RESERVA : "cancela"
+    USUARIO ||--o{ REFRESH_TOKEN : "recebe"
+
+    USUARIO {
+        int id_usuario PK
+        varchar(15) privilegio_usuario "admin ou usuario"
+        varchar(30) nome_usuario
+        varchar(50) email_usuario UK
+        varchar(100) senha_usuario_hash "Argon2"
+        varchar(30) status_usuario "ativo ou inativo"
+    }
+
+    RECURSO {
+        int id_recurso PK
+        varchar(30) nome_recurso
+        int ocupacao "maior que zero"
+        time hora_func_inicio "antes do fim"
+        time hora_func_fim
+        varchar(30) status_recurso "ativo ou inativo"
+    }
+
+    RESERVA {
+        int id_reserva PK
+        int id_usuario FK "quem reservou"
+        int id_recurso FK
+        int convidados "maior do que zero"
+        tstzrange periodo "semiaberto, sem sobreposição no recurso"
+        varchar(30) status_reserva "confirmada ou cancelada"
+        int cancelada_por_id_usuario FK "nulo se confirmada"
+        timestamptz cancelada_em "nulo se confirmada"
+    }
+ 
+    REFRESH_TOKEN {
+        int id_refresh_token PK
+        int id_usuario FK
+        varchar(64) hash_token UK "SHA-256"
+        uuid familia_token "de qual login descende"
+        timestamptz criado_em
+        timestamptz expira_em "depois de criado_em"
+        timestamptz revogado_em "nulo enquanto vivo"
+    }
+```
+
 ## 🔖RESERVA
 | coluna         | tipo | restrições | descrição | 
 |----------------|------|------------| ----------|
