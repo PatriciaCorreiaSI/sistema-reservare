@@ -348,7 +348,7 @@ Devolver um backup ao Neon, no lugar do banco de produção, ainda não foi ensa
 | [`docs/api.md`](docs/api.md) | Contrato HTTP: schemas por direção, rotas, códigos de resposta e o porquê de cada escolha |
 | [`docs/esquema-alvo.sql`](docs/esquema-alvo.sql) | O DDL escrito à mão na Etapa 1 — congelado como registro histórico; a partir da migration, a verdade sobre o esquema é o Alembic |
 | [`docs/prova-invariante.sql`](docs/prova-invariante.sql) | Sete casos que demonstram, em SQL puro, o que o banco aceita e o que recusa |
-| [`docs/adr/`](docs/adr/) | Decisões de arquitetura, com alternativas descartadas e consequências |
+| [`docs/adr/`](docs/adr/) | Decisões de arquitetura, com alternativas descartadas e consequências, e um índice por tema |
 | [`docs/aprendizados.md`](docs/aprendizados.md) | Um conceito por linha — o que cada etapa ensinou na prática |
 
 ---
