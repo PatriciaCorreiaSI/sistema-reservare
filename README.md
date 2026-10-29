@@ -25,10 +25,11 @@ concluída, cancelada). Duas coisas a saber:
   demonstração voltam ao estado inicial ([ADR 0033](docs/adr/0033-semear-demonstracao-na-partida.md)):
   o que você reservar pode sumir.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/telas/login-escuro.png">
-  <img alt="Tela de entrada do Reservare: à esquerda, o título “Salas, equipamentos e estações, sem conflito de horário”; à direita, o formulário com e-mail e senha e o seletor de tema claro ou escuro." src="docs/telas/login-claro.png">
-</picture>
+A corrida que o projeto existe para resolver, em 15 segundos: Ana (à esquerda) e Bruno (à direita)
+abrem o mesmo período livre da mesma sala e confirmam quase juntos. O banco aceita a primeira
+reserva e recusa a segunda.
+
+![Duas janelas lado a lado: Ana, no tema claro, e Bruno, no tema escuro, entram no Reservare e abrem a Sala de Reunião no mesmo dia, com o período livre das 15h30 às 18h. Os dois clicam em Reservar e confirmam o mesmo horário. A tela da Ana mostra “Reserva feita: 15:30–16:00”; a do Bruno, “Esse horário acabou de ser reservado por outra pessoa. Os horários livres foram atualizados.”, e o período livre passa a começar às 16h.](docs/telas/corrida.gif)
 
 Mais telas em [Telas](#telas).
 
