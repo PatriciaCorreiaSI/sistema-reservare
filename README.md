@@ -186,6 +186,27 @@ estão nos [ADRs](docs/adr/).
 
 ---
 
+## O que eu faria diferente
+
+**Não teria a coluna `status_reserva`.** A reserva guarda o cancelamento em três colunas: o status,
+quem cancelou e quando. Mas a `EXCLUDE` decide o que é uma reserva ativa só pelo `cancelada_em`, e
+o status precisa de uma `CHECK` só para não desmentir as outras duas. Cancelada é `cancelada_em`
+preenchido, assim como concluída já é deduzida do relógio. É a mesma duplicação que o
+[ADR 0002](docs/adr/0002-cancelamento-em-colunas.md) recusou entre duas tabelas, só que dentro de
+uma.
+
+**Poria os testes de ponta a ponta junto da primeira tela.** O Playwright chegou quando as telas já
+estavam prontas. Antes dele, um defeito no front — com a API fora do ar, a tela mandava para o
+login como se a sessão tivesse acabado — foi achado à mão e consertado sem teste, porque não havia
+como escrevê-lo. O teste veio doze dias depois.
+
+**Teria o CI desde o primeiro commit, mesmo com um teste só.** O `ruff` e o `mypy` rodaram a cada
+commit desde o segundo dia, mas a suíte de testes só passou a rodar a cada push um mês depois, na
+Etapa 6. Até lá, os testes rodavam na minha máquina e quando eu os rodava. Um workflow com um teste
+custa minutos para escrever, e daí em diante só cresce.
+
+---
+
 ## Stack
 
 **Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16 · `pwdlib` (Argon2) · PyJWT
