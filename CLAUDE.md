@@ -219,6 +219,10 @@ Pendência da autora: a **segunda cópia** da chave do backup, fora deste comput
   `url_do_ambiente()` em `app/db.py` (`URL.create()` escapa a senha); o `migrations/env.py` só
   deriva se `sqlalchemy.url` vier `None` — é por onde o `conftest.py` injeta a URL de teste. No
   deploy, aceitar uma `DATABASE_URL` pronta se vier.
+- **O `.env.example` funciona como está** (decidido em 2026-10-29, Etapa 9): traz os valores que o
+  `ci.yml` já publica, para quem clona rodar os testes sem perguntar — como o template oficial do
+  FastAPI. Só abrem a cópia local (`127.0.0.1`); a produção tem segredos próprios no Render,
+  conferidos diferentes. **Nunca levar esses valores para produção.**
 - **`load_dotenv` mora em `app/__init__.py`**; toda chave obrigatória é `os.environ[...]`, e o app
   falha no startup se faltar. `alembic.ini` tem `sqlalchemy.url` **comentada de propósito**. Toda
   variável nova também entra no `environment:` do `api` no `docker-compose.yml` — o container não
@@ -546,7 +550,10 @@ Pendência da autora: a **segunda cópia** da chave do backup, fora deste comput
 - **Segurança:** limite de tentativas no `/auth/login` (o Argon2 caro vira negação de serviço);
   login em tempo constante (hash falso quando o e-mail não existe); senha mínima de 15 (NIST
   SP 800-63B rev. 4; muda `"senha456"` nos testes); padrão BFF (IETF); janela de tolerância no
-  reuso do refresh (duas abas com F5 revogam a família; muda o ADR 0023).
+  reuso do refresh (duas abas com F5 revogam a família; muda o ADR 0023); o app recusar a partida
+  fora do ambiente local com um `JWT_SEGREDO` publicado no repositório (o do CI e o do
+  `.env.example`), como o Superset depois da CVE-2023-27524 — antes, decidir como o app sabe que
+  está em produção.
 - **Testes:** mutação (`mutmut`); propriedades (`Hypothesis`, para `calcular_lacunas` e
   `cabe_no_horario`); concorrência direto no banco, sem HTTP (ADR 0015); e2e no Firefox e no
   WebKit (o Safari não passa por botões com o Tab por padrão); e2e da imagem Docker da API;

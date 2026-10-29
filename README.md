@@ -127,7 +127,7 @@ Requisito: [uv](https://docs.astral.sh/uv/). Ele lê o `backend/.python-version`
 ```bash
 git clone https://github.com/PatriciaCorreiaSI/sistema-reservare.git
 cd sistema-reservare
-cp .env.example .env            # preencha as chaves; DB_HOST=127.0.0.1 no host
+cp .env.example .env            # valores de desenvolvimento, já prontos
 docker compose up -d db         # espere ficar (healthy) em `docker compose ps`
 
 cd backend
@@ -137,6 +137,8 @@ uv run uvicorn app.main:app --reload
 ```
 
 A API sobe em `http://127.0.0.1:8000` — `/health` responde `200`, e `/docs` traz a documentação interativa. O `.env` é obrigatório: a URL do banco é montada a partir dele na importação, sem valor padrão — a ausência de uma chave falha alto, de propósito.
+
+Os valores do `.env.example` são os mesmos que o CI já publica e servem só para a cópia local, que escuta apenas em `127.0.0.1`. A demonstração no ar usa segredos próprios, que nunca passaram pelo repositório. Para publicar o projeto em outro lugar, troque todos — em especial o `JWT_SEGREDO`: quem o conhece consegue assinar um token de admin.
 
 Para ver o sistema como ele vai para produção — a mesma imagem serve a API e as telas, e migra o banco ao subir:
 
@@ -148,18 +150,21 @@ As telas abrem em `http://localhost:8000` (`localhost`, não `127.0.0.1`: o cook
 
 ### Testes
 
-Precisam do `db` no ar e de um banco `reservare_test` criado uma vez à mão (`CREATE DATABASE reservare_test;` no psql do container). O `conftest.py` aplica as migrations nele a cada rodada; cada teste roda numa transação desfeita no fim ([ADR 0011](docs/adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md)).
+Precisam do `db` no ar e de um banco `reservare_test`, criado uma vez. O `conftest.py` aplica as migrations nele a cada rodada; cada teste roda numa transação desfeita no fim ([ADR 0011](docs/adr/0011-isolar-teste-em-transacao-desfeita-no-fim.md)).
 
 ```bash
+docker compose exec db sh -c 'createdb -U $POSTGRES_USER reservare_test'   # uma vez
 cd backend && uv run pytest
 ```
+
+Os testes que dão razão ao projeto são os de concorrência: duas requisições liberadas no mesmo instante disputam o mesmo horário, e a resposta tem de ser um `201` e um `409` — `uv run pytest -m concorrencia`.
 
 No CI, o mesmo `pytest` roda com `--cov=app --cov-report=term-missing`: o relatório lista as linhas
 que nenhum teste executou e nunca reprova o push — cobertura é alarme, não meta
 ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md)).
 
 Os testes de ponta a ponta (Playwright, só Chromium) precisam do `db` no ar e de um banco
-`reservare_e2e` criado à mão, como o de teste. O próprio Playwright sobe a API em `:8001` e o
+`reservare_e2e`, criado como o de teste (`createdb -U $POSTGRES_USER reservare_e2e`). O próprio Playwright sobe a API em `:8001` e o
 Vite em `:5174` — portas próprias, para nunca gravar no banco de desenvolvimento — e zera o
 `reservare_e2e` antes de cada rodada:
 

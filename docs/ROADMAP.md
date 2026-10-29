@@ -516,7 +516,7 @@ URL pública funcionando, com dados de demonstração e credenciais de teste no 
 - Post no LinkedIn sobre **um problema técnico** (a corrida de reservas), não sobre "terminei meu projeto"
 
 **Critério de pronto**
-Uma pessoa desconhecida entende o que o sistema faz, abre a demonstração e roda o projeto localmente — sem te perguntar nada.
+Uma pessoa desconhecida entende o que o sistema faz, abre a demonstração e roda os testes localmente — sem te perguntar nada. Ver o sistema funcionando é papel da demonstração; o que só se faz na própria máquina é conferir a prova.
 
 ---
 
