@@ -109,6 +109,36 @@ Nada é listado como pronto antes de estar funcionando.
 
 ---
 
+## Arquitetura
+
+```mermaid
+flowchart LR
+    navegador["Navegador<br/>React + TanStack Query"]
+
+    subgraph render["Render: um container"]
+        api["FastAPI<br/>/api → routers → services → repositories<br/>demais rotas → telas do dist/"]
+    end
+
+    neon[("Neon: PostgreSQL 16<br/>EXCLUDE sem sobreposição")]
+
+    subgraph github["GitHub Actions"]
+        direction TB
+        ci["CI<br/>lint, tipos, testes, e2e"]
+        backup["Backup noturno<br/>restaura, confere, criptografa"]
+    end
+
+    navegador -- "HTTPS" --> api
+    api -- "TLS verify-full" --> neon
+    ci -- "deploy só com o CI verde" --> render
+    backup -- "pg_dump, papel só de leitura" --> neon
+```
+
+Uma imagem só serve a API e as telas, e migra o banco ao subir. A regra de que duas reservas
+não se sobrepõem mora no banco, não na API. O deploy espera o CI ficar verde, e o backup só é
+guardado depois de restaurado e conferido.
+
+---
+
 ## Stack
 
 **Back-end** — Python 3.14 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · PostgreSQL 16 · `pwdlib` (Argon2) · PyJWT
@@ -267,7 +297,7 @@ Devolver um backup ao Neon, no lugar do banco de produção, ainda não foi ensa
 | Documento | O que contém |
 |---|---|
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Escopo, plano de execução e o que cada etapa ensina |
-| [`docs/modelo.md`](docs/modelo.md) | Modelo de dados, restrições e regras de negócio |
+| [`docs/modelo.md`](docs/modelo.md) | Diagrama do modelo de dados, restrições e regras de negócio |
 | [`docs/api.md`](docs/api.md) | Contrato HTTP: schemas por direção, rotas, códigos de resposta e o porquê de cada escolha |
 | [`docs/esquema-alvo.sql`](docs/esquema-alvo.sql) | O DDL escrito à mão na Etapa 1 — congelado como registro histórico; a partir da migration, a verdade sobre o esquema é o Alembic |
 | [`docs/prova-invariante.sql`](docs/prova-invariante.sql) | Sete casos que demonstram, em SQL puro, o que o banco aceita e o que recusa |
