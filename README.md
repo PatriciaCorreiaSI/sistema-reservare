@@ -349,6 +349,7 @@ Devolver um backup ao Neon, no lugar do banco de produção, ainda não foi ensa
 | [`docs/esquema-alvo.sql`](docs/esquema-alvo.sql) | O DDL escrito à mão na Etapa 1 — congelado como registro histórico; a partir da migration, a verdade sobre o esquema é o Alembic |
 | [`docs/prova-invariante.sql`](docs/prova-invariante.sql) | Sete casos que demonstram, em SQL puro, o que o banco aceita e o que recusa |
 | [`docs/adr/`](docs/adr/) | Decisões de arquitetura, com alternativas descartadas e consequências, e um índice por tema |
+| [`docs/colaboracao-ia.md`](docs/colaboracao-ia.md) | Como a IA foi usada, o que ela não fez, como cada sugestão foi conferida e as que recusei |
 | [`docs/aprendizados.md`](docs/aprendizados.md) | Um conceito por linha — o que cada etapa ensinou na prática |
 
 ---
@@ -357,7 +358,7 @@ Devolver um backup ao Neon, no lugar do banco de produção, ainda não foi ensa
 
 É um projeto de estudo, construído deliberadamente como exercício de **engenharia de software** e não como demonstração de framework. O tema é o veículo; o conteúdo é modelagem com garantias no banco, concorrência, estratégia de testes e automação.
 
-Sobre o uso de IA: ela é usada como revisora e tutora — para explicar conceitos, apontar falhas e sugerir alternativas. As decisões de arquitetura são minhas, ficam registradas em ADRs com as opções que descartei, e vale uma regra simples: **nenhuma linha entra neste repositório que eu não consiga explicar em voz alta.**
+Sobre o uso de IA: ela é usada como revisora e tutora — para explicar conceitos, apontar falhas e sugerir alternativas. As decisões de arquitetura são minhas, ficam registradas em ADRs com as opções que descartei, e vale uma regra simples: **nenhuma linha entra neste repositório que eu não consiga explicar em voz alta.** O protocolo completo, com as sugestões que recusei e os erros que os testes pegaram, está em [`docs/colaboracao-ia.md`](docs/colaboracao-ia.md).
 
 ---
 
