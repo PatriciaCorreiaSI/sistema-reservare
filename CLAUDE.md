@@ -105,19 +105,30 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 
 ## Próximo passo
 
-**O post no LinkedIn sobre a corrida de reservas** — o último item da Etapa 9, fora do repositório.
-Um problema técnico, não "terminei meu projeto": gancho (duas pessoas, o mesmo horário, as duas
-conseguem), por que verificar antes de gravar falha, a `EXCLUDE`, o que surpreendeu (o Postgres
-espera em vez de recusar; os dois bugs que o teste instável revelou), a prova, o link. Uma imagem:
-a linha do tempo das duas transações, sem e com a `EXCLUDE` (desenhar como protótipo; serve
-também ao README). O texto é dela; eu reviso precisão e ritmo. Depois do post, ela decide se segue
-para o bônus (ROADMAP §9: idempotência primeiro).
+**A série de posts no LinkedIn.** A parte 1, a corrida de reservas, foi publicada em 2026-10-29
+(imagem: a linha do tempo das duas transações, num artifact privado, "Corrida de reservas"). As
+próximas, uma a duas semanas entre elas:
+
+| Parte | Tema | Fonte |
+|---|---|---|
+| 2 | A IA como tutora, não como autora | `docs/colaboracao-ia.md` |
+| 3 | Backup só vale se for restaurado | ADR 0032 |
+| 4 | `404`, e não `403`: não contar que a reserva existe | ADR 0017 |
+
+O formato que a parte 1 fixou: título na primeira linha, curto e sozinho (nunca o "negrito"
+Unicode, que o leitor de tela soletra); gancho numa cena concreta antes do "ver mais"; jargão só
+depois do problema; 1.200–2.000 caracteres; link do repositório no corpo; uma pergunta a quem lê;
+"Reservare, parte N: <tema>." no fim; até três hashtags; texto alternativo na imagem. Cada post se
+sustenta sozinho. Eu sugiro o texto, ela ajusta. O GIF fica no README; a imagem do post é um
+diagrama do conceito, com as cores do Reservare.
+
+Fora da série, ainda em aberto: pôr o critério de pronto da Etapa 9 à prova com alguém que nunca
+viu o projeto seguindo o README do zero;
+a comparação com o mercado da Etapa 9, oferecida e adiada; e a decisão de seguir ou não para o
+bônus (ROADMAP §9: idempotência primeiro).
 
 Texto de vitrine (README, `colaboracao-ia.md`, post): "código **sugerido** pela IA", nunca "código
 da IA" — ela digitou tudo, e parte mudou na conversa.
-
-Pendência da autora: a **segunda cópia** da chave do backup, fora deste computador.
-
 ## Produção (Etapa 8): o que o código não conta
 
 - **Logs (0029):** o `X-Request-ID` só aparece na tela nos 5xx (`CodigoDoErro`, um `<span>` em
@@ -147,8 +158,11 @@ Pendência da autora: a **segunda cópia** da chave do backup, fora deste comput
   `Identity` parou) e `ALTER DEFAULT PRIVILEGES` (tabelas de migrations futuras); host sem
   `-pooler`. As contagens do Neon são lidas depois do dump: atividade no meio dá vermelho falso, e
   basta rodar de novo. A chave privada é um **arquivo**, fora do repositório e de pasta
-  sincronizada, com segunda cópia fora do computador. Par só por `age-keygen -o`, nunca transcrito
-  à mão: o primeiro se perdeu na área de transferência, e só o ensaio de restauração descobriu.
+  sincronizada. Par só por `age-keygen -o`, nunca transcrito à mão: o primeiro se perdeu na área de
+  transferência, e só o ensaio de restauração descobriu. **Segunda cópia da chave: dispensada
+  (2026-10-29).** Os dados de produção são só de demonstração, recriados na partida; perder a chave
+  custa gerar um par novo e trocar a pública no repositório, sem perda de dado. Num sistema com
+  dados reais, ela volta a ser obrigatória.
 - **A URL do Neon nunca passa pelo chat nem por arquivo:** entra por `Read-Host` (o que se digita
   no comando vai para o histórico do PSReadLine) e sai por `Set-Clipboard` ou `-e VAR` sem valor.
   Se vazar, troca-se a senha do papel (Neon: **Reset password**, ou `ALTER ROLE`) e o destino dela:
