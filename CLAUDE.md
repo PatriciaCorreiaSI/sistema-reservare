@@ -90,7 +90,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | 8 — observabilidade e deploy | 2026-10-28 | ADRs 0028–0034, emendas aos 0010 e 0014 |
-| **9 — vitrine** | **próxima** | — |
+| 9 — vitrine | 2026-10-29 | sem ADR; `.env.example` que funciona (decisão em vigor) |
 
 Suíte do back-end em `146 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -105,11 +105,16 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 
 ## Próximo passo
 
-**Etapa 9 — vitrine** (ROADMAP): o projeto legível em dois minutos por quem nunca o viu — README
-com GIF, diagrama de arquitetura e a seção "Decisões técnicas", `docs/colaboracao-ia.md`, "O que
-eu faria diferente", diagrama do modelo em Mermaid, `aprendizados.md` publicado e o post sobre a
-corrida de reservas. Critério de pronto: uma pessoa desconhecida entende, abre a demonstração e
-roda o projeto localmente sem perguntar nada. Primeiro, ver no ROADMAP o que dela já existe.
+**O post no LinkedIn sobre a corrida de reservas** — o último item da Etapa 9, fora do repositório.
+Um problema técnico, não "terminei meu projeto": gancho (duas pessoas, o mesmo horário, as duas
+conseguem), por que verificar antes de gravar falha, a `EXCLUDE`, o que surpreendeu (o Postgres
+espera em vez de recusar; os dois bugs que o teste instável revelou), a prova, o link. Uma imagem:
+a linha do tempo das duas transações, sem e com a `EXCLUDE` (desenhar como protótipo; serve
+também ao README). O texto é dela; eu reviso precisão e ritmo. Depois do post, ela decide se segue
+para o bônus (ROADMAP §9: idempotência primeiro).
+
+Texto de vitrine (README, `colaboracao-ia.md`, post): "código **sugerido** pela IA", nunca "código
+da IA" — ela digitou tudo, e parte mudou na conversa.
 
 Pendência da autora: a **segunda cópia** da chave do backup, fora deste computador.
 

@@ -217,7 +217,7 @@ Sem datas de propósito — as semanas avançam quando o critério de pronto é 
 | 9      | Etapa 6             | ✅ **concluída** — ADRs 0021 e 0022; CI verde a cada push com lint, tipos, testes e migrations; cobertura lida como alarme, com as regras de segurança sem teste cobertas; 104 testes verdes |
 | 10–12  | Etapa 7             | ✅ **concluída** — ADRs 0023 a 0027; sessão, rotas protegidas, login, lista de recursos, horários livres por dia, reservar numa lacuna (com o `409` explicado) e minhas reservas com cancelar, com o visual final (Tailwind) em claro e escuro; 14 testes Playwright no CI |
 | 13     | Etapa 8             | ✅ **concluída** — **URL pública funcionando — projeto completo**: ADRs 0028 a 0034; logs com ID de correlação, deploy só com o CI verde, backup noturno restaurado antes de ser guardado; 146 testes verdes |
-| 14     | **Etapa 9**         | 🔨 **é aqui que estamos** — README, ADRs consolidados, diagrama, post     |
+| 14     | Etapa 9             | ✅ **concluída no repositório** — README com o GIF da corrida, arquitetura, decisões técnicas e o que eu faria diferente; modelo em Mermaid, índice dos ADRs e `docs/colaboracao-ia.md`. Falta o post, fora do repositório |
 
 **Total: 14 semanas de trabalho.** Com uma semana de folga a cada quatro — e vai precisar —, dá **cerca de 4 meses**.
 
@@ -502,6 +502,14 @@ URL pública funcionando, com dados de demonstração e credenciais de teste no 
 ---
 
 ### 📖 Etapa 9 — Vitrine
+
+> **✅ Concluída no repositório em 2026-10-29.** O README abre com o GIF da corrida (duas pessoas, o
+> mesmo horário, o banco aceita uma e recusa a outra) e traz o diagrama de arquitetura, sete
+> decisões técnicas e três que eu faria diferente; o modelo ganhou o diagrama em Mermaid, os ADRs
+> um [índice por tema](adr/README.md), e a colaboração com a IA, o
+> [próprio documento](colaboracao-ia.md). O critério de pronto passou a pedir que se rodem os
+> **testes** localmente, não o sistema — ver o sistema funcionando é papel da demonstração —, e o
+> `.env.example` passou a funcionar como está. Falta o post, que fica fora do repositório.
 
 **Objetivo:** o trabalho está feito; agora precisa ser **legível em dois minutos** por quem nunca te viu.
 

@@ -4,9 +4,6 @@
 
 Sistema de reserva de recursos compartilhados — salas, equipamentos e estações de trabalho — construído com foco em **integridade de dados sob concorrência**.
 
-> ⚠️ **Em construção.** Este repositório documenta um projeto em andamento, etapa por etapa.
-> Fase atual: **Etapa 9 — vitrine.** O sistema está no ar, com backup noturno e restauração testada.
-
 ## Experimente
 
 **https://reservare.onrender.com**
@@ -104,7 +101,7 @@ Por fim, minhas reservas: as próximas em cartões, com o cancelamento confirmad
 | Testes e integração contínua | ✅ concluída — CI verde a cada push: lint, tipos, a suíte de testes com relatório de cobertura e vaivém das migrations contra Postgres de serviço ([ADR 0021](docs/adr/0021-testar-pelo-que-a-coisa-testada-depende.md), [ADR 0022](docs/adr/0022-container-de-servico-e-variaveis-no-workflow.md)); cobertura lida como alarme, e cada linha sem teste tem o porquê no ROADMAP |
 | Front-end | ✅ concluída — login, recursos, horários livres, reservar e cancelar, em tema claro e escuro ([ADR 0023](docs/adr/0023-guardar-refresh-em-cookie-httponly.md) a [0027](docs/adr/0027-estilizar-front-com-tailwind.md)); 16 testes de ponta a ponta (Playwright) no CI |
 | Deploy | ✅ concluída — no ar em [reservare.onrender.com](https://reservare.onrender.com): API no Render e banco no Neon, uma imagem só para a API e as telas, deploy só com o CI verde, logs em JSON com um ID de correlação que a tela mostra num erro do servidor, e [backup noturno](#backup-e-restauração) restaurado e conferido antes de ser guardado ([ADR 0028](docs/adr/0028-hospedar-api-no-render-e-banco-no-neon.md) a [0034](docs/adr/0034-construir-imagem-da-raiz-do-repositorio.md)) |
-| Vitrine | 🔨 em curso |
+| Vitrine | ✅ concluída — este README, o [diagrama do modelo](docs/modelo.md), o [índice dos ADRs](docs/adr/) e [como a IA foi usada](docs/colaboracao-ia.md) |
 
 Nada é listado como pronto antes de estar funcionando.
 
