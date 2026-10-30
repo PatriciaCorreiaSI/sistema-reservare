@@ -110,7 +110,8 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 **A série de posts no LinkedIn.** A parte 1, a corrida de reservas, foi publicada em 2026-10-29
 (imagem: a linha do tempo das duas transações, num artifact privado, "Corrida de reservas"). A
 parte 2 está pronta desde 2026-10-30 (texto fechado; imagem no artifact privado "Tutora, não
-autora"), para ir ao ar a partir de 2026-11-05; faltam só as hashtags e a pergunta final. As
+autora", já baixada), para ir ao ar a partir de 2026-11-05. A parte 3 se rascunha depois que a
+2 sair; o gancho candidato é o par de chaves perdido que só o ensaio de restauração achou. As
 próximas, uma a duas semanas entre elas:
 
 | Parte | Tema | Fonte |
@@ -128,8 +129,10 @@ diagrama do conceito, com as cores do Reservare.
 
 Fora da série, ainda em aberto: pôr o critério de pronto da Etapa 9 à prova com alguém que nunca
 viu o projeto seguindo o README do zero;
-a comparação com o mercado da Etapa 9, oferecida e adiada; e a decisão de seguir ou não para o
-bônus (ROADMAP §9: idempotência primeiro).
+a decisão de seguir ou não para o bônus (ROADMAP §9: idempotência primeiro) — se seguir, a tag
+`v1.0.0` (anotada, com GitHub Release) sai antes do primeiro commit do bônus; se não, sai como
+fechamento; e a imagem de prévia social do repositório (1280 × 640, enviada em *Settings*),
+antes de a parte 2 ir ao ar. A comparação com o mercado da Etapa 9 foi feita em 2026-10-30.
 
 Texto de vitrine (README, `colaboracao-ia.md`, post): "código **sugerido** pela IA", nunca "código
 da IA" — ela digitou tudo, e parte mudou na conversa.
@@ -246,6 +249,9 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
   `ci.yml` já publica, para quem clona rodar os testes sem perguntar — como o template oficial do
   FastAPI. Só abrem a cópia local (`127.0.0.1`); a produção tem segredos próprios no Render,
   conferidos diferentes. **Nunca levar esses valores para produção.**
+- **Sem licença, por ora** (decidido em 2026-10-30): o repositório público é para ler, não para
+  reaproveitar. A MIT foi a opção avaliada; licença concedida não se retira das cópias já feitas,
+  então não sugerir de novo sem motivo novo.
 - **`load_dotenv` mora em `app/__init__.py`**; toda chave obrigatória é `os.environ[...]`, e o app
   falha no startup se faltar. `alembic.ini` tem `sqlalchemy.url` **comentada de propósito**. Toda
   variável nova também entra no `environment:` do `api` no `docker-compose.yml` — o container não
