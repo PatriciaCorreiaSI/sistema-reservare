@@ -28,8 +28,10 @@ Duas emendas ao protocolo, cada uma com data e motivo:
   tentava de novo; o mesmo ponto chegava a três ou quatro rodadas. Mudei: eu tento uma vez, e para
   o que errei a IA traz a resposta certa com o conceito ao lado. Se a primeira tentativa errou, é
   porque eu não sabia o conceito — e dica não ensina o que não se sabe.
-- **Território novo (2026-10-06).** Para o que eu nunca tinha feito — cookies no FastAPI e todo o
-  front-end — a fase 3 deixou de existir. A IA passou a sugerir o código completo no chat, com o
+- **Código sugerido no front (2026-10-06).** Para os cookies no FastAPI e todo o front-end, a fase
+  3 deixou de existir. No front, não por ser novo: eu já tinha entregado projetos com React, Vite,
+  HTML e CSS, e repetir sintaxe que eu já sabia não ensinava. O novo ali era a arquitetura e a
+  segurança. A IA passou a sugerir o código completo no chat, com o
   conceito ao lado de cada trecho, e testado antes numa cópia fora do repositório (TypeScript,
   ESLint, Prettier e, quando cabia, o teste de ponta a ponta). Eu digitava, rodava e explicava em
   voz alta, e parte desse código mudou na conversa antes de entrar. Para o que eu já dominava —
@@ -41,7 +43,7 @@ Duas emendas ao protocolo, cada uma com data e motivo:
 |---|---|
 | Explicou conceitos, sempre antes do comando | Decidir arquitetura |
 | Revisou o que eu escrevi: código, testes e ADRs | Escrever ADR ou o [glossário](aprendizados.md) |
-| Sugeriu código no território novo, no chat | Escrever em arquivo de código: todo código foi digitado por mim |
+| Sugeriu código para os cookies e o front-end, no chat | Escrever em arquivo de código: todo código foi digitado por mim |
 | Trouxe a prática de mercado, com a fonte, quando eu não tinha base para decidir | Fazer commit: todos são meus |
 | Escreveu e manteve atualizados o README, o ROADMAP e o arquivo de instruções dela, o [`CLAUDE.md`](../CLAUDE.md), revisados por mim | |
 
@@ -115,9 +117,9 @@ teste rodado muitas vezes encontrou.
 
 - **A regra que mais importou foi decidir antes.** Com o ADR escrito, a IA sugere dentro de uma
   decisão minha; sem ele, a sugestão vira a decisão.
-- **Adivinhar o que nunca se viu não ensina.** A fase 3 vale para o que eu já sei fazer. No
-  território novo, o código sugerido com o conceito ao lado de cada trecho ensinou mais, e em
-  menos tempo, do que tentar sozinha.
+- **Gastar a fase 3 onde ela ensina.** Tentar sozinha vale para o que estou aprendendo a fazer.
+  Onde a sintaxe eu já sabia e o novo era o conceito, o código sugerido com o conceito ao lado de
+  cada trecho ensinou mais, e em menos tempo, do que tentar sozinha.
 - **Teste verde por sorte é sintoma.** Os dois piores defeitos do projeto apareceram como
   instabilidade, não como erro. Investigar o que falha "de vez em quando" valeu mais do que
   qualquer revisão.

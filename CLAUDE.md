@@ -61,10 +61,12 @@ Antes de escrever implementação, verifique em que fase ela está:
   decisão dela — escreva, e explique cada trecho.
 - Escrever _para ela ler e reescrever_ é diferente de escrever no lugar dela.
   Deixe claro qual dos dois está acontecendo.
-- **Território novo (acordado em 2026-10-06):** para o que ela nunca fez — cookies no FastAPI,
-  todo o front-end — a fase 3 não se aplica: traga o **código pronto no chat, com o conceito ao
-  lado de cada trecho**; ela copia para o arquivo, roda e explica em voz alta. Adivinhar o que
-  nunca se viu não ensina. A fase 3 continua valendo para o que ela já domina (teste pytest,
+- **Território novo (acordado em 2026-10-06):** cookies no FastAPI e todo o front-end — a fase 3
+  não se aplica: traga o **código pronto no chat, com o conceito ao lado de cada trecho**; ela
+  copia para o arquivo, roda e explica em voz alta. No front, **não** porque ela nunca o fez: ela
+  já entregou projetos com React, Vite, HTML e CSS, e repetir sintaxe que já sabe não ensina. O
+  novo ali é a arquitetura e a segurança (sessão, cache, rotas de layout), e adivinhar conceito
+  que nunca se viu também não ensina. A fase 3 continua valendo para o que ela já domina (teste pytest,
   service, repository, ADR), e o contra-teste continua sendo dela. Vale também para o desenho:
   em território novo, o desenho vem pronto, com o porquê — sem perguntas para ela adivinhar.
 
