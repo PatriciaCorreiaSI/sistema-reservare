@@ -108,7 +108,9 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 ## Próximo passo
 
 **A série de posts no LinkedIn.** A parte 1, a corrida de reservas, foi publicada em 2026-10-29
-(imagem: a linha do tempo das duas transações, num artifact privado, "Corrida de reservas"). As
+(imagem: a linha do tempo das duas transações, num artifact privado, "Corrida de reservas"). A
+parte 2 está pronta desde 2026-10-30 (texto fechado; imagem no artifact privado "Tutora, não
+autora"), para ir ao ar a partir de 2026-11-05; faltam só as hashtags e a pergunta final. As
 próximas, uma a duas semanas entre elas:
 
 | Parte | Tema | Fonte |
