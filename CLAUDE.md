@@ -92,7 +92,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
 | 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
 | 8 — observabilidade e deploy | 2026-10-28 | ADRs 0028–0034, emendas aos 0010 e 0014 |
-| 9 — vitrine | 2026-10-29 | sem ADR; `.env.example` que funciona (decisão em vigor) |
+| 9 — vitrine | 2026-10-29 | sem ADR; `.env.example` que funciona (decisão em vigor); tag `v1.0.0` (anotada) e GitHub Release em 2026-10-30, pelo site: o `gh` desta máquina está na conta do trabalho |
 
 Suíte do back-end em `146 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
@@ -129,9 +129,7 @@ diagrama do conceito, com as cores do Reservare.
 
 Fora da série, ainda em aberto: pôr o critério de pronto da Etapa 9 à prova com alguém que nunca
 viu o projeto seguindo o README do zero;
-a decisão de seguir ou não para o bônus (ROADMAP §9: idempotência primeiro) — se seguir, a tag
-`v1.0.0` (anotada, com GitHub Release) sai antes do primeiro commit do bônus; se não, sai como
-fechamento; e a imagem de prévia social do repositório (1280 × 640, enviada em *Settings*),
+a decisão de seguir ou não para o bônus (ROADMAP §9: idempotência primeiro); e a imagem de prévia social do repositório (1280 × 640, enviada em *Settings*),
 antes de a parte 2 ir ao ar. A comparação com o mercado da Etapa 9 foi feita em 2026-10-30.
 
 Texto de vitrine (README, `colaboracao-ia.md`, post): "código **sugerido** pela IA", nunca "código
