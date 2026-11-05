@@ -94,7 +94,7 @@ Antes de escrever implementação, verifique em que fase ela está:
 | 8 — observabilidade e deploy | 2026-10-28 | ADRs 0028–0034, emendas aos 0010 e 0014 |
 | 9 — vitrine | 2026-10-29 | sem ADR; `.env.example` que funciona (decisão em vigor); tag `v1.0.0` (anotada) e GitHub Release em 2026-10-30, pelo site: o `gh` desta máquina está na conta do trabalho |
 
-Suíte do back-end em `146 passed`; e2e em `16 passed`. O detalhe de cada etapa está no ROADMAP;
+Suíte do back-end em `146 passed`; e2e em `18 passed`. O detalhe de cada etapa está no ROADMAP;
 a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
@@ -103,7 +103,7 @@ armadilhas.
 responde `Docker Desktop is manually paused` e o `pytest` pendura); da raiz, `docker compose up -d
 db` até `(healthy)`; de `backend/`, `uv run pytest` → `146 passed` (e o aviso do `httpx`, backlog)
 antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx playwright test`
-→ `16 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
+→ `18 passed`. Para a API à mão e o front, o banco de desenvolvimento precisa do admin (`criar_admin`; `ADMIN_SENHA` vazia passa pelo `os.environ` e cai no `min_length=8`).
 
 ## Próximo passo
 
@@ -216,8 +216,9 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
 - **Como se escreve um e2e:** prepara pela API (`e2e/api.ts`), age pela tela (`e2e/tela.ts`);
   instante da API + milissegundos, nunca hora local montada. Antes da conferência, a **condição**
   (`toHaveCount(2)`, item fora da tela) — sem ela o teste passa verde com o defeito. Um
-  `toBeVisible()` antes de mexer pela API é sincronização. Botão repetido se acha pelo escopo do
-  item; texto procurado é copiado da tela, nunca redigitado (localizador errado não dá erro: espera
+  `toBeVisible()` antes de mexer pela API é sincronização. `getByLabel` procura por trecho, sem diferenciar maiúscula, e lê
+  também o `aria-label`: "Senha" acha o botão "Mostrar senha" (`{ exact: true }`). Botão repetido se
+  acha pelo escopo do item; texto procurado é copiado da tela, nunca redigitado (localizador errado não dá erro: espera
   30 s, e o `waiting for` cita a string). Nenhum `page.goto` no meio quando o cache importa
   (recarregar zera a memória). Para ver um estado que dura milissegundos, **segurar** o pedido
   (`page.route` sem resposta); para um erro que a API não produz de propósito, responder no lugar
@@ -390,6 +391,10 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
   renomeado na API vira erro de tipo); só "obrigatório" — não inventar regra que a API não tem;
   `noValidate`. Volta à origem pelo `state` do histórico, conferido por `destinoDe(estado:
   unknown)` — no `state`, e não em `?proximo=`, para não haver redirecionamento aberto.
+- **Mostrar senha** (2026-11-05, depois da `v1.0.0`): o estado mora na `TelaLogin`, porque o envio o
+  zera (quem enviou não fica com a senha à mostra). `spellCheck={false}`, senão o `type="text"` passa
+  pelo corretor do navegador, que pode mandar o texto a um servidor; `[&::-ms-reveal]:hidden` tira o
+  olho próprio do Edge; nome fixo + `aria-pressed`, como no `SeletorDeTema`.
 - **Logout** limpa no `onSettled` (mesmo com a API fora): access e `queryClient.clear()` — o cache
   inteiro, não só o `["sessao"]`. Com a API fora, o cookie sobrevive e o próximo F5 renova.
   **Login** faz `removeQueries()` no `onSuccess` (decidido em 2026-10-14): quem entra começa

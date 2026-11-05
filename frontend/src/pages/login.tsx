@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router";
 import { z } from "zod";
@@ -32,10 +33,32 @@ function destinoDe(estado: unknown): string {
   return "/recursos";
 }
 
+// Sem biblioteca de ícones por um desenho só. O currentColor herda a cor do botão, então
+// acompanha o tema; o aria-hidden tira o desenho do leitor de tela (quem nomeia é o botão).
+function IconeDoOlho({ riscado }: { riscado: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="size-5"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+      {riscado && <path d="m4 4 16 16" />}
+    </svg>
+  );
+}
+
 export function TelaLogin() {
   const navegar = useNavigate();
   const local = useLocation();
   const login = useLogin();
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const {
     register,
     handleSubmit,
@@ -43,6 +66,8 @@ export function TelaLogin() {
   } = useForm({ resolver: zodResolver(esquemaLogin) });
 
   const entrar = handleSubmit((credenciais) => {
+    // A senha não fica à mostra depois de enviada, nem se a resposta for um erro.
+    setSenhaVisivel(false);
     login.mutate(credenciais, {
       onSuccess: () => navegar(destinoDe(local.state), { replace: true }),
     });
@@ -98,12 +123,29 @@ export function TelaLogin() {
             </Campo>
             <Campo id="senha" rotulo="Senha" erro={errors.senha?.message}>
               {(props) => (
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  {...props}
-                  {...register("senha")}
-                />
+                <div className="relative">
+                  {/* Como type="text", o texto passaria pelo corretor do navegador, que
+                      pode mandá-lo a um servidor: o spellCheck fica desligado de vez. */}
+                  <input
+                    type={senhaVisivel ? "text" : "password"}
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    {...props}
+                    {...register("senha")}
+                    className={`${props.className} w-full pr-12 [&::-ms-reveal]:hidden`}
+                  />
+                  {/* type="button": sem ele, o botão dentro do form enviaria o form. */}
+                  <button
+                    type="button"
+                    aria-label="Mostrar senha"
+                    aria-pressed={senhaVisivel}
+                    onClick={() => setSenhaVisivel((visivel) => !visivel)}
+                    className="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-lg p-2 text-texto-suave hover:text-texto"
+                  >
+                    <IconeDoOlho riscado={senhaVisivel} />
+                  </button>
+                </div>
               )}
             </Campo>
             {login.isError && (

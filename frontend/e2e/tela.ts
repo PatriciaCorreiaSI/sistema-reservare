@@ -7,6 +7,6 @@ export async function entrarPelaTela(
   pessoa: { email: string; senha: string },
 ) {
   await page.getByLabel("E-mail").fill(pessoa.email);
-  await page.getByLabel("Senha").fill(pessoa.senha);
+  await page.getByLabel("Senha", { exact: true }).fill(pessoa.senha);
   await page.getByRole("button", { name: "Entrar" }).click();
 }
