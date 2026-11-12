@@ -62,13 +62,14 @@ Antes de escrever implementação, verifique em que fase ela está:
 - Escrever _para ela ler e reescrever_ é diferente de escrever no lugar dela.
   Deixe claro qual dos dois está acontecendo.
 - **Território novo (acordado em 2026-10-06):** cookies no FastAPI e todo o front-end — a fase 3
-  não se aplica: traga o **código pronto no chat, com o conceito ao lado de cada trecho**; ela
-  copia para o arquivo, roda e explica em voz alta. No front, **não** porque ela nunca o fez: ela
-  já entregou projetos com React, Vite, HTML e CSS, e repetir sintaxe que já sabe não ensina. O
-  novo ali é a arquitetura e a segurança (sessão, cache, rotas de layout), e adivinhar conceito
-  que nunca se viu também não ensina. A fase 3 continua valendo para o que ela já domina (teste pytest,
-  service, repository, ADR), e o contra-teste continua sendo dela. Vale também para o desenho:
-  em território novo, o desenho vem pronto, com o porquê — sem perguntas para ela adivinhar.
+  não se aplica: o desenho e o **código vêm prontos no chat, com o conceito ao lado de cada
+  trecho**; ela copia para o arquivo, roda e explica em voz alta. No front, **não** porque ela
+  nunca o fez (já entregou projetos com React, Vite, HTML e CSS): o novo ali é a arquitetura e a
+  segurança (sessão, cache, rotas de layout), e adivinhar conceito que nunca se viu não ensina.
+  Código de front é **testado antes numa cópia fora do repositório** (`tsc`, ESLint, Prettier, e
+  o e2e quando couber; para instalar pacote, a cópia leva `node_modules` próprio). Os conceitos já
+  dados estão no `docs/aprendizados.md`: não reexplicar o básico. A fase 3 continua valendo para
+  o que ela domina (teste pytest, service, repository, ADR), e o contra-teste é sempre dela.
 
 ### As sete regras do projeto
 
@@ -82,20 +83,10 @@ Antes de escrever implementação, verifique em que fase ela está:
 
 ## Estado atual
 
-| Etapa | Concluída em | Decisões |
-|---|---|---|
-| 1 — modelagem e migrations | 2026-09-10 | ADRs 0001–0004; migration `8cf01df862a4`; `docs/prova-invariante.sql` passa |
-| 0 — fundação | — | `docker compose up` sobe `db` e `api`; `/health` → `200` |
-| 2 — primeira fatia vertical | 2026-09-15 | ADRs 0010–0011 |
-| 3 — autenticação | 2026-09-23 | ADRs 0012–0013 |
-| 4 — reservas e concorrência | 2026-10-01 | ADRs 0014–0020 (pendências em 10-02) |
-| 6 — testes e CI | 2026-10-05 | ADRs 0021–0022 |
-| 7 — front-end | 2026-10-21 | ADRs 0023–0027, emendas aos 0018 e 0022 |
-| 8 — observabilidade e deploy | 2026-10-28 | ADRs 0028–0034, emendas aos 0010 e 0014 |
-| 9 — vitrine | 2026-10-29 | sem ADR; `.env.example` que funciona (decisão em vigor); tag `v1.0.0` (anotada) e GitHub Release em 2026-10-30, pelo site: o `gh` desta máquina está na conta do trabalho |
-
-Suíte do back-end em `146 passed`; e2e em `18 passed`. O detalhe de cada etapa está no ROADMAP;
-a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
+**v1.0.0 concluída** (etapas 0 a 9, ADRs 0001–0034): tag anotada e GitHub Release em 2026-10-30,
+pelo site — o `gh` desta máquina está na conta do trabalho. Depois dela, só o botão de mostrar a
+senha (2026-11-05). Suíte do back-end em `146 passed`; e2e em `18 passed`. O detalhe de cada
+etapa está no ROADMAP e no README; a história de cada sessão, no `git log`. Este arquivo guarda só o que **não** se deriva de lá nem
 do código: decisões em vigor fora dos ADRs, compromissos sobre código que ainda não existe, e
 armadilhas.
 
@@ -107,33 +98,14 @@ antes de mexer em qualquer coisa; mexendo no front, também de `frontend/`, `npx
 
 ## Próximo passo
 
-**A série de posts no LinkedIn.** A parte 1, a corrida de reservas, foi publicada em 2026-10-29
-(imagem: a linha do tempo das duas transações, num artifact privado, "Corrida de reservas"). A
-parte 2 está pronta desde 2026-10-30 (texto fechado; imagem no artifact privado "Tutora, não
-autora", já baixada), para ir ao ar a partir de 2026-11-05. A parte 3 se rascunha depois que a
-2 sair; o gancho candidato é o par de chaves perdido que só o ensaio de restauração achou. As
-próximas, uma a duas semanas entre elas:
+A série de posts no LinkedIn segue fora do repositório (na memória pessoal do Claude). Ainda em
+aberto:
 
-| Parte | Tema | Fonte |
-|---|---|---|
-| 2 | A IA como tutora, não como autora | `docs/colaboracao-ia.md` |
-| 3 | Backup só vale se for restaurado | ADR 0032 |
-| 4 | `404`, e não `403`: não contar que a reserva existe | ADR 0017 |
+- pôr o critério de pronto da Etapa 9 à prova com alguém que nunca viu o projeto, seguindo o
+  README do zero;
+- decidir se segue ou não para o bônus (ROADMAP §9: idempotência primeiro);
+- a imagem de prévia social do repositório (1280 × 640, enviada em *Settings*).
 
-O formato que a parte 1 fixou: título na primeira linha, curto e sozinho (nunca o "negrito"
-Unicode, que o leitor de tela soletra); gancho numa cena concreta antes do "ver mais"; jargão só
-depois do problema; 1.200–2.000 caracteres; link do repositório no corpo; uma pergunta a quem lê;
-"Reservare, parte N: <tema>." no fim; até três hashtags; texto alternativo na imagem. Cada post se
-sustenta sozinho. Eu sugiro o texto, ela ajusta. O GIF fica no README; a imagem do post é um
-diagrama do conceito, com as cores do Reservare.
-
-Fora da série, ainda em aberto: pôr o critério de pronto da Etapa 9 à prova com alguém que nunca
-viu o projeto seguindo o README do zero;
-a decisão de seguir ou não para o bônus (ROADMAP §9: idempotência primeiro); e a imagem de prévia social do repositório (1280 × 640, enviada em *Settings*),
-antes de a parte 2 ir ao ar. A comparação com o mercado da Etapa 9 foi feita em 2026-10-30.
-
-Texto de vitrine (README, `colaboracao-ia.md`, post): "código **sugerido** pela IA", nunca "código
-da IA" — ela digitou tudo, e parte mudou na conversa.
 ## Produção (Etapa 8): o que o código não conta
 
 - **Logs (0029):** o `X-Request-ID` só aparece na tela nos 5xx (`CodigoDoErro`, um `<span>` em
@@ -173,8 +145,8 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
   Se vazar, troca-se a senha do papel (Neon: **Reset password**, ou `ALTER ROLE`) e o destino dela:
   a `DATABASE_URL` no Render (`neondb_owner`) ou o *secret* `NEON_URL_BACKUP` (`backup_leitura`).
 - **Os dois bugs de transação** que o e2e instável revelou (emendas aos 0010 e 0014). **Run verde
-  com `flaky` é sintoma, não sorte.** Commit antes da resposta: o serviço recebe `sessao: Sessao`
-  (`scope="function"`); o `TestClient` sozinho espera a requisição inteira e passa verde com o
+  com `flaky` é sintoma, não sorte.** Commit antes da resposta (a regra está em "Camadas"): o
+  `TestClient` sozinho espera a requisição inteira e passa verde com o
   defeito, então o teste espia o `http.response.start`. Deadlock da `EXCLUDE`: o teste monta o
   círculo (A sem commit, B pela API, C pelo teste) e o fecha assim que a `pg_stat_activity` mostra
   a API esperando; o abortado é quem esperou primeiro, e a procura por círculo roda **uma vez por
@@ -225,10 +197,6 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
   dela (`rota.fulfill`). Nome de cabeçalho no `fulfill` é string: `X-Request_ID` faz o teste de
   ausência passar verde pelo motivo errado. Arquivo sem `.spec.ts` no nome é ignorado em silêncio (`npx
   playwright test --list`).
-- **Como trabalhar no front:** território novo — código pronto no chat, **testado antes numa cópia
-  fora do repositório** (`tsc`, ESLint, Prettier, e o e2e quando couber; para instalar pacote, a
-  cópia leva `node_modules` próprio), conceito ao lado; ela digita, roda e explica. Os conceitos
-  já dados estão no `docs/aprendizados.md` e no histórico: não reexplicar o básico.
 
 ## Decisões em vigor fora dos ADRs
 
@@ -325,21 +293,20 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
 
 ### Código da Etapa 4 que não se lê de primeira
 
+(Códigos de cada rota, faixas de `limite`/`deslocamento` e o filtro por papel: `docs/api.md`.)
+
 - **`criar`**: recurso primeiro (`404`, depois `409` inativo), então as três regras de `422`
   (passado, `cabe_no_horario`, `convidados > ocupacao`), filhas de `RegraDeReservaViolada`, com
-  **um handler só**. A sobreposição não é checada no Python: o repository traduz a `EXCLUDE` por
-  constantes (`SEM_SOBREPOSICAO`, `FK_RECURSO`); o resto sobe (`500`).
-- **`listar`**: o service decide o filtro (admin → `None`; usuária → o `id` do token); ordena por
-  `id_reserva` (paginação estável). `limite` em `Query(20, ge=1, le=100)`, `deslocamento` em
-  `Query(0, ge=0)`.
-- **`cancelar`**: ler → `garantir_acesso` (`404`) → `update()` condicional do ADR 0016 →
-  `rowcount == 1`, senão `ReservaNaoCancelavel` (`409`). O `synchronize_session` padrão atualiza o
-  objeto lido antes.
+  **um handler só**. A sobreposição não é checada no Python: o repository traduz a `EXCLUDE` por constantes
+  (`SEM_SOBREPOSICAO`, `FK_RECURSO`); o resto sobe (`500`).
+- **`listar`**: o service decide o filtro; ordena por `id_reserva` (paginação estável).
+- **`cancelar`**: ler → `garantir_acesso` (`404`) → `update()` condicional do ADR 0016 → `rowcount == 1`, senão
+  `ReservaNaoCancelavel` (`409`). O `synchronize_session` padrão atualiza o objeto lido antes.
 - **`disponibilidade`** mora no `ReservaService` (ADR 0019), mas a rota fica em
   `routers/recurso.py`: o router é escolhido pela **URL**, o service pela **regra**.
   `listar_ativas_na_janela` filtra por `cancelada_em.is_(None)`, **o mesmo predicado do `where=` da
   `EXCLUDE`**. `calcular_lacunas` **assume `ocupados` ordenado por início** (o `order_by` do
-  repository é parte do contrato). Dia no passado → `200` vazio sem consultar o banco.
+  repository é parte do contrato).
 - **Fato central da Etapa 4:** quando a transação 2 insere sobre uma linha que a 1 fez `flush` mas
   não comitou, o Postgres **não recusa — espera**. `commit` na 1 → erro da `EXCLUDE` na 2;
   `rollback` → a 2 entra. Por isso o teste de concorrência precisa de `commit` real.
@@ -513,8 +480,6 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
   campo da classe é sempre falso. `Coluna == lista` não é `IN` (é `.in_(...)`); `scalar` devolve um
   valor, `scalars(...).all()` a lista; função sem `()` é a própria função (`url.drivername` →
   `AttributeError`). Nenhum dos três o `mypy` pega.
-- **`return 0` não é código de saída:** o Python sai com `0` ao terminar, `1` com exceção não
-  pegada, `n` com `sys.exit(n)`.
 - **`mypy` e o SQLAlchemy:** `IntegrityError.orig` é `BaseException | None` (`.diag` só depois de
   `isinstance(erro.orig, psycopg.Error)`); o `rowcount` só existe no `CursorResult`. Função sem
   anotação não é conferida: o verde do `mypy` não prova nada nela.
@@ -552,30 +517,20 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
 - **`fabrica()` × `fabrica.begin()`:** a mistura com `sessao.begin()` dá `InvalidRequestError`.
 - **Thread engole o que acontece nela:** o resultado vai numa lista que o teste lê; `join(timeout)`
   não falha ao vencer o prazo (quem diz é `is_alive()`); o valor do `for` precisa chegar ao `args`.
-- **Traceback:** a linha que importa é a do arquivo do projeto e a que começa com `E`.
-  `ERROR collecting` = o arquivo nem carregou.
 - **`F401` pode ser o defeito** (import sem o `include_router`). Não rodar `ruff check --fix` em
   arquivo pela metade.
 - **`os.environ[...]` protege contra chave ausente, não contra chave vazia.**
-- **Sem o banco no ar, o `pytest` pendura** em vez de falhar: `docker compose ps` primeiro.
 - **`autogenerate`:** tabela já existente → migration **vazia**, sem aviso; em tabela existente é
   cego para `EXCLUDE` e `CHECK`; `CREATE EXTENSION` nunca sai do modelo; sem `comment=` ele apaga o
   `COMMENT ON COLUMN`; modelo fora do `app/models/__init__.py` não entra no `Base.metadata`.
 - **`mapped_column`:** a anotação dá o `NOT NULL` (`X | None` permite nulo); o argumento descreve o
   tipo no banco e ganha. `__table_args__` com um item precisa da vírgula final.
-- `str(URL)` mascara a senha; `docker compose config` imprime a senha em texto puro. **Sequência do
-  Postgres nunca volta atrás** — buraco em `id` não é erro.
-- **Commit que já subiu não se reescreve** — nem `amend`, nem `reset`: dá `non-fast-forward` no
-  push. Corrige-se com um commit **por cima**; `amend` e `reset --soft` são para o que não saiu da
-  máquina. `git reset --hard` descarta tudo o que não foi commitado: `git status` antes, sempre.
+- `str(URL)` mascara a senha; `docker compose config` imprime a senha em texto puro.
 - **No workflow, os `with:` das actions não respeitam `defaults.run.working-directory`**
   (`node-version-file` e `cache-dependency-path` levam `frontend/` na frente).
-- **PowerShell não tem `head`** (`Select-Object -First 40`). O `npm` recusa conflito de *peer
-  dependency* (`ERESOLVE`): é erro, não aviso.
 - **O pipe do PowerShell 5.1 para executável nativo põe BOM no começo** (`set: not found` com um
   caractere invisível na frente, `unknown identity type`): passar por arquivo, ou
   `[Console]::InputEncoding` e `$OutputEncoding` em UTF-8 sem BOM antes do pipe.
-- **Em tabela Markdown, todo `|` separa coluna**, mesmo dentro de *backticks*: escapar com `\|`.
 
 ## Backlog (regra 7 — nenhum é v1)
 
@@ -600,9 +555,6 @@ da IA" — ela digitou tudo, e parte mudou na conversa.
   (ADR 0016).
 - **Observabilidade:** OpenTelemetry (`traceparent`), se um dia houver mais de um serviço (ADR 0029).
 - `str_strip_whitespace` para nome só de espaços; `httpx2` no lugar de `httpx`.
-
-> Atualize "Estado atual" e "Próximo passo" ao fechar cada etapa. O README tem a tabela de status
-> completa e não deve listar nada como pronto antes de estar funcionando.
 
 ## Stack decidida
 
@@ -642,33 +594,22 @@ motivo novo. Em particular: **não** SQLModel (funde modelo e schema), **não**
 - **Segredos nunca no repositório.** `.env` no `.gitignore` antes do primeiro
   commit que o criaria. Em repo público, segredo commitado é segredo
   _rotacionado_, não apagado.
-- Ao fim de cada sessão de trabalho, registrar **qual é o próximo passo**.
+- Ao fim de cada sessão de trabalho, registrar **qual é o próximo passo** aqui. O README não lista
+  nada como pronto antes de estar funcionando.
+- **Texto de vitrine** (README, `colaboracao-ia.md`, post): "código **sugerido** pela IA", nunca
+  "código da IA" — ela digitou tudo, e parte mudou na conversa.
 
 ## Comandos
 
-Rodar de dentro de `backend/`, onde está o `pyproject.toml`:
+Só o que não se lê no `pyproject.toml`, no `package.json` nem no README. O back-end roda de
+`backend/` (onde está o `pyproject.toml`); o front, de `frontend/` (Node 24, versão no `.nvmrc`;
+`npm ci` é a forma do CI, que recusa lock desatualizado; `npm run dev` precisa da API no ar).
 
-- `uv sync` — recria o `.venv/` a partir do `uv.lock`
-- `uv run uvicorn app.main:app --reload` — sobe a API local (`/health` e `/docs`)
-- `uv add <pacote>` / `uv add --dev <pacote>` — produção / desenvolvimento
-- `uv run ruff check .` — lint; `uv run ruff format .` — formatação
-- `uv run mypy app` — verificação de tipos
 - `uv run python -m app.comandos.criar_admin` — cria o primeiro admin a partir de `ADMIN_NOME`,
   `ADMIN_EMAIL` e `ADMIN_SENHA` do `.env`; sai com código `1` se o e-mail já existir
 - `uv run python -m app.comandos.exportar_openapi` — grava `app.openapi()` em
-  `frontend/openapi.json` (JSON com `indent=2`, UTF-8, LF); importa o app, logo precisa do `.env`
-
-Front, de dentro de `frontend/` (Node 24, versão em `.nvmrc`):
-
-- `npm install` — instala o `package-lock.json`; `npm ci` é a forma do CI, que recusa lock
-  desatualizado. `npm install -D <pacote>` é o `uv add --dev`
-- `npm run dev` — sobe o Vite em `http://localhost:5173`, com o proxy de `/api` para a API, que
-  precisa estar no ar (`uvicorn`, em outro terminal)
-- `npm run lint` — ESLint; `npm run format` — Prettier reescreve; `npm run format:check` — só
-  confere (o do CI)
-- `npm run build` — `tsc -b && vite build`: tipos e empacotamento em `dist/` (ignorado)
-- `npm run gerar-tipos` — `openapi-typescript openapi.json -o src/api/tipos.ts`; rodar depois do
-  `exportar_openapi`
+  `frontend/openapi.json` (JSON com `indent=2`, UTF-8, LF); importa o app, logo precisa do `.env`.
+  Depois dele, `npm run gerar-tipos` (de `frontend/`)
 
 Da **raiz** do repositório, porque o `pre-commit` não está no `PATH` (ele vive
 em `backend/.venv/`):
@@ -682,8 +623,7 @@ as aspas simples, que impedem o PowerShell de expandir `$POSTGRES_USER` antes da
 
 - `docker compose up -d db` — sobe só o banco; `docker compose ps` mostra quando fica `(healthy)`.
   `Started` significa apenas que o container subiu, não que o Postgres aceita conexão
-- `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` — psql interativo.
-  Dentro dele: `\dt` lista tabelas, `\d reserva` mostra colunas, índices e constraints, `\q` sai
+- `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` — psql interativo
 - `Get-Content docs/prova-invariante.sql | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`
   — roda um `.sql`. O `-T` é obrigatório: sem ele o `exec` tenta alocar terminal e ignora o pipe.
   Acrescentar `-v ON_ERROR_STOP=1` **só** para o esquema, onde erro significa consertar; nunca para
@@ -694,32 +634,9 @@ as aspas simples, que impedem o PowerShell de expandir `$POSTGRES_USER` antes da
 O PowerShell 5.1 come aspas duplas ao chamar executável nativo, então `psql -c "SELECT ..."` numa
 linha só chega truncado ao container. Use o psql interativo ou `-f`.
 
-O Postgres também é alcançável direto do Windows em `127.0.0.1:5432`, desde que `docker compose up
--d db` esteja no ar — é assim que o Alembic conecta.
-
-Alembic, de dentro de `backend/`. O `alembic.ini` mora lá e a ferramenta o procura no **diretório
-atual**, então rodar da raiz falha:
-
-- `uv run alembic revision --autogenerate -m "<mensagem>"` — gera a migration comparando
-  `Base.metadata` com o banco. **Nunca confie no resultado sem ler** (ver as armadilhas do
-  `autogenerate`)
-- `uv run alembic upgrade head` — aplica; `uv run alembic downgrade base` desfaz tudo
-- `uv run alembic current` — mostra em que revisão o banco está; `uv run alembic history` lista a
-  cadeia
-- `uv run alembic upgrade head --sql` — imprime o SQL sem conectar (modo *offline*), útil para
-  revisar antes de aplicar
-
-Testes, de dentro de `backend/`. Precisam do `db` no ar (`docker compose up -d db`, da raiz) e do
-banco `reservare_test` já criado — o `conftest.py` aplica `alembic upgrade head` nele uma vez por
-rodada, mas não o cria:
-
-- `uv run pytest` — a suíte inteira; `-q` resume, `-v` lista cada teste com `PASSED`/`FAILED`
-- `uv run pytest -k em_uso` — só os testes cujo nome contém o trecho; ou o caminho completo,
-  `uv run pytest tests/test_recurso.py::test_remover_recurso_em_uso`
-- `uv run pytest -s` — libera a saída de `print()` (sem o `-s` o pytest a engole). Para investigar;
-  o `print` não commita
-- O pytest só mostra valores quando o `assert` **falha** (`assert 404 == 409`) — leia esse número
-  antes de qualquer outra coisa
+Alembic, só de dentro de `backend/`: o `alembic.ini` mora lá e a ferramenta o procura no
+**diretório atual**, então rodar da raiz falha. O `--autogenerate` **nunca se aceita sem ler** (ver
+as armadilhas); `upgrade head --sql` imprime o SQL sem conectar, para revisar antes de aplicar.
 
 ## Git
 
